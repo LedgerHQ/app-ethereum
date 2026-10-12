@@ -292,18 +292,24 @@ def schema_with_raw_field(raw: bytes) -> bytes:
     )
 
 
-# characters that would break the EIP-712 type encoding, or that no sane identifier holds
+# what a name must not hold is what would make the schema ambiguous: the encoded type string
+# ('(' ')' ',' and, for a type, the space and the brackets) and the JSON of the schema ('"' '\').
+# How a name looks is for the review to judge
 BAD_NAMES = {
     "empty": "",
-    "space": "a b",
     "comma": "a,b",
     "open_paren": "a(b",
     "close_paren": "a)b",
     "quote": 'a"b',
     "backslash": "a\\b",
-    "dot": "a.b",
-    "control": "a\x01b",
-    "delete": "a\x7fb",
+    "nul": "a\x00b",
+}
+# a struct name, and a reference to one, also delimit a type: a field name may hold these
+BAD_STRUCT_NAMES = BAD_NAMES | {
+    "space": "a b",
+    "open_bracket": "a[0",
+    "close_bracket": "a]",
+    "brackets": "a[0]",
 }
 
 INVALID_FIELDS = {
@@ -377,13 +383,13 @@ INVALID_SCHEMAS: dict[str, Callable[[], bytes]] = {
     ),
 }
 INVALID_SCHEMAS |= {f"field_{label}": partial(schema_with_field, f) for label, f in INVALID_FIELDS.items()}
-INVALID_SCHEMAS |= {f"struct_name_{label}": partial(schema_with_struct_named, name) for label, name in BAD_NAMES.items()}
+INVALID_SCHEMAS |= {f"struct_name_{label}": partial(schema_with_struct_named, name) for label, name in BAD_STRUCT_NAMES.items()}
 INVALID_SCHEMAS |= {
     f"field_name_{label}": partial(schema_with_field, field(name, SolType.BOOL)) for label, name in BAD_NAMES.items()
 }
 INVALID_SCHEMAS |= {
     f"field_struct_name_{label}": partial(schema_with_field, field("x", SolType.STRUCT, struct_name=name))
-    for label, name in BAD_NAMES.items()
+    for label, name in BAD_STRUCT_NAMES.items()
 }
 
 
@@ -485,6 +491,64 @@ def test_eip712_v2_values_rejected(scenario_navigator: NavigateWithScenario, mut
     assert response.status == StatusWord.SWO_SUCCESS
 
     expect_status(StatusWord.SWO_INCORRECT_DATA, lambda: app_client.eip712_v2_send_values(tlv(*mutate(values_fields()))))
+    assert_recovers(app_client)
+
+
+# a value that fits each type, so that a message can be built before one of its leaves is replaced
+LEAF_TYPES = {
+    "uint8": 0,
+    "uint256": 0,
+    "int8": 0,
+    "int16": 0,
+    "int256": 0,
+    "bytes4": "0x00000000",
+    "address": "0x" + "00" * 20,
+    "bool": False,
+}
+
+# leaves that no value of their type is encoded as: not minimal, too long, too short, or empty
+INVALID_LEAVES = {
+    "uint8_two_bytes": ("uint8", b"\x01\x00"),
+    "uint8_empty": ("uint8", b""),
+    "uint8_leading_zero": ("uint8", b"\x00\x01"),
+    "uint8_zero_on_two_bytes": ("uint8", b"\x00\x00"),
+    "uint256_leading_zero": ("uint256", b"\x00\x01"),
+    "uint256_33_bytes": ("uint256", b"\xff" * 33),
+    "int8_two_bytes": ("int8", b"\x01\x00"),
+    "int8_empty": ("int8", b""),
+    "int16_leading_zero": ("int16", b"\x00\x7f"),
+    "int16_leading_zero_before_a_top_bit": ("int16", b"\x00\x80"),
+    "int256_33_bytes": ("int256", b"\xff" * 33),
+    "bytes4_short": ("bytes4", b"\x01\x02\x03"),
+    "bytes4_long": ("bytes4", b"\x01\x02\x03\x04\x05"),
+    "bytes4_empty": ("bytes4", b""),
+    "address_short": ("address", b"\x00" * 19),
+    "address_long": ("address", b"\x00" * 21),
+    "address_empty": ("address", b""),
+    "bool_two": ("bool", b"\x02"),
+    "bool_two_bytes": ("bool", b"\x00\x01"),
+    "bool_empty": ("bool", b""),
+}
+
+
+def data_with_field_of_type(sol_type: str) -> dict:
+    data = minimal_data()
+    data["types"]["Test"] = [{"name": "x", "type": sol_type}]
+    data["message"] = {"x": LEAF_TYPES[sol_type]}
+    return data
+
+
+@pytest.mark.parametrize("sol_type, leaf", INVALID_LEAVES.values(), ids=INVALID_LEAVES.keys())
+def test_eip712_v2_leaf_rejected(scenario_navigator: NavigateWithScenario, sol_type: str, leaf: bytes):
+    """A leaf that is not the one encoding of a value of its type must be refused."""
+    app_client = EthAppClient(scenario_navigator.backend)
+    data = data_with_field_of_type(sol_type)
+
+    response = app_client.eip712_v2_send_schema(json_to_tlv.schema_from_json(data).serialize())
+    assert response.status == StatusWord.SWO_SUCCESS
+
+    fields = replaced(values_fields(data), Eip712ValuesTag.MESSAGE, Eip712ValueSeq([leaf]).serialize())
+    expect_status(StatusWord.SWO_INCORRECT_DATA, lambda: app_client.eip712_v2_send_values(tlv(*fields)))
     assert_recovers(app_client)
 
 
@@ -729,6 +793,107 @@ def test_eip712_v2_max_struct_name(scenario_navigator: NavigateWithScenario):
     name = "A" * MAX_STRUCT_NAME_LENGTH
     data["types"][name] = data["types"].pop("Test")
     data["primaryType"] = name
+
+    vrs = sign_and_approve(scenario_navigator, data)
+    assert get_wallet_addr(EthAppClient(scenario_navigator.backend)) == recover_message(data, vrs)
+
+
+def test_eip712_v2_names_are_not_identifiers(scenario_navigator: NavigateWithScenario):
+    """The standard puts no condition on a field name, and hosts send struct names that are no identifier."""
+    enable_blind_signing(scenario_navigator)
+    data = minimal_data()
+    data["types"].pop("Test")
+    # the primary type of a Hyperliquid message
+    data["types"]["HyperliquidTransaction:UsdSend"] = [
+        {"name": "from-address", "type": "bool"},
+        {"name": "1st", "type": "uint8"},
+        {"name": "Order Details", "type": "uint8"},
+        {"name": "a.b", "type": "uint8"},
+        {"name": "a[0]", "type": "uint8"},
+        {"name": "_$", "type": "uint8"},
+    ]
+    data["primaryType"] = "HyperliquidTransaction:UsdSend"
+    data["message"] = {"from-address": True, "1st": 1, "Order Details": 2, "a.b": 3, "a[0]": 4, "_$": 5}
+
+    vrs = sign_and_approve(scenario_navigator, data)
+    assert get_wallet_addr(EthAppClient(scenario_navigator.backend)) == recover_message(data, vrs)
+
+
+def test_eip712_v2_names_that_are_not_shown_can_be_anything(scenario_navigator: NavigateWithScenario):
+    """Only the key of a value the review shows has to be displayable: a struct name or a field holding a struct are not."""
+    enable_blind_signing(scenario_navigator)
+    data = minimal_data()
+    data["types"].pop("Test")
+    data["types"]["Caf\u00e9"] = [{"name": "flag", "type": "bool"}]
+    data["types"]["Test"] = [{"name": "caf\u00e9\x01", "type": "Caf\u00e9"}]
+    data["primaryType"] = "Test"
+    data["message"] = {"caf\u00e9\x01": {"flag": True}}
+
+    vrs = sign_and_approve(scenario_navigator, data)
+    assert get_wallet_addr(EthAppClient(scenario_navigator.backend)) == recover_message(data, vrs)
+
+
+# a key the screen cannot show: not ASCII, a control character, or nothing visible
+NOT_DISPLAYABLE_KEYS = {
+    "non_ascii": "caf\u00e9",
+    "control": "a\x01b",
+    "delete": "a\x7fb",
+    "only_spaces": "  ",
+}
+
+
+@pytest.mark.parametrize("key", NOT_DISPLAYABLE_KEYS.values(), ids=NOT_DISPLAYABLE_KEYS.keys())
+def test_eip712_v2_key_that_cannot_be_shown_refuses_the_review(scenario_navigator: NavigateWithScenario, key: str):
+    """The key of a displayed value is part of the review: a message that cannot be shown whole must not be signed."""
+    enable_blind_signing(scenario_navigator)
+    app_client = EthAppClient(scenario_navigator.backend)
+    data = minimal_data()
+    data["types"]["Test"] = [{"name": key, "type": "bool"}]
+    data["message"] = {key: True}
+
+    json_to_tlv.process_data(app_client, data, BIP32_PATH)
+    with pytest.raises(ExceptionRAPDU) as e:
+        with app_client.eip712_v2_sign():
+            pass
+    assert e.value.status == StatusWord.SWO_INCORRECT_DATA
+    assert_recovers(app_client)
+
+
+# values at the edge of their type, each one sent as its one encoding: the integers are minimal, a
+# negative one has the full width of its type, and the top bit of a shorter value does not make it one
+BOUNDARY_VALUES = [
+    ("uint8", 0),
+    ("uint8", 255),
+    ("uint256", 0),
+    ("uint256", 256),
+    ("uint256", 2**256 - 1),
+    ("int8", 0),
+    ("int8", 127),
+    ("int8", -1),
+    ("int8", -128),
+    ("int16", 128),
+    ("int16", 255),
+    ("int16", 32767),
+    ("int16", -1),
+    ("int16", -32768),
+    ("int256", 2**255 - 1),
+    ("int256", -(2**255)),
+    ("bytes4", "0x00000000"),
+    ("bytes32", "0x" + "ff" * 32),
+    ("address", "0x" + "ff" * 20),
+    ("bool", False),
+    ("bool", True),
+    ("string", ""),
+    ("bytes", "0x"),
+]
+
+
+def test_eip712_v2_values_at_the_edge_of_their_type(scenario_navigator: NavigateWithScenario):
+    """Each edge value is accepted and hashed as the standard says."""
+    enable_blind_signing(scenario_navigator)
+    data = minimal_data()
+    data["types"]["Test"] = [{"name": f"f{i}", "type": sol_type} for i, (sol_type, _) in enumerate(BOUNDARY_VALUES)]
+    data["message"] = {f"f{i}": value for i, (_, value) in enumerate(BOUNDARY_VALUES)}
 
     vrs = sign_and_approve(scenario_navigator, data)
     assert get_wallet_addr(EthAppClient(scenario_navigator.backend)) == recover_message(data, vrs)

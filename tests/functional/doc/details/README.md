@@ -42,6 +42,10 @@ addresses, functions tested, and high-level test context.
   - 50+ test scenarios
   - DeFi protocols, NFT marketplaces, DAO votes
 
+- **[test_eip712_v2.md](test_eip712_v2.md)** - EIP-712 V2 signing (three test files)
+  - Schema, values, message info, field descriptors
+  - Raw and described reviews, calls, enum values and map entries
+
 ### Ethereum 2.0 / Staking
 
 - **[test_eth2.md](test_eth2.md)** - Beacon chain validator deposits

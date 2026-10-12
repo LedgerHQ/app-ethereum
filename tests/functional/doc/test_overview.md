@@ -234,6 +234,54 @@ Over 50 test scenarios covering:
 - Complex nested structures
 - Edge cases and error conditions
 
+📖 **[Detailed documentation](details/test_eip712.md)**
+
+---
+
+### test_eip712_v2.py
+
+**Purpose:** Test the EIP-712 V2 protocol: the schema and the values of a typed message are sent as
+two TLV payloads, then `EIP712 SIGN` starts the review.
+
+**Key Features Tested:**
+
+- **Signature**: The signer is recovered from a hash that `eth_account` computes independently
+- **Schema and Values**: Malformed, truncated, oversized and out-of-order payloads are refused
+- **Leaf Encoding**: One encoding per value, checked at the edge of every type
+- **Names**: Struct and field names, including non-identifiers and long names
+- **Raw Review**: The signer and every value are shown, behind the blind signing warning
+
+📖 **[Detailed documentation](details/test_eip712_v2.md)**
+
+---
+
+### test_eip712_v2_message_info.py
+
+**Purpose:** Test `EIP712_MESSAGE_INFO`, the signed description of a V2 message.
+
+**Key Features Tested:**
+
+- **Binding**: The info has to match the domain and the primary type of the message
+- **Signature and Structure**: Versions, required tags, sizes and signature
+- **Command**: Order, chunks, a second info, and V1 sessions
+
+📖 **[Detailed documentation](details/test_eip712_v2.md#test_eip712_v2_message_infopy)**
+
+---
+
+### test_eip712_v2_fields.py
+
+**Purpose:** Test the field descriptors of a V2 message and the review they describe.
+
+**Key Features Tested:**
+
+- **EIP712_PATH**: Fields, array slices, leaf slices and the limit of 16 values
+- **Parameters**: Raw, amount, datetime, duration, unit, network, groups, visibility
+- **Calls**: Calldata described as transactions, with their enum values and map entries
+- **Review**: Snapshots of each kind of review, and the refusals at `EIP712 SIGN`
+
+📖 **[Detailed documentation](details/test_eip712_v2.md#test_eip712_v2_fieldspy)**
+
 ---
 
 ## 5. Ethereum 2.0 / Staking Operations
@@ -468,7 +516,7 @@ smart-contract use-cases.
 - **URL Display**: Link to detailed security analysis
 - **Integration**:
   - Blind signing transactions
-  - EIP-712 messages
+  - EIP-712 messages, V1 (schema hash) and V2 (domain separator and hash of the primary type)
   - Proxy contracts
 - **Contract Address**: Associate security info with specific contracts
 
@@ -654,7 +702,7 @@ The test suite covers:
 
 ### Test Statistics
 
-- **Total Test Files**: 20
+- **Total Test Files**: 23
 - **Test Scenarios**: 120+ individual test functions
 - **Input Files**: 50+ EIP-712 test cases
 - **Device Types**: 5 (Nano S Plus, Nano X, Stax, Flex, Apex)

@@ -50,6 +50,8 @@ OTHER_BIP32_PATH = "m/44'/60'/1'/0/0"
 
 CLA = 0xE0
 P1_UNKNOWN = 0x02
+# a tag that none of the structures of the protocol defines
+UNKNOWN_TAG = 0x7F
 HARDENED = 0x80000000
 MAX_DEPTH = 16
 MAX_DERIVATION_PATH_LENGTH = 10
@@ -376,6 +378,24 @@ INVALID_SCHEMAS: dict[str, Callable[[], bytes]] = {
             (Eip712FieldTag.TYPE, SolType.BOOL),
         )
     ),
+    # a tag that the structure does not define is refused, not skipped
+    "schema_unknown_tag": lambda: schema_of(domain_struct(), flag_struct()) + tlv((UNKNOWN_TAG, 1)),
+    "struct_unknown_tag": lambda: schema_with_raw_struct(
+        tlv(
+            (Eip712StructTag.VERSION, STRUCT_VERSION),
+            (Eip712StructTag.NAME, "Test"),
+            (Eip712StructTag.FIELD, field("flag", SolType.BOOL).serialize()),
+            (UNKNOWN_TAG, 1),
+        )
+    ),
+    "field_unknown_tag": lambda: schema_with_raw_field(
+        tlv(
+            (Eip712FieldTag.VERSION, STRUCT_VERSION),
+            (Eip712FieldTag.NAME, "flag"),
+            (Eip712FieldTag.TYPE, SolType.BOOL),
+            (UNKNOWN_TAG, 1),
+        )
+    ),
 }
 INVALID_SCHEMAS |= {f"field_{label}": partial(schema_with_field, f) for label, f in INVALID_FIELDS.items()}
 INVALID_SCHEMAS |= {f"struct_name_{label}": partial(schema_with_struct_named, name) for label, name in BAD_STRUCT_NAMES.items()}
@@ -449,6 +469,7 @@ LEAF_TRUE = b"\x01"
 INVALID_VALUES: dict[str, Callable[[list], list]] = {
     "version": lambda f: replaced(f, Eip712ValuesTag.VERSION, 2),
     "duplicate_version": lambda f: [*f, (Eip712ValuesTag.VERSION, STRUCT_VERSION)],
+    "unknown_tag": lambda f: [*f, (UNKNOWN_TAG, 1)],
     "primary_type_unknown": lambda f: replaced(f, Eip712ValuesTag.PRIMARY_TYPE, "Missing"),
     "primary_type_empty": lambda f: replaced(f, Eip712ValuesTag.PRIMARY_TYPE, ""),
     # the primary type is looked up by its whole name: a prefix, an extension or a NUL is another name
@@ -848,6 +869,22 @@ def test_eip712_v2_names_are_not_identifiers(scenario_navigator: NavigateWithSce
     assert get_wallet_addr(EthAppClient(scenario_navigator.backend)) == recover_message(data, vrs)
 
 
+def test_eip712_v2_struct_that_refers_to_itself(scenario_navigator: NavigateWithScenario):
+    """A struct can hold an array of its own type: the type hash lists it once, and the values nest as deep as they go."""
+    enable_blind_signing(scenario_navigator)
+    data = minimal_data()
+    data["types"].pop("Test")
+    data["types"]["Node"] = [{"name": "v", "type": "uint8"}, {"name": "children", "type": "Node[]"}]
+    data["primaryType"] = "Node"
+    data["message"] = {
+        "v": 1,
+        "children": [{"v": 2, "children": [{"v": 3, "children": []}]}, {"v": 4, "children": []}],
+    }
+
+    vrs = sign_and_approve(scenario_navigator, data)
+    assert get_wallet_addr(EthAppClient(scenario_navigator.backend)) == recover_message(data, vrs)
+
+
 def test_eip712_v2_names_that_are_not_shown_can_be_anything(scenario_navigator: NavigateWithScenario):
     """Only the key of a value the review shows has to be displayable: a struct name or a field holding a struct are not."""
     enable_blind_signing(scenario_navigator)
@@ -880,6 +917,27 @@ def test_eip712_v2_key_that_cannot_be_shown_refuses_the_review(scenario_navigato
     data = minimal_data()
     data["types"]["Test"] = [{"name": key, "type": "bool"}]
     data["message"] = {key: True}
+
+    json_to_tlv.process_data(app_client, data, BIP32_PATH)
+    with pytest.raises(ExceptionRAPDU) as e:
+        with app_client.eip712_v2_sign():
+            pass
+    assert e.value.status == StatusWord.SWO_INCORRECT_DATA
+    assert_recovers(app_client)
+
+
+@pytest.mark.parametrize("where", ["domain", "message"])
+def test_eip712_v2_string_with_a_nul_refuses_the_review(scenario_navigator: NavigateWithScenario, where: str):
+    """A NUL would end the text the review shows while the whole string is signed."""
+    enable_blind_signing(scenario_navigator)
+    app_client = EthAppClient(scenario_navigator.backend)
+    data = minimal_data()
+    data["types"]["Test"] = [{"name": "text", "type": "string"}]
+    data["message"] = {"text": "ab"}
+    if where == "domain":
+        data["domain"]["name"] = "a\x00b"
+    else:
+        data["message"]["text"] = "a\x00b"
 
     json_to_tlv.process_data(app_client, data, BIP32_PATH)
     with pytest.raises(ExceptionRAPDU) as e:

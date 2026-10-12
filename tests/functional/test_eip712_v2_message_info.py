@@ -30,6 +30,7 @@ from ragger.navigator import NavigateWithScenario
 from test_eip712_v2 import (
     BIP32_PATH,
     CLA,
+    UNKNOWN_TAG,
     assert_recovers,
     enable_blind_signing,
     expect_status,
@@ -59,6 +60,14 @@ def message(chain_id: int | str | bool | None = 1, verifying_contract: str | Non
     data = minimal_data()
     data["types"]["EIP712Domain"] = domain_type
     data["domain"] = domain
+    return data
+
+
+def ethermint(verifying_contract: str = "cosmos") -> dict:
+    """A message whose domain names its contract with a string, as the Ethermint chains do."""
+    data = message(1)
+    data["types"]["EIP712Domain"].append({"name": "verifyingContract", "type": "string"})
+    data["domain"]["verifyingContract"] = verifying_contract
     return data
 
 
@@ -139,6 +148,8 @@ ACCEPTED = {
     "chain_of_uint64": (message(137, chain_type="uint64"), {}),
     # a chainId that is not an unsigned integer is no chain: the message has none
     "chain_of_text": (message("1", chain_type="string"), {}),
+    # the Ethermint chains name no contract, with a placeholder that is accepted for one
+    "ethermint_placeholder": (ethermint(), {}),
     "metadata": (
         message(1),
         {
@@ -277,6 +288,7 @@ INVALID_INFOS: dict[str, tuple[dict, bytes]] = {
     "no_operation_type": without(DATA, "operation_type"),
     "no_version": without(DATA, "version"),
     "type_hash_twice": (DATA, signed(*required(DATA).values(), required(DATA)["type_hash"])),
+    "unknown_tag": (DATA, signed(*required(DATA).values(), (UNKNOWN_TAG, 1))),
     "no_signature": (DATA, tlv(*required(DATA).values())),
 }
 

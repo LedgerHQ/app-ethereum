@@ -14,6 +14,7 @@ Every refusal resets the signing flow, so each is followed by a valid message go
 
 import hashlib
 import json
+from collections.abc import Callable
 from typing import Any
 
 import client.response_parser as ResponseParser
@@ -165,10 +166,12 @@ def sign(scenario_navigator: NavigateWithScenario, app_client: EthAppClient, dat
     assert get_wallet_addr(app_client) == recover_message(data, vrs)
 
 
-def sign_compared(scenario_navigator: NavigateWithScenario, app_client: EthAppClient, data: dict) -> None:
+def sign_compared(
+    scenario_navigator: NavigateWithScenario, app_client: EthAppClient, data: dict, snapshots_dirname: str | None = None
+) -> None:
     """Approve the review against its snapshots, and check the signature."""
     with app_client.eip712_v2_sign():
-        scenario_navigator.review_approve()
+        scenario_navigator.review_approve(test_name=snapshots_dirname)
     vrs = ResponseParser.signature(app_client.response().data)
     assert get_wallet_addr(app_client) == recover_message(data, vrs)
 
@@ -198,6 +201,86 @@ def test_eip712_v2_fields_review(scenario_navigator: NavigateWithScenario):
 
     prepare(app_client, data, described_fields())
     sign_compared(scenario_navigator, app_client, data)
+
+
+ENS = "0xC18360217D8F7Ab5e7c516566761Ea12Ce7F9D72"
+# Permit { owner, spender, value, nonce, deadline }
+PERMIT_VALUE, PERMIT_DEADLINE = 2, 4
+
+
+def permit() -> dict:
+    """An ERC-2612 permit of 4.2 ENS, the message of the V1 advanced filtering test."""
+    return {
+        "types": {
+            "EIP712Domain": [
+                {"name": "name", "type": "string"},
+                {"name": "version", "type": "string"},
+                {"name": "chainId", "type": "uint256"},
+                {"name": "verifyingContract", "type": "address"},
+            ],
+            "Permit": [
+                {"name": "owner", "type": "address"},
+                {"name": "spender", "type": "address"},
+                {"name": "value", "type": "uint256"},
+                {"name": "nonce", "type": "uint256"},
+                {"name": "deadline", "type": "uint256"},
+            ],
+        },
+        "primaryType": "Permit",
+        "domain": {"name": "ENS", "version": "1", "verifyingContract": ENS, "chainId": 1},
+        "message": {
+            "owner": "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",
+            "spender": "0x5B38Da6a701c568545dCfcB03FcB875f56beddC4",
+            "value": 4200000000000000000,
+            "nonce": 0,
+            "deadline": 1719756000,
+        },
+    }
+
+
+def permit_fields() -> list[Field]:
+    """The amount, in the token of the contract that is asked for the permit, and its deadline."""
+    return [
+        Field(
+            1,
+            "Send",
+            ParamTokenAmount(
+                1,
+                value(TypeFamily.UINT, 32, field_at(PERMIT_VALUE)),
+                token=Value(1, TypeFamily.ADDRESS, 20, container_path=ContainerPath.TO),
+            ),
+        ),
+        Field(
+            1,
+            "Deadline",
+            ParamDatetime(1, value(TypeFamily.UINT, 32, field_at(PERMIT_DEADLINE)), DatetimeType.DT_UNIX),
+        ),
+    ]
+
+
+@pytest.mark.parametrize("known_token, suffix", [(True, ""), (False, "_unknown_token")], ids=["known_token", "unknown_token"])
+def test_eip712_v2_advanced_filtering_permit(scenario_navigator: NavigateWithScenario, known_token: bool, suffix: str):
+    """A permit is reviewed with its amount in the token of the contract, whether the app knows the token or not."""
+    app_client = EthAppClient(scenario_navigator.backend)
+    data = permit()
+    fields = permit_fields()
+    token = bytes.fromhex(ENS[2:])
+
+    start(
+        app_client,
+        data,
+        fields,
+        operation_type="authorize spending",
+        creator_name="ENS",
+        creator_legal_name="Ethereum Name Service",
+        creator_url="ens.domains",
+        contract_name="ENS Token",
+        deploy_date=1636329600,
+    )
+    if known_token:
+        assert app_client.provide_token_metadata("ENS", token, 18, 1).status == StatusWord.SWO_SUCCESS
+    describe(app_client, fields)
+    sign_compared(scenario_navigator, app_client, data, scenario_navigator.test_name + suffix)
 
 
 def test_eip712_v2_fields_review_signer_described(scenario_navigator: NavigateWithScenario):
@@ -350,6 +433,25 @@ def test_eip712_v2_fields_an_empty_array(scenario_navigator: NavigateWithScenari
         [raw("Id", TypeFamily.UINT, 1, field_at(IDS), all_of()), raw("Mode", TypeFamily.UINT, 1, field_at(MODE))],
     )
     sign(scenario_navigator, app_client, data)
+
+
+@pytest.mark.parametrize("ids, accepted", [([], True), ([1], False)], ids=["no_element", "an_element"])
+def test_eip712_v2_fields_steps_after_an_empty_selection_are_not_checked(
+    scenario_navigator: NavigateWithScenario, ids: list[int], accepted: bool
+):
+    """With no element to follow, the rest of a path has nothing to be checked against, unlike with one."""
+    app_client = EthAppClient(scenario_navigator.backend)
+    data = order(ids=ids)
+    # a step into a struct, below an array of integers
+    fields = [raw("Id", TypeFamily.UINT, 1, field_at(IDS), all_of(), field_at(0))]
+
+    start(app_client, data, fields)
+    if accepted:
+        describe(app_client, fields)
+        sign(scenario_navigator, app_client, data)
+    else:
+        expect_status(StatusWord.SWO_INCORRECT_DATA, lambda: describe(app_client, fields))
+        assert_recovers(app_client)
 
 
 # --- What a transaction has, and a message has not -------------------------------------------
@@ -1200,6 +1302,65 @@ def test_eip712_v2_fields_no_card_refuses_the_field(scenario_navigator: Navigate
     start(app_client, data, fields)
     expect_status(StatusWord.SWO_INCORRECT_DATA, lambda: describe(app_client, fields))
     assert_recovers(app_client)
+
+
+def without_domain_field(data: dict, name: str) -> dict:
+    data["types"]["EIP712Domain"] = [f for f in data["types"]["EIP712Domain"] if f["name"] != name]
+    del data["domain"][name]
+    return data
+
+
+def amount_of_the_message() -> tuple[dict, list[Field]]:
+    return order(), [Field(1, "Amount", ParamAmount(1, value(TypeFamily.UINT, 32, field_at(AMOUNT))))]
+
+
+def token_amount_of_the_message() -> tuple[dict, list[Field]]:
+    return order(), [token_amount()]
+
+
+def enum_of_the_message() -> tuple[dict, list[Field]]:
+    data, fields = mode_and_tier()
+    return data, fields[:1]
+
+
+def map_entry_of_the_message() -> tuple[dict, list[Field]]:
+    data, fields = mode_and_tier()
+    return data, fields[1:]
+
+
+# what a descriptor needs of the domain, and whether the message has cards to be found: a card is
+# for the domain whatever it has
+NEEDS_OF_THE_DOMAIN = {
+    "amount": (amount_of_the_message, {"chainId"}, False),
+    "token_amount": (token_amount_of_the_message, {"chainId"}, False),
+    "enum": (enum_of_the_message, set(), True),
+    "map_entry": (map_entry_of_the_message, set(), True),
+}
+
+
+@pytest.mark.parametrize("missing", ["chainId", "verifyingContract"])
+@pytest.mark.parametrize("build, needs, has_cards", NEEDS_OF_THE_DOMAIN.values(), ids=NEEDS_OF_THE_DOMAIN.keys())
+def test_eip712_v2_fields_what_the_domain_has_to_give(
+    scenario_navigator: NavigateWithScenario,
+    build: Callable[[], tuple[dict, list[Field]]],
+    needs: set[str],
+    has_cards: bool,
+    missing: str,
+):
+    """A formatter that needs the chain or the contract of the message refuses a domain that has none."""
+    app_client = EthAppClient(scenario_navigator.backend)
+    data, fields = build()
+    without_domain_field(data, missing)
+
+    start(app_client, data, fields)
+    if has_cards:
+        give_cards(app_client, data)
+    if missing in needs:
+        expect_status(StatusWord.SWO_INCORRECT_DATA, lambda: describe(app_client, fields))
+        assert_recovers(app_client)
+    else:
+        describe(app_client, fields)
+        sign(scenario_navigator, app_client, data)
 
 
 def test_eip712_v2_fields_a_map_key_is_the_value_as_it_is_sent(scenario_navigator: NavigateWithScenario):

@@ -643,19 +643,36 @@ The signature is computed on the full payload data, using `CX_CURVE_SECP256K1`.
 
 ### GATING_DESCRIPTOR
 
-| Name              | Tag  | Payload type | Description                                             | Value                             |
-|-------------------|------|--------------|---------------------------------------------------------|-----------------------------------|
-| STRUCTURE_TYPE    | 0x01 | uint8        | Structure type                                          | `0x0D` (`TYPE_GATED_SIGNING`)     |
-| STRUCTURE_VERSION | 0x02 | uint8        | Structure version                                       | `0x01`                            |
-| ADDRESS           | 0x22 | uint8[20]    | `To` (SignTx) or `verifyingContract` (EIP712)           |                                   |
-| CHAIN_ID          | 0x23 | uint64       | Network chain ID                                        |                                   |
-| SELECTOR          | 0x40 | uint8[4-32]  | SC function selector (SignTx) or `schema_hash` (EIP712) |                                   |
-| INTRO_MSG         | 0x82 | char[100]    | Provider specific message                               |                                   |
-| TINY_URL          | 0x83 | char[30]     | URL to access the full report                           |                                   |
-| TX_TYPE           | 0x84 | uint8        | Type of transaction                                     |                                   |
-| SIGNATURE         | 0x15 | uint8[]      | Signature of the structure                              |                                   |
+| Name              | Tag  | Payload type | Description                                                | Value                         |
+|-------------------|------|--------------|------------------------------------------------------------|-------------------------------|
+| STRUCTURE_TYPE    | 0x01 | uint8        | Structure type                                             | `0x0D` (`TYPE_GATED_SIGNING`) |
+| STRUCTURE_VERSION | 0x02 | uint8        | Structure version                                          | `0x01`                        |
+| ADDRESS           | 0x22 | uint8[20]    | `To` (SignTx) or `verifyingContract` (EIP712 V1)           |                               |
+| CHAIN_ID          | 0x23 | uint64       | Network chain ID                                           |                               |
+| DOMAIN_SEPARATOR  | 0x28 | uint8[32]    | Domain separator (EIP712 V2)                               |                               |
+| PRIMARY_TYPE_HASH | 0x2a | uint8[32]    | Hash of the primary type (EIP712 V2)                       |                               |
+| SELECTOR          | 0x40 | uint8[4-28]  | SC function selector (SignTx) or `schema_hash` (EIP712 V1) |                               |
+| INTRO_MSG         | 0x82 | char[100]    | Provider specific message                                  |                               |
+| TINY_URL          | 0x83 | char[30]     | URL to access the full report                              |                               |
+| TX_TYPE           | 0x84 | uint8        | Type of transaction                                        |                               |
+| SIGNATURE         | 0x15 | uint8[]      | Signature of the structure                                 |                               |
 
 The signature is computed on the full payload data, using `CX_CURVE_SECP256K1`.
+
+A descriptor names one of these, with its tags and none of the others:
+
+- A transaction: `ADDRESS` and `CHAIN_ID`, and `SELECTOR` if it is for one function only.
+- A V1 message: `ADDRESS`, the `verifyingContract` of its domain, and `SELECTOR`, the `schema_hash`
+  of its schema (SHA-224, 28 bytes, see [EIP712 FILTERING](apdu.md#eip712-filtering)). `CHAIN_ID` is
+  optional: when it is absent, any chain matches.
+- A V2 message: `DOMAIN_SEPARATOR`, `hashStruct(domain)`, and `PRIMARY_TYPE_HASH`,
+  `keccak256(encodeType(primaryType))`, as in its [EIP712_MESSAGE_INFO](eip712.md#eip712_message_info).
+  The device computes both from the message, whether it has an info or not, and compares all their
+  bytes. The domain separator covers the chain and the contract of the domain, when it has them.
+
+Gating applies to blind signing: a transaction with data, a V1 message in basic filtering mode and a
+V2 message without field descriptors. The review of a described V2 message is not gated. When gating
+applies, the device refuses to sign an operation that the descriptor it received does not name.
 
 ## DYNAMIC_TOKEN_DESCRIPTOR
 

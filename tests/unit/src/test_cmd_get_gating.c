@@ -29,7 +29,7 @@
 #include "cmd_get_gating.h"
 #include "apdu_constants.h"
 #include "tlv_apdu.h"
-#include "eip712_v1_context.h"
+#include "eip712_session.h"
 #include "nbgl_use_case.h"
 #include "nbgl_types.h"
 #include "wraps.h"
@@ -51,9 +51,6 @@ static uint64_t get_tx_chain_id_stub(int cmock_num_calls) {
 // =============================================================================
 // Globals required by linked translation units
 // =============================================================================
-
-s_eip712_v1_context g_eip712_storage;
-s_eip712_v1_context *eip712_v1_context = NULL;
 
 // LARGE_LEDGER_ICON maps to C_Ledger_64px or C_Ledger_14px depending on
 // SCREEN_SIZE_WALLET. Define both so the linker is satisfied either way.
@@ -95,6 +92,29 @@ static uint8_t g_schema_hash_buf[CX_SHA224_SIZE];
 bool compute_schema_hash(uint8_t hash[CX_SHA224_SIZE]) {
     memcpy(hash, g_schema_hash_buf, CX_SHA224_SIZE);
     return g_compute_schema_hash_ret;
+}
+
+// The primary type of the V2 message being signed, and its hash
+static const char *g_primary_type = "Mail";
+static bool g_type_hash_ret = true;
+static uint8_t g_type_hash_buf[32];
+const char *td_get_message_type_name(void) {
+    return g_primary_type;
+}
+bool type_hash(const char *struct_name, uint8_t *hash_buf) {
+    if ((g_primary_type == NULL) || (strcmp(struct_name, g_primary_type) != 0)) {
+        return false;
+    }
+    memcpy(hash_buf, g_type_hash_buf, sizeof(g_type_hash_buf));
+    return g_type_hash_ret;
+}
+
+// The domain separator of the V2 message being signed
+static bool g_hash_domain_ret = true;
+static uint8_t g_domain_separator_buf[32];
+bool td_hash_domain(uint8_t out[32]) {
+    memcpy(out, g_domain_separator_buf, sizeof(g_domain_separator_buf));
+    return g_hash_domain_ret;
 }
 
 static uint8_t g_domain_contract_addr[ADDRESS_LENGTH];
@@ -202,7 +222,7 @@ static s_opts default_tx_opts(void) {
 static s_opts default_eip712_opts(void) {
     s_opts o = default_tx_opts();
     o.include_chain_id = false;
-    o.hash_selector_size = 28;  // CX_SHA224_SIZE
+    o.hash_selector_size = 28;  // CX_SHA224_SIZE, the schema hash of a V1 message
     o.tx_type = 1;              // TX_TYPE_TYPED_DATA wire value
     return o;
 }
@@ -298,12 +318,16 @@ static bool send_descriptor(const uint8_t *tlv, size_t len) {
 static void reset(void) {
     clear_gating();
     memset(&g_n_storage_writable, 0, sizeof(g_n_storage_writable));
-    memset(&g_eip712_storage, 0, sizeof(g_eip712_storage));
-    eip712_v1_context = NULL;
+    eip712_session_close();
     s_tx_chain_id = 1;
     s_sig_check_ret = true;
     s_finalize_hash_ret = true;
     g_compute_schema_hash_ret = true;
+    g_primary_type = "Mail";
+    g_type_hash_ret = true;
+    memset(g_type_hash_buf, 0, sizeof(g_type_hash_buf));
+    g_hash_domain_ret = true;
+    memset(g_domain_separator_buf, 0, sizeof(g_domain_separator_buf));
     g_implem_contract_ret = NULL;
     g_proxy_contract_ret = NULL;
     memset(g_schema_hash_buf, 0, sizeof(g_schema_hash_buf));
@@ -595,9 +619,15 @@ void test_set_warning_proxy_descriptor_on_called_contract(void) {
     TEST_ASSERT_TRUE(set_gating_warning());
 }
 
-void test_set_warning_typed_data_happy_path(void) {
+// the state a typed message of the given version is in once its review started
+static void start_review(e_eip712_session session) {
+    appState = APP_STATE_IDLE;
+    TEST_ASSERT_TRUE(eip712_session_open(session));
     appState = APP_STATE_SIGNING_EIP712;
-    eip712_v1_context = &g_eip712_storage;
+}
+
+void test_set_warning_typed_data_happy_path(void) {
+    start_review(EIP712_SESSION_V1);
     memset(g_domain_contract_addr, 0xAA, ADDRESS_LENGTH);
     memset(g_schema_hash_buf, 0xCC, sizeof(g_schema_hash_buf));
 
@@ -611,8 +641,7 @@ void test_set_warning_typed_data_happy_path(void) {
 }
 
 void test_set_warning_typed_data_schema_hash_mismatch(void) {
-    appState = APP_STATE_SIGNING_EIP712;
-    eip712_v1_context = &g_eip712_storage;
+    start_review(EIP712_SESSION_V1);
     memset(g_domain_contract_addr, 0xAA, ADDRESS_LENGTH);
     memset(g_schema_hash_buf, 0x33, sizeof(g_schema_hash_buf));  // mismatch
 
@@ -625,8 +654,7 @@ void test_set_warning_typed_data_schema_hash_mismatch(void) {
 }
 
 void test_set_warning_typed_data_compute_schema_failure(void) {
-    appState = APP_STATE_SIGNING_EIP712;
-    eip712_v1_context = &g_eip712_storage;
+    start_review(EIP712_SESSION_V1);
     memset(g_domain_contract_addr, 0xAA, ADDRESS_LENGTH);
     g_compute_schema_hash_ret = false;
 

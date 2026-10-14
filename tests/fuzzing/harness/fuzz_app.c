@@ -213,8 +213,8 @@ static const tlv_tag_info_t TAGS_MAP_ENTRY[] = {
     X(INS_GET_CHALLENGE,                   0,    0,    0,                 NONE)          \
     X(INS_PROVIDE_TRUSTED_NAME,            1,    0,    FUZZ_CMD_HAS_DATA, TRUSTED_NAME)  \
     X(INS_PROVIDE_ENUM_VALUE,              1,    0,    FUZZ_CMD_HAS_DATA, ENUM_VALUE)    \
-    X(INS_GTP_TRANSACTION_INFO,            1,    0,    FUZZ_CMD_HAS_DATA, GCS_OP_INFO)   \
-    X(INS_GTP_FIELD,                       1,    0,    FUZZ_CMD_HAS_DATA, GCS_FIELD)     \
+    X(INS_PROVIDE_OPERATION_INFO,          1,    0,    FUZZ_CMD_HAS_DATA, GCS_OP_INFO)   \
+    X(INS_PROVIDE_OPERATION_FIELD_DESC,    1,    0,    FUZZ_CMD_HAS_DATA, GCS_FIELD)     \
     X(INS_PROVIDE_PROXY_INFO,              1,    0,    FUZZ_CMD_HAS_DATA, PROXY_INFO)    \
     X(INS_PROVIDE_NETWORK_INFO,            1,    0,    FUZZ_CMD_HAS_DATA, NETWORK_INFO)  \
     X(INS_PROVIDE_TX_SIMULATION,           1,    0,    FUZZ_CMD_HAS_DATA, TX_SIMULATION) \

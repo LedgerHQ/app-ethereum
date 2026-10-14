@@ -81,8 +81,9 @@ Beyond the plain transaction and message signing, the app relies on signed metad
 ### Generic Clear Signing
 
 Contract calls are clear signed from an [ERC-7730](https://eips.ethereum.org/EIPS/eip-7730) description, sent by the
-client as signed TLV descriptors: [TRANSACTION INFO](doc/apdu.md#transaction-info) describes the call, then each
-displayed field comes with a [TRANSACTION FIELD DESCRIPTION](doc/apdu.md#transaction-field-description).
+client as signed TLV descriptors: [PROVIDE OPERATION INFO](doc/apdu.md#provide-operation-info) describes the call,
+then each displayed field comes with a
+[PROVIDE OPERATION FIELD DESCRIPTION](doc/apdu.md#provide-operation-field-description).
 Additional descriptors resolve some of the values:
 
 - [PROVIDE ENUM VALUE](doc/apdu.md#provide-enum-value) and [PROVIDE MAP ENTRY](doc/apdu.md#provide-map-entry)

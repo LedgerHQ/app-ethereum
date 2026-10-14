@@ -140,7 +140,7 @@ uint16_t handleApdu(command_t *cmd, uint32_t *tx) {
             sw = handle_enum_value(cmd->p1, cmd->p2, cmd->lc, cmd->data);
             break;
 
-        case INS_GTP_TRANSACTION_INFO:
+        case INS_PROVIDE_OPERATION_INFO:
             if (cmd->p2 == P2_EIP712_V2_IMPLEM) {
                 sw = handle_eip712_v2_message_info(cmd->p1, cmd->p2, cmd->lc, cmd->data);
             } else {
@@ -148,7 +148,7 @@ uint16_t handleApdu(command_t *cmd, uint32_t *tx) {
             }
             break;
 
-        case INS_GTP_FIELD:
+        case INS_PROVIDE_OPERATION_FIELD_DESC:
             if (cmd->p2 == P2_EIP712_V2_IMPLEM) {
                 sw = handle_eip712_v2_field(cmd->p1, cmd->p2, cmd->lc, cmd->data);
             } else {

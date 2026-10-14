@@ -21,11 +21,13 @@
 | OWNER            | 0x74 | uint8[20]         |                                 | x        |
 | OWNER_DERIV_PATH | 0x75 | (uint8, uint32[]) |                                 | x        |
 
-## TRANSACTION_INFO / EIP712_MESSAGE_INFO
+## OPERATION_INFO
 
-One structure describes a transaction (`TRANSACTION_INFO`) or an EIP-712 V2 message
-(`EIP712_MESSAGE_INFO`, see [EIP712_MESSAGE_INFO](eip712.md#eip712_message_info)). The `Context` column
-tells which tags each one has.
+`OPERATION_INFO` is the signed header of a clear-signed operation, which is a transaction or an
+EIP-712 V2 message. One wire format carries both. The operation is the context of the structure,
+named `TRANSACTION_INFO` for a transaction and `EIP712_MESSAGE_INFO` for a typed message (see
+[EIP712_MESSAGE_INFO](eip712.md#eip712_message_info)). The `Context` column tells which tags each context
+has.
 
 | Name               | Tag  | Payload type | Description                                          | Optional    | Context      | Source / value                                             |
 |--------------------|------|--------------|------------------------------------------------------|-------------|--------------|------------------------------------------------------------|
@@ -64,10 +66,9 @@ tells which tags each one has.
 ## ENUM_VALUE
 
 Provided via `PROVIDE_ENUM_VALUE` APDU (INS `0x24`). Signed by CAL. It is sent before the FIELD that
-uses it, and may come before the [TRANSACTION_INFO](#transaction_info--eip712_message_info) or the
-[EIP712_MESSAGE_INFO](eip712.md#eip712_message_info) of the operation it is for: its tags tell which
-kind of operation it is for. It has `CHAIN_ID`, `CONTRACT_ADDR` and `SELECTOR` for a transaction,
-`DOMAIN_SEPARATOR` and `PRIMARY_TYPE_HASH` for a typed message, and none of the other.
+uses it, and may come before the [OPERATION_INFO](#operation_info) of the operation it is for: its
+tags tell which kind of operation it is for. It has `CHAIN_ID`, `CONTRACT_ADDR` and `SELECTOR` for a
+transaction, `DOMAIN_SEPARATOR` and `PRIMARY_TYPE_HASH` for a typed message, and none of the other.
 
 For a typed message, it is looked up with the domain separator and the primary type hash of the
 message, whatever chain or contract its domain has.
@@ -95,9 +96,8 @@ message, whatever chain or contract its domain has.
 
 ## FIELD
 
-It contains no signature since the signed TRANSACTION_INFO struct (or EIP712_MESSAGE_INFO struct)
-already has a hash of all the FIELD structs, which attests of the authenticity, order and
-completeness of all FIELD structs.
+It contains no signature since the signed OPERATION_INFO struct already has a hash of all the FIELD
+structs, which attests of the authenticity, order and completeness of all FIELD structs.
 
 | Name       | Tag  | Payload type | Description                         | Optional | Source / value                                                |
 |------------|------|--------------|-------------------------------------|----------|---------------------------------------------------------------|
@@ -480,10 +480,9 @@ value for context-dependent constants. The wallet resolves the key from the tran
 and sends only the matching entry to the device.
 
 Like an [ENUM_VALUE](#enum_value), it is sent before the FIELD that uses it, and may come before
-the [TRANSACTION_INFO](#transaction_info--eip712_message_info) or the
-[EIP712_MESSAGE_INFO](eip712.md#eip712_message_info) of the operation it is for: its tags tell which
-kind of operation it is for, as for an ENUM_VALUE. For a typed message, it is looked up with the
-domain separator and the primary type hash of the message.
+the [OPERATION_INFO](#operation_info) of the operation it is for: its tags tell which kind of
+operation it is for, as for an ENUM_VALUE. For a typed message, it is looked up with the domain
+separator and the primary type hash of the message.
 
 | Name              | Tag  | Payload type | Description                                                   | Optional | Context      | Source / value                                             |
 |-------------------|------|--------------|---------------------------------------------------------------|----------|--------------|------------------------------------------------------------|

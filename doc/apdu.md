@@ -16,35 +16,35 @@ The application interface can be accessed over HID or BLE.
 
 The following APDUs are managed by the application. They are detailed in the following chapters.
 
-| Description                       | Instruction |
-|-----------------------------------|-------------|
-| GET ETH PUBLIC ADDRESS            | 0x02        |
-| SIGN ETH TRANSACTION              | 0x04        |
-| GET APP CONFIGURATION             | 0x06        |
-| SIGN ETH PERSONAL MESSAGE         | 0x08        |
-| PROVIDE ERC 20 TOKEN INFORMATION  | 0x0A        |
-| SIGN ETH EIP 712                  | 0x0C        |
-| GET ETH2 PUBLIC KEY               | 0x0E        |
-| SET ETH2 WITHDRAWAL INDEX         | 0x10        |
-| SET EXTERNAL PLUGIN               | 0x12        |
-| PROVIDE NFT INFORMATION           | 0x14        |
-| SET PLUGIN                        | 0x16        |
-| PERFORM PRIVACY OPERATION         | 0x18        |
-| EIP712 SEND STRUCT DEFINITION     | 0x1A        |
-| EIP712 SEND STRUCT IMPLEMENTATION | 0x1C        |
-| EIP712 FILTERING                  | 0x1E        |
-| GET CHALLENGE                     | 0x20        |
-| PROVIDE TRUSTED NAME              | 0x22        |
-| PROVIDE ENUM VALUE                | 0x24        |
-| TRANSACTION INFO                  | 0x26        |
-| TRANSACTION FIELD DESCRIPTION     | 0x28        |
-| PROVIDE PROXY INFO                | 0x2A        |
-| PROVIDE NETWORK INFO              | 0x30        |
-| PROVIDE TX SIMULATION             | 0x32        |
-| SIGN EIP 7702 AUTHORIZATION       | 0x34        |
-| PROVIDE SAFE ACCOUNT              | 0x36        |
-| PROVIDE GATING                    | 0x38        |
-| PROVIDE MAP ENTRY                 | 0x3A        |
+| Description                         | Instruction |
+|-------------------------------------|-------------|
+| GET ETH PUBLIC ADDRESS              | 0x02        |
+| SIGN ETH TRANSACTION                | 0x04        |
+| GET APP CONFIGURATION               | 0x06        |
+| SIGN ETH PERSONAL MESSAGE           | 0x08        |
+| PROVIDE ERC 20 TOKEN INFORMATION    | 0x0A        |
+| SIGN ETH EIP 712                    | 0x0C        |
+| GET ETH2 PUBLIC KEY                 | 0x0E        |
+| SET ETH2 WITHDRAWAL INDEX           | 0x10        |
+| SET EXTERNAL PLUGIN                 | 0x12        |
+| PROVIDE NFT INFORMATION             | 0x14        |
+| SET PLUGIN                          | 0x16        |
+| PERFORM PRIVACY OPERATION           | 0x18        |
+| EIP712 SEND STRUCT DEFINITION       | 0x1A        |
+| EIP712 SEND STRUCT IMPLEMENTATION   | 0x1C        |
+| EIP712 FILTERING                    | 0x1E        |
+| GET CHALLENGE                       | 0x20        |
+| PROVIDE TRUSTED NAME                | 0x22        |
+| PROVIDE ENUM VALUE                  | 0x24        |
+| PROVIDE OPERATION INFO              | 0x26        |
+| PROVIDE OPERATION FIELD DESCRIPTION | 0x28        |
+| PROVIDE PROXY INFO                  | 0x2A        |
+| PROVIDE NETWORK INFO                | 0x30        |
+| PROVIDE TX SIMULATION               | 0x32        |
+| SIGN EIP 7702 AUTHORIZATION         | 0x34        |
+| PROVIDE SAFE ACCOUNT                | 0x36        |
+| PROVIDE GATING                      | 0x38        |
+| PROVIDE MAP ENTRY                   | 0x3A        |
 
 ### EIP-712 versions
 
@@ -359,7 +359,7 @@ The device refuses the command, and shows nothing, with:
 - `0x6A80` if the device cannot hash the message or build the review, see below.
 
 When the message info announced field descriptors, the device has to have received all of them first
-([TRANSACTION FIELD DESCRIPTION](#transaction-field-description), `P2 = 02`), along with the
+([PROVIDE OPERATION FIELD DESCRIPTION](#provide-operation-field-description), `P2 = 02`), along with the
 description of every call they named. The review is then the one of the described message, see
 [Reviewing a described message](eip712.md#reviewing-a-described-message). It is not blind
 signing: it needs no setting and shows no warning.
@@ -815,7 +815,7 @@ locked, and the device accepts the values once per session. It answers:
   chunk.
 
 It may be followed by an [EIP712_MESSAGE_INFO struct](eip712.md#eip712_message_info), sent with
-TRANSACTION INFO and `P2 = 02`, before EIP712 SIGN.
+PROVIDE OPERATION INFO and `P2 = 02`, before EIP712 SIGN.
 
 _Output data:_
 
@@ -1246,7 +1246,7 @@ None
 
 This command provides the app with a signed enum value, which labels a numeric value of an
 operation (see [ENUM_VALUE](tlv_structs.md#enum_value)). It comes before the FIELD descriptor that
-uses it, and may come before the [TRANSACTION INFO](#transaction-info) of the operation (or,
+uses it, and may come before the [PROVIDE OPERATION INFO](#provide-operation-info) of the operation (or,
 for a typed message, its EIP712_MESSAGE_INFO).
 
 The value is attached to a function of a contract for a transaction (its chain, its contract and its
@@ -1281,22 +1281,22 @@ _Output data:_
 
 None
 
-### TRANSACTION INFO
+### PROVIDE OPERATION INFO
 
 #### Description
 
-This command provides the description of a transaction or of an EIP-712 message.
+This command provides the [OPERATION_INFO struct](tlv_structs.md#operation_info) of what is signed:
+a transaction or an EIP-712 message.
 
 ##### If P2 == transaction
 
-The [TRANSACTION_INFO struct](tlv_structs.md#transaction_info--eip712_message_info) describes the
-transaction being signed.
+The struct, in its `TRANSACTION_INFO` context, describes the transaction being signed.
 
 ##### If P2 == V2 message
 
-The [EIP712_MESSAGE_INFO struct](eip712.md#eip712_message_info) is the same struct, with a
-domain separator and a primary type hash instead of a selector and an optional chain and contract.
-It describes the message of the EIP-712 V2 flow in progress:
+The struct, in its [EIP712_MESSAGE_INFO](eip712.md#eip712_message_info) context, has a domain
+separator and a primary type hash instead of a chain, a contract and a selector. It describes the
+message of the EIP-712 V2 flow in progress:
 
 - it has to come after the values (EIP712 SEND STRUCT IMPLEMENTATION, V2 branch), and before
   EIP712 SIGN; otherwise `0x6980` is returned;
@@ -1307,7 +1307,7 @@ It describes the message of the EIP-712 V2 flow in progress:
   than `01` are refused with the same status.
 
 The info announces the field descriptors of the message through its `FIELDS_HASH`. The device
-receives them with [TRANSACTION FIELD DESCRIPTION](#transaction-field-description) (`P2 = 02`),
+receives them with [PROVIDE OPERATION FIELD DESCRIPTION](#provide-operation-field-description) (`P2 = 02`),
 after the info. When the `FIELDS_HASH` is the hash of no descriptors, the message is reviewed raw,
 as it is when no info is sent.
 
@@ -1325,24 +1325,24 @@ _Input data:_
 
 ##### If P1 == first chunk
 
-| Description                                                                                         | Length (byte) |
-|-----------------------------------------------------------------------------------------------------|---------------|
-| struct size (BE)                                                                                    | 2             |
-| [TRANSACTION_INFO struct](tlv_structs.md#transaction_info--eip712_message_info) (P2 == transaction) | variable      |
-| [EIP712_MESSAGE_INFO struct](eip712.md#eip712_message_info) (P2 == V2 message)                      | variable      |
+| Description                                                                | Length (byte) |
+|----------------------------------------------------------------------------|---------------|
+| struct size (BE)                                                           | 2             |
+| [OPERATION_INFO struct](tlv_structs.md#operation_info) (P2 == transaction) | variable      |
+| [OPERATION_INFO struct](tlv_structs.md#operation_info) (P2 == V2 message)  | variable      |
 
 ##### If P1 == following chunk
 
-| Description                                                                                         | Length (byte) |
-|-----------------------------------------------------------------------------------------------------|---------------|
-| [TRANSACTION_INFO struct](tlv_structs.md#transaction_info--eip712_message_info) (P2 == transaction) | variable      |
-| [EIP712_MESSAGE_INFO struct](eip712.md#eip712_message_info) (P2 == V2 message)                      | variable      |
+| Description                                                                | Length (byte) |
+|----------------------------------------------------------------------------|---------------|
+| [OPERATION_INFO struct](tlv_structs.md#operation_info) (P2 == transaction) | variable      |
+| [OPERATION_INFO struct](tlv_structs.md#operation_info) (P2 == V2 message)  | variable      |
 
 _Output data:_
 
 None
 
-### TRANSACTION FIELD DESCRIPTION
+### PROVIDE OPERATION FIELD DESCRIPTION
 
 #### Description
 
@@ -1353,8 +1353,8 @@ See [FIELD struct](tlv_structs.md#field) for the full field layout and parameter
 ##### If P2 == transaction
 
 The field describes the transaction being signed, or a call it made, after its
-[TRANSACTION INFO](#transaction-info). The same goes for the calls a typed message names, described
-as transactions: they have a `TRANSACTION INFO` (`P2 = 00`) of their own, and their fields follow
+[PROVIDE OPERATION INFO](#provide-operation-info). The same goes for the calls a typed message names, described
+as transactions: they have a `PROVIDE OPERATION INFO` (`P2 = 00`) of their own, and their fields follow
 it.
 
 ##### If P2 == V2 message
@@ -1739,7 +1739,7 @@ Transaction Parser encounters a `MAP_REF` parameter, the device looks up the sto
 value from the matching `MAP_ENTRY`.
 
 The entry comes before the FIELD descriptor that uses it, and may come before the
-[TRANSACTION INFO](#transaction-info) of the operation (or, for a typed message, its EIP712_MESSAGE_INFO). It is
+[PROVIDE OPERATION INFO](#provide-operation-info) of the operation (or, for a typed message, its EIP712_MESSAGE_INFO). It is
 attached to a function of a contract for a transaction, and to a primary type of a domain for a typed message: its tags
 tell which. A call a typed message names is a transaction, keyed by its function.
 

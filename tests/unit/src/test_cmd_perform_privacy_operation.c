@@ -287,14 +287,11 @@ void test_shared_secret_confirm_calls_ui(void) {
     TEST_ASSERT_EQUAL(g_ui_pubkey_calls, 0);
 }
 
-void test_shared_secret_uses_the_published_key_scalar(void) {
-    // The exchange must run on decode_scalar() of the derived key -- the same scalar
-    // P2_PUBLIC_ENCRYPTION_KEY publishes -- not on the raw derived bytes. The derive
-    // stub yields 0x11 repeated, so decode_scalar() yields 0x51, 0x11 x30, 0x10.
+void test_shared_secret_uses_the_raw_derived_scalar(void) {
+    // cx_x25519 clamps the little-endian scalar itself, so it takes the derived key
+    // as is. The derive stub yields 0x11 repeated.
     uint8_t expected[32];
     memset(expected, 0x11, sizeof(expected));
-    expected[0] = 0x51;
-    expected[31] = 0x10;
 
     uint8_t apdu[64];
     size_t len = build_apdu(apdu, sizeof(apdu), true);
@@ -339,7 +336,7 @@ int main(void) {
     RUN_TEST(test_public_encryption_key_non_confirm);
     RUN_TEST(test_public_encryption_key_confirm_calls_ui);
     RUN_TEST(test_shared_secret_confirm_calls_ui);
-    RUN_TEST(test_shared_secret_uses_the_published_key_scalar);
+    RUN_TEST(test_shared_secret_uses_the_raw_derived_scalar);
     RUN_TEST(test_shared_secret_all_zero_output_rejected);
     return UNITY_END();
 }

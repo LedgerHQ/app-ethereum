@@ -80,11 +80,8 @@ uint16_t handle_perform_privacy_operation(uint8_t p1,
     getEthAddressStringFromRawKey((const uint8_t *) &tmpCtx.publicKeyContext.publicKey.W,
                                   tmpCtx.publicKeyContext.address,
                                   g_chain_config->chain_id);
-    // Both sub-commands operate on the same X25519 key: the exchange has to use the
-    // scalar behind the public key P2_PUBLIC_ENCRYPTION_KEY publishes, otherwise its
-    // result is not the shared secret for that key and no peer can reproduce it.
-    decode_scalar(privateKeyData, privateKeyDataSwapped);
     if (p2 == P2_PUBLIC_ENCRYPTION_KEY) {
+        decode_scalar(privateKeyData, privateKeyDataSwapped);
         CX_CHECK(cx_ecfp_init_private_key_no_throw(CX_CURVE_Curve25519,
                                                    privateKeyDataSwapped,
                                                    INT256_LENGTH,
@@ -95,9 +92,8 @@ uint16_t handle_perform_privacy_operation(uint8_t p1,
                                                 1));
     } else {
         memmove(tmpCtx.publicKeyContext.publicKey.W + 1, dataBuffer, INT256_LENGTH);
-        CX_CHECK(cx_x25519(tmpCtx.publicKeyContext.publicKey.W + 1,
-                           privateKeyDataSwapped,
-                           INT256_LENGTH));
+        // cx_x25519 follows RFC 7748: little-endian scalar, clamped internally.
+        CX_CHECK(cx_x25519(tmpCtx.publicKeyContext.publicKey.W + 1, privateKeyData, INT256_LENGTH));
         // RFC 7748 6.1: X25519 returns all zeroes if and only if the peer u-coordinate
         // is a point of small order, and that result MUST be rejected.
         if (is_zeroes_buffer(tmpCtx.publicKeyContext.publicKey.W + 1, INT256_LENGTH)) {

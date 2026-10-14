@@ -7,6 +7,12 @@ from ragger.navigator.navigation_scenario import NavigateWithScenario
 
 # The host-supplied peer u-coordinate, as 32 raw bytes.
 PEER_KEY = bytes.fromhex("5901c19a086d1be4b907ec0325bffa758c3eb78192c3df4afa2afd2736a39963")
+# RFC 7748 X25519 base point, u = 9, little-endian.
+BASE_POINT = (9).to_bytes(32, "little")
+# RFC 7748 values for the Speculos default seed at m/44'/60'/0'/0/0, the derived
+# secp256k1 key used as the X25519 scalar.
+PUBLIC_KEY = bytes.fromhex("85b258cca4cf405d2e4965a2f3ed2cabc44f3aad8b9ac9f00f50496b23b03f52")
+SHARED_SECRET = bytes.fromhex("b5d9b6048e21db659c7756b14ac5f4943fca4e24fa8e42599d4c8b13c1632509")
 
 
 def _drive_review(scenario_navigator: NavigateWithScenario, approve: bool, compare: bool = False) -> None:
@@ -63,7 +69,7 @@ def test_perform_privacy_operation_public(scenario_navigator: NavigateWithScenar
     response = app_client.response()
     assert response is not None
     assert response.status == StatusWord.SWO_SUCCESS
-    assert len(response.data) == 32
+    assert response.data == PUBLIC_KEY
 
 
 def test_perform_privacy_operation_secret(scenario_navigator: NavigateWithScenario):
@@ -74,7 +80,19 @@ def test_perform_privacy_operation_secret(scenario_navigator: NavigateWithScenar
     response = app_client.response()
     assert response is not None
     assert response.status == StatusWord.SWO_SUCCESS
-    assert len(response.data) == 32
+    assert response.data == SHARED_SECRET
+
+
+def test_perform_privacy_operation_secret_base_point(scenario_navigator: NavigateWithScenario):
+    """An exchange with the base point must yield the published public encryption key."""
+    app_client = EthAppClient(scenario_navigator.backend)
+
+    with app_client.perform_privacy_operation(pubkey=BASE_POINT, async_mode=True):
+        _drive_review(scenario_navigator, approve=True)
+    response = app_client.response()
+    assert response is not None
+    assert response.status == StatusWord.SWO_SUCCESS
+    assert response.data == PUBLIC_KEY
 
 
 def test_perform_privacy_operation_secret_reject(scenario_navigator: NavigateWithScenario):

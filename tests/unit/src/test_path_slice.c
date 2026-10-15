@@ -1,6 +1,6 @@
 /**
  * @file test_path_slice.c
- * @brief Unit tests for the slice-path TLV parser at
+ * @brief Unit tests for the slice-path TLV parser and the bounds it gives, at
  *        src/features/generic_tx_parser/gtp_path_slice.c.
  *
  * Slice paths cap a dynamic-array path to a [start, end) sub-range. The
@@ -167,6 +167,101 @@ void test_tlv_duplicate_end_rejected(void) {
     TEST_ASSERT_FALSE(run_tlv(bytes, sizeof(bytes), &args));
 }
 
+// =============================================================================
+// slice_resolve
+// =============================================================================
+
+void test_resolve_absent_bounds_are_the_whole_length(void) {
+    const s_slice_args args = {0};
+    const s_slice_bounds bounds = slice_resolve(&args, 10);
+
+    TEST_ASSERT_EQUAL(0, bounds.start);
+    TEST_ASSERT_EQUAL(10, bounds.end);
+}
+
+void test_resolve_negative_bounds_count_back_from_the_end(void) {
+    const s_slice_args args = {.has_start = true, .start = -3, .has_end = true, .end = -1};
+    const s_slice_bounds bounds = slice_resolve(&args, 10);
+
+    TEST_ASSERT_EQUAL(7, bounds.start);
+    TEST_ASSERT_EQUAL(9, bounds.end);
+}
+
+// the bounds are not checked: a bound that reaches outside of the length stays so
+void test_resolve_does_not_check_the_bounds(void) {
+    const s_slice_args before = {.has_start = true, .start = -20};
+    const s_slice_args past = {.has_start = true, .start = 20, .has_end = true, .end = 30};
+    const s_slice_args inverted = {.has_start = true, .start = 5, .has_end = true, .end = 2};
+
+    TEST_ASSERT_EQUAL(-10, slice_resolve(&before, 10).start);
+    TEST_ASSERT_EQUAL(20, slice_resolve(&past, 10).start);
+    TEST_ASSERT_EQUAL(30, slice_resolve(&past, 10).end);
+    TEST_ASSERT_EQUAL(5, slice_resolve(&inverted, 10).start);
+    TEST_ASSERT_EQUAL(2, slice_resolve(&inverted, 10).end);
+}
+
+// =============================================================================
+// slice_bytes
+// =============================================================================
+
+static bool bytes_of(bool has_start, int16_t start, bool has_end, int16_t end, uint16_t length) {
+    const s_slice_args args = {.has_start = has_start,
+                               .start = start,
+                               .has_end = has_end,
+                               .end = end};
+    uint16_t offset = 0xFFFF;
+    uint16_t size = 0xFFFF;
+
+    return slice_bytes(&args, length, &offset, &size);
+}
+
+void test_bytes_of_the_whole_value(void) {
+    const s_slice_args args = {0};
+    uint16_t offset = 0xFFFF;
+    uint16_t size = 0xFFFF;
+
+    TEST_ASSERT_TRUE(slice_bytes(&args, 10, &offset, &size));
+    TEST_ASSERT_EQUAL(0, offset);
+    TEST_ASSERT_EQUAL(10, size);
+}
+
+void test_bytes_of_a_range(void) {
+    const s_slice_args args = {.has_start = true, .start = 2, .has_end = true, .end = 6};
+    uint16_t offset = 0;
+    uint16_t size = 0;
+
+    TEST_ASSERT_TRUE(slice_bytes(&args, 10, &offset, &size));
+    TEST_ASSERT_EQUAL(2, offset);
+    TEST_ASSERT_EQUAL(4, size);
+}
+
+void test_bytes_of_the_last_ones(void) {
+    const s_slice_args args = {.has_start = true, .start = -4};
+    uint16_t offset = 0;
+    uint16_t size = 0;
+
+    TEST_ASSERT_TRUE(slice_bytes(&args, 10, &offset, &size));
+    TEST_ASSERT_EQUAL(6, offset);
+    TEST_ASSERT_EQUAL(4, size);
+}
+
+void test_bytes_refused_when_nothing_is_kept(void) {
+    TEST_ASSERT_FALSE(bytes_of(true, 4, true, 4, 10));
+    TEST_ASSERT_FALSE(bytes_of(true, 6, true, 2, 10));
+    TEST_ASSERT_FALSE(bytes_of(true, 0, true, 0, 10));
+    // and a value that is empty has nothing to keep
+    TEST_ASSERT_FALSE(bytes_of(false, 0, false, 0, 0));
+}
+
+void test_bytes_refused_when_outside_of_the_value(void) {
+    TEST_ASSERT_FALSE(bytes_of(true, 0, true, 11, 10));
+    TEST_ASSERT_FALSE(bytes_of(true, 10, false, 0, 10));
+    TEST_ASSERT_FALSE(bytes_of(true, 20, false, 0, 10));
+    // a bound that counts back past the start of the value
+    TEST_ASSERT_FALSE(bytes_of(true, -11, false, 0, 10));
+    TEST_ASSERT_FALSE(bytes_of(false, 0, true, -11, 10));
+}
+
 void setUp(void) {
 }
 void tearDown(void) {
@@ -185,5 +280,13 @@ int main(void) {
     RUN_TEST(test_tlv_bounds_of_another_length_rejected);
     RUN_TEST(test_tlv_duplicate_start_rejected);
     RUN_TEST(test_tlv_duplicate_end_rejected);
+    RUN_TEST(test_resolve_absent_bounds_are_the_whole_length);
+    RUN_TEST(test_resolve_negative_bounds_count_back_from_the_end);
+    RUN_TEST(test_resolve_does_not_check_the_bounds);
+    RUN_TEST(test_bytes_of_the_whole_value);
+    RUN_TEST(test_bytes_of_a_range);
+    RUN_TEST(test_bytes_of_the_last_ones);
+    RUN_TEST(test_bytes_refused_when_nothing_is_kept);
+    RUN_TEST(test_bytes_refused_when_outside_of_the_value);
     return UNITY_END();
 }

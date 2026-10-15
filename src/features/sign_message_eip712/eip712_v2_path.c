@@ -1,8 +1,8 @@
 #include <string.h>
 #include "eip712_v2_path.h"
 #include "os_print.h"
-#include "read.h"
 #include "tlv_library.h"
+#include "tlv_utils.h"
 #include "typed_data.h"
 
 _Static_assert(EIP712_PATH_MAX_SIZE == TD_MAX_DEPTH + 1,
@@ -15,41 +15,11 @@ _Static_assert(EIP712_PATH_MAX_SIZE == TD_MAX_DEPTH + 1,
 // Slice
 // =============================================================================
 
-typedef struct {
-    s_slice_args *args;
-} s_slice_ctx;
-
-// Bounds are fixed width: a longer encoding of a small number would read as another value
-static bool get_bound(const tlv_data_t *data, int16_t *bound) {
-    if (data->value.size != sizeof(*bound)) {
-        return false;
-    }
-    *bound = (int16_t) read_u16_be(data->value.ptr, 0);
-    return true;
-}
-
-static bool handle_slice_start(const tlv_data_t *data, s_slice_ctx *context) {
-    context->args->has_start = true;
-    return get_bound(data, &context->args->start);
-}
-
-static bool handle_slice_end(const tlv_data_t *data, s_slice_ctx *context) {
-    context->args->has_end = true;
-    return get_bound(data, &context->args->end);
-}
-
-#define SLICE_TAGS(X)                                                \
-    X(0x01, TAG_SLICE_START, handle_slice_start, ENFORCE_UNIQUE_TAG) \
-    X(0x02, TAG_SLICE_END, handle_slice_end, ENFORCE_UNIQUE_TAG)
-
-DEFINE_TLV_PARSER(SLICE_TAGS, NULL, slice_tlv_parser)
-
 static bool handle_slice(const tlv_data_t *data, s_slice_args *args) {
-    s_slice_ctx ctx = {.args = args};
-    TLV_reception_t received_tags;
+    s_path_slice_context ctx = {.args = args};
 
     explicit_bzero(args, sizeof(*args));
-    return slice_tlv_parser(&data->value, &ctx, &received_tags);
+    return handle_slice_struct(&data->value, &ctx);
 }
 
 // =============================================================================
@@ -151,8 +121,8 @@ typedef struct {
 /**
  * Get the elements an array slice selects
  *
- * A bound counts back from the end of the array when it is negative. A selection that comes out
- * empty is valid, one that reaches outside of the array is not.
+ * A selection that comes out empty is valid, as whether an array has elements depends on the
+ * message, and one that reaches outside of the array is not.
  *
  * @param[in] slice the slice
  * @param[in] size number of elements of the array
@@ -164,20 +134,13 @@ static bool get_array_range(const s_slice_args *slice,
                             uint16_t size,
                             uint16_t *start,
                             uint16_t *end) {
-    int32_t first = slice->has_start ? slice->start : 0;
-    int32_t last = slice->has_end ? slice->end : size;
+    const s_slice_bounds bounds = slice_resolve(slice, size);
 
-    if (first < 0) {
-        first += size;
-    }
-    if (last < 0) {
-        last += size;
-    }
-    if ((first < 0) || (last < 0) || (last > size)) {
+    if ((bounds.start < 0) || (bounds.end < 0) || (bounds.end > size)) {
         return false;
     }
-    *start = (uint16_t) first;
-    *end = (uint16_t) last;
+    *start = (uint16_t) bounds.start;
+    *end = (uint16_t) bounds.end;
     return true;
 }
 
@@ -189,21 +152,15 @@ static bool get_array_range(const s_slice_args *slice,
  * @return whether the slice fits the value, which it must leave with at least one byte
  */
 static bool slice_value(const s_slice_args *slice, s_parsed_value *value) {
-    int32_t first = slice->has_start ? slice->start : 0;
-    int32_t last = slice->has_end ? slice->end : value->length;
+    uint16_t offset;
+    uint16_t size;
 
-    if (first < 0) {
-        first += value->length;
-    }
-    if (last < 0) {
-        last += value->length;
-    }
-    if ((first < 0) || (first >= last) || (last > value->length)) {
+    if (!slice_bytes(slice, value->length, &offset, &size)) {
         return false;
     }
-    value->ptr += first;
-    value->offset += (uint16_t) first;
-    value->length = (uint16_t) (last - first);
+    value->ptr += offset;
+    value->offset += offset;
+    value->length = size;
     return true;
 }
 

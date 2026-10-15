@@ -288,14 +288,60 @@ void test_parse_refuses_steps_below_the_leaf_slice(void) {
     TEST_ASSERT_FALSE(parse(two_leaf_slices, sizeof(two_leaf_slices), &path));
 }
 
-// A bound is two bytes: a longer encoding of 2 would be read as 0
-void test_parse_refuses_bounds_that_are_not_two_bytes(void) {
-    static const uint8_t one_byte[] = {VERSION_1, FIELD(1), 0x02, 0x03, 0x01, 0x01, 0x02};
+// The length of a bound gives its sign: one byte is 0 to 255, two bytes are two's complement
+void test_parse_reads_one_byte_bounds_as_not_negative(void) {
+    static const uint8_t bytes[] = {
+        VERSION_1,
+        FIELD(1),
+        0x02,
+        0x06,
+        0x01,
+        0x01,
+        0xFF,
+        0x02,
+        0x01,
+        0x05,  // [255, 5)
+        FIELD(2),
+        0x03,
+        0x03,
+        0x01,
+        0x01,
+        0xC8,  // leaf bytes [200:]
+    };
+    s_eip712_path path;
+
+    TEST_ASSERT_TRUE(parse(bytes, sizeof(bytes), &path));
+    TEST_ASSERT_EQUAL(255, path.elements[1].slice.start);
+    TEST_ASSERT_EQUAL(5, path.elements[1].slice.end);
+    TEST_ASSERT_EQUAL(200, path.elements[3].slice.start);
+}
+
+void test_parse_reads_one_byte_and_two_byte_bounds_alike(void) {
+    static const uint8_t one_byte[] = {VERSION_1, FIELD(1), 0x02, 0x03, 0x01, 0x01, 0xFF};
+    static const uint8_t two_bytes[] = {VERSION_1, FIELD(1), 0x02, 0x04, 0x01, 0x02, 0x00, 0xFF};
+    static const uint8_t negative[] = {VERSION_1, FIELD(1), 0x02, 0x04, 0x01, 0x02, 0xFF, 0xFF};
+    s_eip712_path one;
+    s_eip712_path two;
+    s_eip712_path minus_one;
+
+    TEST_ASSERT_TRUE(parse(one_byte, sizeof(one_byte), &one));
+    TEST_ASSERT_TRUE(parse(two_bytes, sizeof(two_bytes), &two));
+    TEST_ASSERT_TRUE(parse(negative, sizeof(negative), &minus_one));
+    TEST_ASSERT_EQUAL(two.elements[1].slice.start, one.elements[1].slice.start);
+    TEST_ASSERT_EQUAL(-1, minus_one.elements[1].slice.start);
+}
+
+// A longer encoding of 2 would be read as 0
+void test_parse_refuses_bounds_of_another_length(void) {
+    static const uint8_t empty[] = {VERSION_1, FIELD(1), 0x02, 0x02, 0x01, 0x00};
+    static const uint8_t three_bytes[] =
+        {VERSION_1, FIELD(1), 0x02, 0x05, 0x01, 0x03, 0x00, 0x00, 0x02};
     static const uint8_t four_bytes[] =
         {VERSION_1, FIELD(1), 0x02, 0x06, 0x01, 0x04, 0x00, 0x00, 0x00, 0x02};
     s_eip712_path path;
 
-    TEST_ASSERT_FALSE(parse(one_byte, sizeof(one_byte), &path));
+    TEST_ASSERT_FALSE(parse(empty, sizeof(empty), &path));
+    TEST_ASSERT_FALSE(parse(three_bytes, sizeof(three_bytes), &path));
     TEST_ASSERT_FALSE(parse(four_bytes, sizeof(four_bytes), &path));
 }
 
@@ -690,7 +736,9 @@ int main(void) {
     RUN_TEST(test_parse_refuses_a_missing_or_unsupported_version);
     RUN_TEST(test_parse_refuses_a_path_that_does_not_start_with_a_field);
     RUN_TEST(test_parse_refuses_steps_below_the_leaf_slice);
-    RUN_TEST(test_parse_refuses_bounds_that_are_not_two_bytes);
+    RUN_TEST(test_parse_reads_one_byte_bounds_as_not_negative);
+    RUN_TEST(test_parse_reads_one_byte_and_two_byte_bounds_alike);
+    RUN_TEST(test_parse_refuses_bounds_of_another_length);
     RUN_TEST(test_parse_refuses_a_repeated_bound);
     RUN_TEST(test_parse_refuses_a_field_index_that_is_not_a_byte);
     RUN_TEST(test_parse_refuses_an_unknown_tag);

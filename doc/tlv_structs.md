@@ -462,8 +462,10 @@ In version 1 of the protocol:
 
 ### Bounds of a path
 
-`START` and `END` of an `ARRAY_ELEMENT` and of a `SLICE_ELEMENT` are big-endian integers of one or
-two bytes. The length gives the sign:
+`START` and `END` of an `ARRAY_ELEMENT`, a `SLICE_ELEMENT`, an
+[EIP712_ARRAY_SLICE](#eip712_array_slice) and an [EIP712_LEAF_SLICE](#eip712_leaf_slice) are
+big-endian integers of one or two bytes. The length gives the sign, as for the `intN` leaves of an
+EIP-712 message (see [Leaf encoding](eip712.md#leaf-encoding)):
 
 | Length  | Values            | Examples                                    |
 |---------|-------------------|---------------------------------------------|
@@ -929,8 +931,7 @@ element to check them against.
 
 Absent `START` and `END` (`{}`) is a wildcard: it matches every element.
 
-`START` and `END` are two-byte big-endian signed integers. The device refuses a bound of another
-length.
+`START` and `END` are encoded as given in [Bounds of a path](#bounds-of-a-path).
 
 The device resolves a slice with `array_size`, the length of the array in the value tree.
 `EIP712_VALUES` is complete before any descriptor is received, so the length is known.
@@ -957,6 +958,6 @@ Keeps some of the bytes of the leaf at the end of the path, as `SLICE_ELEMENT` d
 | START | 0x01 | int16        | first byte kept (inclusive)       | x, defaults to `0`                    |
 | END   | 0x02 | int16        | end of the bytes kept (exclusive) | x, defaults to the length of the leaf |
 
-The bounds are encoded as in an [EIP712_ARRAY_SLICE](#eip712_array_slice), and a negative bound
+The bounds are encoded as given in [Bounds of a path](#bounds-of-a-path), and a negative bound
 counts back from the end of the leaf. The leaf is of type `bytesN`, `bytes` or `string`. The slice
 is inside the leaf and keeps at least one byte: the device refuses an empty selection.

@@ -56,7 +56,7 @@ from client.settings import SettingID, settings_toggle
 from client.status_word import StatusWord
 from client.utils import get_selector_from_data, recover_message
 from constants import ABIS_FOLDER
-from fields_utils import RawValue, get_all_paths
+from fields_utils import RawEip712PathArray, RawEip712PathLeafSlice, RawValue, get_all_paths
 from ragger.navigator import NavigateWithScenario
 from test_eip712_v2 import (
     BIP32_PATH,
@@ -348,6 +348,29 @@ def test_eip712_v2_fields_formats(scenario_navigator: NavigateWithScenario):
     sign_compared(scenario_navigator, app_client, data)
 
 
+def unit_with_prefix(prefix: bool) -> Field:
+    return Field(1, "Share", ParamUnit(1, value(TypeFamily.UINT, 4, field_at(PERIOD)), "pts", decimals=2, prefix=prefix))
+
+
+def test_eip712_v2_fields_unit_without_prefix(scenario_navigator: NavigateWithScenario):
+    """A unit that does not ask for the prefix is accepted, like one that says nothing about it."""
+    app_client = EthAppClient(scenario_navigator.backend)
+    data = order()
+
+    prepare(app_client, data, [unit_with_prefix(False)])
+    sign(scenario_navigator, app_client, data)
+
+
+def test_eip712_v2_fields_unit_with_prefix_refused(scenario_navigator: NavigateWithScenario):
+    """The prefix is not applied to the value, so a descriptor that asks for it is refused."""
+    app_client = EthAppClient(scenario_navigator.backend)
+    field = unit_with_prefix(True)
+
+    start(app_client, order(), [field])
+    expect_status(StatusWord.SWO_INCORRECT_DATA, lambda: describe(app_client, [field]))
+    assert_recovers(app_client)
+
+
 def test_eip712_v2_fields_group(scenario_navigator: NavigateWithScenario):
     """A group shows its descriptors in order, a group in a group as well, as it does for a transaction."""
     app_client = EthAppClient(scenario_navigator.backend)
@@ -415,6 +438,30 @@ def test_eip712_v2_fields_array_slice(scenario_navigator: NavigateWithScenario, 
     data = order(ids=[1, 2, 3])
     fields = [
         raw("Id", TypeFamily.UINT, 1, field_at(IDS), Eip712PathArray(*bounds)),
+        raw("Mode", TypeFamily.UINT, 1, field_at(MODE)),
+    ]
+
+    prepare(app_client, data, fields)
+    sign(scenario_navigator, app_client, data)
+
+
+BOUND_LENGTHS = {
+    "one_byte_start": {"start": b"\x01"},
+    "one_byte_end": {"end": b"\x02"},
+    "two_bytes": {"start": b"\x00\x01", "end": b"\x00\x03"},
+    # one byte is 0 to 255, two bytes are two's complement
+    "one_byte_ff_is_255": {"start": b"\xff"},
+    "two_bytes_ffff_is_minus_one": {"start": b"\xff\xff"},
+}
+
+
+@pytest.mark.parametrize("bounds", BOUND_LENGTHS.values(), ids=BOUND_LENGTHS.keys())
+def test_eip712_v2_fields_array_bound_lengths(scenario_navigator: NavigateWithScenario, bounds: dict):
+    """A bound is one byte, 0 to 255, or two bytes, two's complement."""
+    app_client = EthAppClient(scenario_navigator.backend)
+    data = order(ids=[1, 2, 3])
+    fields = [
+        raw("Id", TypeFamily.UINT, 1, field_at(IDS), RawEip712PathArray(**bounds)),
         raw("Mode", TypeFamily.UINT, 1, field_at(MODE)),
     ]
 
@@ -546,6 +593,10 @@ BAD_PATHS = {
     "starting_with_an_array": path_field(all_of(), field_at(MODE)),
     "starting_with_a_leaf_slice": path_field(Eip712PathLeafSlice(0, 1), field_at(MODE)),
     "step_after_the_leaf_slice": path_field(field_at(BLOB), Eip712PathLeafSlice(0, 1), field_at(0)),
+    "empty_array_bound": path_field(field_at(IDS), RawEip712PathArray(start=b"")),
+    "three_byte_array_bound": path_field(field_at(IDS), RawEip712PathArray(end=b"\x00\x00\x02")),
+    "four_byte_array_bound": path_field(field_at(IDS), RawEip712PathArray(start=b"\x00\x00\x00\x01")),
+    "four_byte_leaf_bound": path_field(field_at(BLOB), RawEip712PathLeafSlice(start=b"\x00\x00\x00\x01")),
 }
 
 

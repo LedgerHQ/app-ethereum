@@ -512,6 +512,7 @@ ledger_unit_tests_add_test(NAME test_eip712_v2_path
   SOURCES
     ${COMMON_SOURCES}
     ${APP_DIR}/features/sign_message_eip712/eip712_v2_path.c
+    ${APP_DIR}/features/generic_tx_parser/gtp_path_slice.c
     ${APP_DIR}/features/sign_message_eip712/typed_data.c
     ${APP_DIR}/features/sign_message_eip712/sol_typenames.c
     ${APP_DIR}/utils/mem_utils.c

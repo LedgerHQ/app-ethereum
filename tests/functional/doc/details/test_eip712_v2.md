@@ -13,7 +13,7 @@ commands in [apdu.md](../../../../doc/apdu.md).
 |----------------------------------|-------|-----------------------------------------------------------------|
 | `test_eip712_v2.py`              | 183   | Schema, values, signing, the raw review                         |
 | `test_eip712_v2_message_info.py` | 50    | `EIP712_MESSAGE_INFO`                                           |
-| `test_eip712_v2_fields.py`       | 129   | Field descriptors, the described review, calls, enums and maps  |
+| `test_eip712_v2_fields.py`       | 140   | Field descriptors, the described review, calls, enums and maps  |
 
 The V2 tests of `test_gating.py` are listed at the end.
 
@@ -138,7 +138,7 @@ The V2 tests of `test_gating.py` are listed at the end.
 
 - `PARAM_RAW` of several types, a `CONSTANT`, `PARAM_AMOUNT`, `PARAM_DATETIME`, `PARAM_DURATION`,
   `PARAM_UNIT`, `PARAM_NETWORK` and a native token amount, in one review, then a group holding a
-  group.
+  group. A `PARAM_UNIT` that asks for a prefix is refused, and one that does not is accepted.
 - Elements of an array, a field of a struct and slices of a packed `bytes` value, in one review
   where a hidden value and a value with no descriptor are not shown. An empty array and the
   `IF_NOT_IN` and `MUST_BE` visibility (3 cases) are signed.
@@ -154,10 +154,12 @@ The V2 tests of `test_gating.py` are listed at the end.
 
 - Array slices (7 cases), wildcards, 16 matches kept and 17 refused. The steps after an empty
   selection are not checked, while those after an element are.
-- 16 malformed paths are refused: a version other than `0x01`, a path with no step, one that starts
+- Bounds of one byte (0 to 255) and of two bytes (two's complement) are accepted (5 cases).
+- 20 malformed paths are refused: a version other than `0x01`, a path with no step, one that starts
   with an array step or a leaf slice, a step after the leaf slice, a field index out of range, a
   field step on a leaf or an array, an array step on a leaf, a path that ends on an array or on a
-  struct, a leaf slice on a number, and slices that reach outside an array or a leaf.
+  struct, a leaf slice on a number, slices that reach outside an array or a leaf, and bounds of
+  none, three or four bytes.
 - A `DATA_PATH` and a selector in a message are refused.
 - 6 malformed `VALUE` structures are refused: no source, a path with a container path or a
   constant, a container path with a constant, and no `VERSION` or no `TYPE_FAMILY`.

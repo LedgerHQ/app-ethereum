@@ -1,6 +1,15 @@
 import json
 
-from client.gcs import PathArray, PathLeaf, PathLeafType, PathRef, PathTuple, Value
+from client.gcs import (
+    Eip712PathArray,
+    Eip712PathLeafSlice,
+    PathArray,
+    PathLeaf,
+    PathLeafType,
+    PathRef,
+    PathTuple,
+    Value,
+)
 
 
 class RawValue(Value):
@@ -34,6 +43,30 @@ class RawPathArray(PathArray):
 
     def serialize(self) -> bytes:
         return Value.serialize_field(0x01, self.raw_weight) + raw_bounds(self.raw_start, self.raw_end, 0x02, 0x03)
+
+
+class RawEip712PathArray(Eip712PathArray):
+    """An array step of an EIP712_PATH whose bounds are sent as the given bytes."""
+
+    def __init__(self, start: bytes | None = None, end: bytes | None = None):
+        super().__init__()
+        self.raw_start = start
+        self.raw_end = end
+
+    def serialize(self) -> bytes:
+        return raw_bounds(self.raw_start, self.raw_end, 0x01, 0x02)
+
+
+class RawEip712PathLeafSlice(Eip712PathLeafSlice):
+    """A leaf slice of an EIP712_PATH whose bounds are sent as the given bytes."""
+
+    def __init__(self, start: bytes | None = None, end: bytes | None = None):
+        super().__init__()
+        self.raw_start = start
+        self.raw_end = end
+
+    def serialize(self) -> bytes:
+        return raw_bounds(self.raw_start, self.raw_end, 0x01, 0x02)
 
 
 def is_dynamic_type(param_type: str, param: dict) -> bool:

@@ -263,7 +263,7 @@ two TLV payloads, then `EIP712 SIGN` starts the review.
 
 **Key Features Tested:**
 
-- **Binding**: The info has to match the domain and the type of the message
+- **Binding**: The info has to match the domain and the type of the message, whose chain and contract have to be readable (Ethermint `cosmos` included)
 - **Signature and Structure**: Versions, required tags, sizes and signature
 - **Command**: Order, chunks, a second info, and V1 sessions
 

@@ -42,6 +42,7 @@ static bool g_domain_has_chain_id = true;
 static bool g_domain_chain_id_is_a_number = true;
 static uint64_t g_domain_chain_id = 1;
 static bool g_domain_has_contract = true;
+static bool g_domain_contract_is_a_contract = true;  // an address or the Ethermint placeholder
 static bool g_domain_contract_is_an_address = true;
 static uint8_t g_domain_contract[ADDRESS_LENGTH];
 
@@ -57,6 +58,15 @@ bool td_has_message(void) {
 const char *td_get_message_type_name(void) {
     return g_message_type_name;
 }
+bool td_domain_has_member(const char *name) {
+    if (strcmp(name, "chainId") == 0) {
+        return g_domain_has_chain_id;
+    }
+    if (strcmp(name, "verifyingContract") == 0) {
+        return g_domain_has_contract;
+    }
+    return false;
+}
 bool td_get_domain_chain_id(uint64_t *chain_id) {
     if (!g_domain_has_chain_id || !g_domain_chain_id_is_a_number) {
         return false;
@@ -65,7 +75,7 @@ bool td_get_domain_chain_id(uint64_t *chain_id) {
     return true;
 }
 bool td_get_domain_contract_addr(uint8_t addr[ADDRESS_LENGTH]) {
-    if (!g_domain_has_contract) {
+    if (!g_domain_has_contract || !g_domain_contract_is_a_contract) {
         return false;
     }
     memcpy(addr, g_domain_contract, ADDRESS_LENGTH);
@@ -218,6 +228,7 @@ static void reset(void) {
     g_domain_chain_id_is_a_number = true;
     g_domain_chain_id = 1;
     g_domain_has_contract = true;
+    g_domain_contract_is_a_contract = true;
     g_domain_contract_is_an_address = true;
     memset(g_domain_contract, 0xAB, sizeof(g_domain_contract));
     g_domain_separator_ret = true;
@@ -374,6 +385,29 @@ void test_domain_with_neither_chain_nor_contract_accepted(void) {
     TEST_ASSERT_NOT_NULL(g_message);
 }
 
+// A chainId the domain has is a chain: not a number, 0 or above the maximum is none
+void test_domain_chain_that_is_not_a_chain_rejected(void) {
+    g_domain_chain_id_is_a_number = false;
+    TEST_ASSERT_EQUAL(send(P1_FIRST_CHUNK), SWO_INCORRECT_DATA);
+    g_domain_chain_id_is_a_number = true;
+    g_domain_chain_id = 0;
+    TEST_ASSERT_EQUAL(send(P1_FIRST_CHUNK), SWO_INCORRECT_DATA);
+    g_domain_chain_id = MAX_VALID_CHAIN_ID + 1;
+    TEST_ASSERT_EQUAL(send(P1_FIRST_CHUNK), SWO_INCORRECT_DATA);
+    TEST_ASSERT_NULL(g_message);
+
+    g_domain_chain_id = MAX_VALID_CHAIN_ID;
+    TEST_ASSERT_EQUAL(send(P1_FIRST_CHUNK), SWO_SUCCESS);
+}
+
+// A verifyingContract the domain has is an address, or the Ethermint placeholder
+void test_domain_contract_that_is_not_a_contract_rejected(void) {
+    g_domain_contract_is_a_contract = false;
+    g_domain_contract_is_an_address = false;
+    TEST_ASSERT_EQUAL(send(P1_FIRST_CHUNK), SWO_INCORRECT_DATA);
+    TEST_ASSERT_NULL(g_message);
+}
+
 // =============================================================================
 // The message made of the info
 // =============================================================================
@@ -411,22 +445,6 @@ void test_no_chain_is_handed_over_when_the_domain_has_none(void) {
     g_domain_has_chain_id = false;
     TEST_ASSERT_EQUAL(send(P1_FIRST_CHUNK), SWO_SUCCESS);
     TEST_ASSERT_FALSE(g_message_has_chain);
-}
-
-// a chainId that is not a number, 0 or above the maximum is no chain
-void test_no_chain_is_handed_over_when_the_domain_one_is_not_a_chain(void) {
-    const uint64_t chains[] = {0, MAX_VALID_CHAIN_ID + 1};
-
-    g_domain_chain_id_is_a_number = false;
-    TEST_ASSERT_EQUAL(send(P1_FIRST_CHUNK), SWO_SUCCESS);
-    TEST_ASSERT_FALSE(g_message_has_chain);
-    g_domain_chain_id_is_a_number = true;
-    for (size_t i = 0; i < ARRAYLEN(chains); i++) {
-        forget_the_message();
-        g_domain_chain_id = chains[i];
-        TEST_ASSERT_EQUAL(send(P1_FIRST_CHUNK), SWO_SUCCESS);
-        TEST_ASSERT_FALSE(g_message_has_chain);
-    }
 }
 
 // the message is signed with the path that came with its values
@@ -485,12 +503,13 @@ int main(void) {
     RUN_TEST(test_other_domain_rejected_and_released);
     RUN_TEST(test_domain_separator_failure_rejected);
     RUN_TEST(test_domain_with_neither_chain_nor_contract_accepted);
+    RUN_TEST(test_domain_chain_that_is_not_a_chain_rejected);
+    RUN_TEST(test_domain_contract_that_is_not_a_contract_rejected);
     RUN_TEST(test_the_contract_of_the_domain_is_handed_over);
     RUN_TEST(test_no_contract_is_handed_over_when_the_domain_has_none);
     RUN_TEST(test_no_contract_is_handed_over_when_the_domain_one_is_not_an_address);
     RUN_TEST(test_the_chain_of_the_domain_is_handed_over);
     RUN_TEST(test_no_chain_is_handed_over_when_the_domain_has_none);
-    RUN_TEST(test_no_chain_is_handed_over_when_the_domain_one_is_not_a_chain);
     RUN_TEST(test_the_signer_is_the_account_of_the_signing_path);
     RUN_TEST(test_message_that_cannot_be_made_is_refused);
     RUN_TEST(test_message_without_a_signer_is_refused);

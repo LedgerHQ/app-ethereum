@@ -12,7 +12,7 @@ commands in [apdu.md](../../../../doc/apdu.md).
 | File                             | Tests | Covers                                                          |
 |----------------------------------|-------|-----------------------------------------------------------------|
 | `test_eip712_v2.py`              | 183   | Schema, values, signing, the raw review                         |
-| `test_eip712_v2_message_info.py` | 50    | `EIP712_MESSAGE_INFO`                                           |
+| `test_eip712_v2_message_info.py` | 56    | `EIP712_MESSAGE_INFO`                                           |
 | `test_eip712_v2_fields.py`       | 140   | Field descriptors, the described review, calls, enums and maps  |
 
 The V2 tests of `test_gating.py` are listed at the end.
@@ -104,13 +104,15 @@ The V2 tests of `test_gating.py` are listed at the end.
 ## test_eip712_v2_message_info.py
 
 - **Accepted:** a message info for a domain with a chain and a contract, a chain only, a contract
-  only or neither, a domain `chainId` of `uint8` and `uint64`, or of text, which is no chain, a
-  domain that names its contract with the string `cosmos`, and the optional metadata tags. A
-  message info is optional, can span several chunks, and announces descriptors that are kept.
-- **Refused (26 cases):** a domain separator of another domain name, of a domain with another
+  only or neither, a domain `chainId` of `uint8` and `uint64`, a domain that names its contract
+  with the string `cosmos`, and the optional metadata tags. A message info is optional, can span
+  several chunks, and announces descriptors that are kept.
+- **Refused (33 cases):** a domain separator of another domain name, of a domain with another
   field, another chain or contract, or none, or of another size, a primary type hash of another
-  type or of another size, a bad signature, other versions, a `TRANSACTION_INFO`, a chain, a
-  contract or a selector, missing required tags, an unknown tag and a tag twice.
+  type or of another size, a domain `chainId` that is not a chain (`0`, above the maximum, text,
+  `int256`, `bool`, `bytes32`), a contract named by another text than `cosmos`, a bad signature,
+  other versions, a `TRANSACTION_INFO`, a chain, a contract or a selector, missing required tags,
+  an unknown tag and a tag twice.
 - **The command:** other `P1` and `P2`, a message info without a message, a second one, one that
   does not outlive its flow, and the schema, the message info, the values and `EIP712 SIGN` during
   a V1 session.
@@ -142,9 +144,10 @@ The V2 tests of `test_gating.py` are listed at the end.
 - Elements of an array, a field of a struct and slices of a packed `bytes` value, in one review
   where a hidden value and a value with no descriptor are not shown. An empty array and the
   `IF_NOT_IN` and `MUST_BE` visibility (3 cases) are signed.
-- `ENUM_VALUE` and `MAP_ENTRY` of the message, with the key as the host sent it. A card with a
-  chain, a contract or a selector, or without its domain separator or its type hash, is refused
-  (10 cases).
+- `ENUM_VALUE` and `MAP_ENTRY` of the message, before or after its info, with the key as the host
+  sent it. A card of a function of the contract, or of another type or domain, does not apply to it.
+  A card with a chain, a contract or a selector, or without its domain separator or its type hash,
+  is refused (10 cases).
 - `CONTAINER_PATH` values: the signer, the contract and the chain of the domain, and the refusals
   when there is none.
 - A domain without a chain: `PARAM_AMOUNT` and a token amount are refused, an enum and a map entry

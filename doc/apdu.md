@@ -1302,7 +1302,8 @@ message of the EIP-712 V2 flow in progress:
   EIP712 SIGN; otherwise `0x6980` is returned;
 - there is at most one per message, a second one is refused with `0x6980`;
 - it is bound to the message, and refused with `0x6A80` if its domain separator is not the one of
-  the message's domain, or if its primary type hash is not the one of the message's type. A
+  the message's domain, if its primary type hash is not the one of the message's type, or if the
+  domain has a `chainId` that is not a chain or a `verifyingContract` that is not a contract. A
   signature that does not verify, a missing required tag, a tag of a transaction or a version other
   than `01` are refused with the same status.
 

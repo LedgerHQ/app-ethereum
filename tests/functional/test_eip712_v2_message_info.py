@@ -3,8 +3,9 @@
 The struct is the TRANSACTION_INFO one, received through the same instruction with P2 = 02. It is
 accepted once the values are complete and before the review starts, and bound to the message: its
 domain separator and its primary type hash must be the ones of the message, which covers the chain
-and the contract of the domain. The review of a message whose info announces no descriptors is a raw
-one behind the blind signing warning. The descriptors are tested in test_eip712_v2_fields.py.
+and the contract of the domain. A chain or a contract the domain has must be one: a valid chain, an
+address or the Ethermint placeholder. The review of a message whose info announces no descriptors is
+a raw one behind the blind signing warning. The descriptors are tested in test_eip712_v2_fields.py.
 
 Every refusal resets the signing flow, so each is followed by a valid message going through.
 """
@@ -44,6 +45,7 @@ OTHER_CONTRACT = "0x" + "cd" * 20
 # no field descriptor: what a message info announcing none carries
 NO_FIELDS_HASH = hashlib.sha3_256(b"").digest()
 SOME_FIELDS_HASH = hashlib.sha3_256(b"a descriptor").digest()
+MAX_VALID_CHAIN_ID = 0x7FFFFFFFFFFFFFDB
 P1_UNKNOWN = 0x02
 
 
@@ -82,6 +84,7 @@ def domain_separator(data: dict) -> bytes:
 
 
 def info_for(data: dict, **overrides) -> Eip712MessageInfo:
+    """A message info for a message: for its domain and its type."""
     arguments: dict[str, Any] = {
         "version": STRUCT_VERSION,
         "domain_separator": domain_separator(data),
@@ -146,8 +149,6 @@ ACCEPTED = {
     # the standard types chainId as uint256, and any size of unsigned integer is a chain
     "chain_of_uint8": (message(10, chain_type="uint8"), {}),
     "chain_of_uint64": (message(137, chain_type="uint64"), {}),
-    # a chainId that is not an unsigned integer is no chain: the message has none
-    "chain_of_text": (message("1", chain_type="string"), {}),
     # the Ethermint chains name no contract, with a placeholder that is accepted for one
     "ethermint_placeholder": (ethermint(), {}),
     "metadata": (
@@ -263,6 +264,16 @@ INVALID_INFOS: dict[str, tuple[dict, bytes]] = {
     "other_contract": rejected(DATA_WITH_CONTRACT, domain_separator=domain_separator(message(1, OTHER_CONTRACT))),
     "domain_without_contract": rejected(DATA_WITH_CONTRACT, domain_separator=domain_separator(DATA)),
     "domain_separator_one_byte_short": rejected(DATA, domain_separator=domain_separator(DATA)[:-1]),
+    # a chain the domain has must be a chain: 0, above the maximum or not an unsigned integer is none,
+    # even when its bytes would read as one (the text "1" is the byte 0x31)
+    "chain_zero": rejected(message(0)),
+    "chain_above_max": rejected(message(MAX_VALID_CHAIN_ID + 1)),
+    "text_chain": rejected(message("1", chain_type="string")),
+    "signed_chain": rejected(message(1, chain_type="int256")),
+    "bool_chain": rejected(message(True, chain_type="bool")),
+    "bytes_chain": rejected(message("0x" + "00" * 31 + "01", chain_type="bytes32")),
+    # a contract the domain has must be an address, or the Ethermint placeholder: another text is none
+    "ethermint_other_text": rejected(ethermint("osmosis")),
     # the chain and the contract are the ones of the domain: a message info has no tag for them
     "a_chain": (DATA, signed(*required(DATA).values(), (TxInfoTag.CHAIN_ID, 1))),
     "a_contract": (

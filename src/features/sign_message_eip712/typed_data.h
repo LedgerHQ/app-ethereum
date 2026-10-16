@@ -463,6 +463,14 @@ bool td_hash_domain(uint8_t out[CX_KECCAK_256_SIZE]);
 bool td_get_domain_chain_id(uint64_t *chain_id);
 
 /**
+ * Whether the domain of the message has a member of that name, whatever its type and value.
+ *
+ * @param[in] name the name of the member, such as "chainId"
+ * @return true if the domain has it, false if it has not or if there is no domain.
+ */
+bool td_domain_has_member(const char *name);
+
+/**
  * Fill @p addr with the verifyingContract from the domain value tree.
  *
  * @return true if the field was found and copied into @p addr, false otherwise.

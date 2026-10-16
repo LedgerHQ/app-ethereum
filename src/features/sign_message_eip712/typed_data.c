@@ -525,6 +525,18 @@ bool td_get_domain_chain_id(uint64_t *chain_id) {
     return false;
 }
 
+bool td_domain_has_member(const char *name) {
+    if (g_impl.domain != NULL) {
+        for (const s_struct_712_field *field = g_impl.domain->struct_type->fields; field != NULL;
+             field = (const s_struct_712_field *) ((const flist_node_t *) field)->next) {
+            if (strcmp(field->key_name, name) == 0) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
 static bool get_domain_contract_addr(uint8_t addr[ADDRESS_LENGTH], bool accept_ethermint) {
     const char *ethermint_vc = "cosmos";
 

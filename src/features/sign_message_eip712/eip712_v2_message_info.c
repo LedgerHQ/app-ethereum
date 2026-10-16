@@ -24,7 +24,9 @@ static bool get_domain_chain_id(uint64_t *chain_id) {
  * Check a message info is about the message it comes with
  *
  * The domain separator and the primary type hash have to be the ones of the message: the domain
- * separator covers every field of the domain and its type, its chain and its contract included.
+ * separator covers every field of the domain and its type, its chain and its contract included. A
+ * chain or a contract the domain has also has to be one the app can tell: a chainId that is not a
+ * valid chain, a verifyingContract that is not an address, would leave the review without them.
  *
  * @param[in] info the message info
  * @return whether it matches the message
@@ -35,6 +37,8 @@ static bool is_bound_to_message(const s_operation_info *info) {
     const uint8_t *expected_domain_separator = get_domain_separator(info);
     uint8_t type_hash_buf[CX_KECCAK_256_SIZE];
     uint8_t domain_separator[CX_KECCAK_256_SIZE];
+    uint64_t domain_chain_id;
+    uint8_t domain_contract[ADDRESS_LENGTH];
 
     if ((type_name == NULL) || (expected_type_hash == NULL) ||
         (expected_domain_separator == NULL)) {
@@ -48,6 +52,15 @@ static bool is_bound_to_message(const s_operation_info *info) {
     if (!td_hash_domain(domain_separator) ||
         (memcmp(domain_separator, expected_domain_separator, sizeof(domain_separator)) != 0)) {
         PRINTF("EIP712 v2: message info is for another domain\n");
+        return false;
+    }
+    if (td_domain_has_member("chainId") && !get_domain_chain_id(&domain_chain_id)) {
+        PRINTF("EIP712 v2: the chainId of the domain is not a chain\n");
+        return false;
+    }
+    if (td_domain_has_member("verifyingContract") &&
+        !td_get_domain_contract_addr(domain_contract)) {
+        PRINTF("EIP712 v2: the verifyingContract of the domain is not a contract\n");
         return false;
     }
     return true;

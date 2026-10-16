@@ -471,6 +471,79 @@ void test_chain_and_contract_are_read_from_the_same_domain(void) {
 }
 
 // =============================================================================
+// The members of the domain
+// =============================================================================
+
+void test_no_domain_has_no_member(void) {
+    TEST_ASSERT_FALSE(td_domain_has_member("name"));
+    TEST_ASSERT_FALSE(td_domain_has_member("chainId"));
+}
+
+void test_a_domain_has_the_members_it_declares(void) {
+    static const uint8_t chain[] = {0x01};
+    s_domain_spec spec = {.has_chain_id = true,
+                          .chain_id = chain,
+                          .chain_id_length = sizeof(chain),
+                          .has_contract = true,
+                          .contract_type = TYPE_SOL_ADDRESS,
+                          .contract = k_contract,
+                          .contract_length = sizeof(k_contract)};
+
+    build_domain(&spec);
+    TEST_ASSERT_TRUE(td_domain_has_member("name"));
+    TEST_ASSERT_TRUE(td_domain_has_member("chainId"));
+    TEST_ASSERT_TRUE(td_domain_has_member("verifyingContract"));
+    TEST_ASSERT_FALSE(td_domain_has_member("salt"));
+    TEST_ASSERT_FALSE(td_domain_has_member("chainid"));
+    TEST_ASSERT_FALSE(td_domain_has_member("verifyingContrac"));
+}
+
+void test_a_domain_without_chain_nor_contract_has_neither_member(void) {
+    s_domain_spec spec = {0};
+
+    build_domain(&spec);
+    TEST_ASSERT_TRUE(td_domain_has_member("name"));
+    TEST_ASSERT_FALSE(td_domain_has_member("chainId"));
+    TEST_ASSERT_FALSE(td_domain_has_member("verifyingContract"));
+}
+
+// A member of another type is still a member: it is not the same as having none
+void test_a_member_of_another_type_is_still_a_member(void) {
+    static const uint8_t text[] = {'1'};
+    static const uint8_t placeholder[] = {'c', 'o', 's', 'm', 'o', 's'};
+    s_domain_spec spec = {.has_chain_id = true,
+                          .chain_id_type = TYPE_SOL_STRING,
+                          .chain_id = text,
+                          .chain_id_length = sizeof(text),
+                          .has_contract = true,
+                          .contract_type = TYPE_SOL_STRING,
+                          .contract = placeholder,
+                          .contract_length = sizeof(placeholder)};
+    uint64_t chain_id = 0;
+
+    build_domain(&spec);
+    TEST_ASSERT_FALSE(td_get_domain_chain_id(&chain_id));
+    TEST_ASSERT_TRUE(td_domain_has_member("chainId"));
+    TEST_ASSERT_TRUE(td_domain_has_member("verifyingContract"));
+}
+
+// A member that is a struct, even with no field, is a member too
+void test_a_member_that_is_a_struct_is_still_a_member(void) {
+    s_struct_712 *def = new_struct_def("EIP712Domain");
+    s_struct_712_field *chain = new_field(TYPE_STRUCT, "chainId");
+    s_struct_712_value *domain;
+
+    TEST_ASSERT_TRUE(td_add_struct_def(new_struct_def("Empty")));
+    TEST_ASSERT_TRUE(td_field_set_struct_name(chain, (const uint8_t *) "Empty", strlen("Empty")));
+    TEST_ASSERT_TRUE(td_add_struct_field_def(def, chain));
+    TEST_ASSERT_TRUE(td_add_struct_def(def));
+    domain = td_create_struct(def);
+    TEST_ASSERT_TRUE(td_append_child(domain, td_create_struct(td_find_struct("Empty"))));
+    TEST_ASSERT_TRUE(td_set_domain(domain));
+    TEST_ASSERT_TRUE(td_domain_has_member("chainId"));
+}
+
+// =============================================================================
 // Runner
 // =============================================================================
 
@@ -507,5 +580,10 @@ int main(void) {
     RUN_TEST(test_the_placeholder_has_to_be_whole);
     RUN_TEST(test_a_number_is_not_a_contract);
     RUN_TEST(test_chain_and_contract_are_read_from_the_same_domain);
+    RUN_TEST(test_no_domain_has_no_member);
+    RUN_TEST(test_a_domain_has_the_members_it_declares);
+    RUN_TEST(test_a_domain_without_chain_nor_contract_has_neither_member);
+    RUN_TEST(test_a_member_of_another_type_is_still_a_member);
+    RUN_TEST(test_a_member_that_is_a_struct_is_still_a_member);
     return UNITY_END();
 }

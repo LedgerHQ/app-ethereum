@@ -6,10 +6,14 @@
 #include "shared_context.h"  // appState
 #include "eip712_v1_ui_logic.h"
 #include "tx_ctx.h"
+#ifdef HAVE_ADDRESS_BOOK
+#include "handle_contacts.h"
+#endif
 
 typedef struct {
     flist_node_t _list;
     s_field_table_entry field;
+    bool owns_extra_data;  // extra_data is a copy freed with the node
 } s_field_table_node;
 
 static s_field_table_node *g_table = NULL;
@@ -26,6 +30,9 @@ bool field_table_init(void) {
 static void delete_table_node(s_field_table_node *node) {
     APP_MEM_FREE(node->field.key);
     APP_MEM_FREE(node->field.value);
+    if (node->owns_extra_data) {
+        APP_MEM_FREE((void *) node->field.extra_data);
+    }
     APP_MEM_FREE(node);
 }
 
@@ -96,6 +103,20 @@ bool add_to_field_table(e_param_type type,
     memcpy(node->field.key, key, key_len);
     memcpy(node->field.value, value, value_len);
     node->field.extra_data = extra_data;
+#ifdef HAVE_ADDRESS_BOOK
+    if ((type == PARAM_TYPE_ADDRESS_BOOK) && (extra_data != NULL)) {
+        // Snapshot the contact: a cache edit before the review must not change what is shown
+        s_ab_contact *contact;
+        if (APP_MEM_CALLOC((void **) &contact, sizeof(*contact)) == false) {
+            delete_table_node(node);
+            return false;
+        }
+        memcpy(contact, extra_data, sizeof(*contact));
+        contact->_list.next = NULL;
+        node->field.extra_data = contact;
+        node->owns_extra_data = true;
+    }
+#endif
 
     flist_push_back((flist_node_t **) &g_table, (flist_node_t *) node);
     return true;

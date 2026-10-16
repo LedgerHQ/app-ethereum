@@ -33,6 +33,7 @@
 #include <stdbool.h>
 
 #include "gtp_field_table.h"
+#include "handle_contacts.h"
 #include "gtp_field.h"
 #include "shared_context.h"
 #include "tx_ctx.h"
@@ -253,6 +254,25 @@ void test_set_intent_field_multi_batch_marks_intent(void) {
 // Cleanup / get_from_field_table
 // =============================================================================
 
+// The displayed contact must be the one known when the field was parsed
+void test_add_address_book_keeps_own_copy_of_contact(void) {
+    s_ab_contact contact = {0};
+    strlcpy(contact.contact_name, "Alice", sizeof(contact.contact_name));
+    memset(contact.identifier, 0x11, ADDRESS_LENGTH);
+    contact.chain_id = 1;
+
+    TEST_ASSERT_TRUE(add_to_field_table(PARAM_TYPE_ADDRESS_BOOK, "To", "Alice", &contact));
+    // Cache edit after parsing
+    strlcpy(contact.contact_name, "Mallory", sizeof(contact.contact_name));
+    memset(contact.identifier, 0x22, ADDRESS_LENGTH);
+
+    const s_ab_contact *shown = get_from_field_table(0)->extra_data;
+    TEST_ASSERT_NOT_NULL(shown);
+    TEST_ASSERT_TRUE(shown != &contact);
+    TEST_ASSERT_EQUAL_STRING("Alice", shown->contact_name);
+    TEST_ASSERT_EACH_EQUAL_HEX8(0x11, shown->identifier, ADDRESS_LENGTH);
+}
+
 void test_cleanup_empties_table(void) {
     add_to_field_table(PARAM_TYPE_RAW, "k", "v", NULL);
     add_to_field_table(PARAM_TYPE_RAW, "k2", "v2", NULL);
@@ -282,6 +302,7 @@ int main(void) {
     RUN_TEST(test_add_end_intent_set_from_validator);
     RUN_TEST(test_add_intent_raises_flag_and_rewrites_type);
     RUN_TEST(test_add_separator_raises_flag_and_rewrites_type);
+    RUN_TEST(test_add_address_book_keeps_own_copy_of_contact);
     RUN_TEST(test_add_in_eip712_routes_to_ui_helpers);
     RUN_TEST(test_add_intent_in_eip712_with_batch_calls_set_intent);
     RUN_TEST(test_add_intent_in_eip712_single_batch_skips_set_intent);

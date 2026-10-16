@@ -1354,6 +1354,110 @@ def test_address_book_gcs_empty_tx(scenario_navigator: NavigateWithScenario) -> 
         scenario_navigator.review_approve()
 
 
+def test_address_book_gcs_edit_scope_before_review(scenario_navigator: NavigateWithScenario) -> None:
+    """A contact edit between the GCS field parsing and the review must not change the review.
+
+    Flow:
+      1. Register Identity and Provide Contact for recipient_addr ("Alice", DEFAULT_SCOPE)
+      2. Store a GCS ERC-20 transfer whose recipient is a trusted_name field, provide TX_INFO and FIELDs
+      3. Edit Scope of the contact (DEFAULT_SCOPE → "Edited scope")
+      4. Start the review → the recipient still shows "Alice" with DEFAULT_SCOPE
+    """
+    backend = scenario_navigator.backend
+    app_client = EthAppClient(backend)
+
+    recipient_addr = bytes.fromhex("1111111111111111111111111111111111111111")
+    token_addr = bytes.fromhex("dac17f958d2ee523a2206206994597c13d831ec7")  # USDT
+
+    group_handle, hmac_name, hmac_rest = _common_register_identity(
+        scenario_navigator,
+        app_client,
+        address=recipient_addr,
+        do_compare=False,
+    )
+    apdu: AddressBookCommand = ProvideContact(
+        identifier=recipient_addr,
+        group_handle=group_handle,
+        hmac_name=hmac_name,
+        hmac_rest=hmac_rest,
+        contact_name=DEFAULT_CONTACT_NAME,
+        scope=DEFAULT_SCOPE,
+        blockchain_family=FAMILY,
+        chain_id=DEFAULT_CHAIN_ID,
+    )
+    response = app_client.provide_address_book(apdu, False)
+    assert_sw(response.status, StatusWord.SWO_SUCCESS)
+
+    with Path(f"{ABIS_FOLDER}/erc20.json").open(encoding="utf-8") as f:
+        contract = Web3().eth.contract(abi=json.load(f), address=token_addr)  # type: ignore[call-overload]  # web3 stubs reject raw-bytes addresses reused as contract_addr
+
+    data = contract.encode_abi("transfer", [recipient_addr, int(1.1 * pow(10, 6))])
+    tx_params = {
+        "nonce": 235,
+        "maxFeePerGas": Web3.to_wei(100, "gwei"),
+        "maxPriorityFeePerGas": Web3.to_wei(10, "gwei"),
+        "gas": 44001,
+        "to": token_addr,
+        "data": data,
+        "chainId": DEFAULT_CHAIN_ID,
+    }
+    with app_client.sign("m/44'/60'/0'/0/0", tx_params, mode=SignMode.STORE):
+        pass
+
+    param_paths = get_all_paths(f"{ABIS_FOLDER}/erc20.json", "transfer")
+    fields = [
+        Field(
+            1,
+            "To",
+            ParamTrustedName(
+                1,
+                Value(1, TypeFamily.ADDRESS, data_path=DataPath(1, param_paths["_to"])),
+                [TrustedNameType.ACCOUNT],
+                [TrustedNameSource.ENS],
+            ),
+        ),
+        Field(
+            1,
+            "Amount",
+            ParamTokenAmount(
+                1,
+                Value(1, TypeFamily.UINT, 32, DataPath(1, param_paths["_value"])),
+                Value(1, TypeFamily.ADDRESS, container_path=ContainerPath.TO),
+            ),
+        ),
+    ]
+    tx_info = TxInfo(
+        1,
+        DEFAULT_CHAIN_ID,
+        token_addr,
+        get_selector_from_data(data),
+        compute_inst_hash(fields),
+        "Transfer USDT",
+        creator_name="Tether",
+    )
+    app_client.provide_transaction_info(tx_info.serialize())
+    for field in fields:
+        app_client.provide_transaction_field_desc(field.serialize())
+
+    apdu = EditScope(
+        old_scope=DEFAULT_SCOPE,
+        new_scope="Edited scope",
+        identifier=recipient_addr,
+        contact_name=DEFAULT_CONTACT_NAME,
+        hmac_proof=hmac_name,
+        hmac_rest=hmac_rest,
+        group_handle=group_handle,
+        blockchain_family=FAMILY,
+        chain_id=DEFAULT_CHAIN_ID,
+    )
+    with app_client.provide_address_book(apdu):
+        scenario_navigator.address_review_approve(do_comparison=False, custom_screen_text="Confirm")
+    check_edit_scope_response(app_client)
+
+    with app_client.sign(mode=SignMode.START_FLOW):
+        scenario_navigator.review_approve()
+
+
 def test_address_book_gcs_trusted_name_field(
     scenario_navigator: NavigateWithScenario,
 ) -> None:

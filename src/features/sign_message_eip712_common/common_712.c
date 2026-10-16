@@ -74,18 +74,17 @@ void eip712_hash_strs_cleanup(void) {
     APP_MEM_FREE_AND_NULL((void **) &s_message_hash_str);
 }
 
-void eip712_format_hash(uint8_t index) {
+bool eip712_format_hash(uint8_t index) {
     if ((g_pairs == NULL) || (g_pairsList == NULL) || (index + 1 >= g_pairsList->nbPairs)) {
-        return;
+        return false;
     }
     const size_t hash_str_size = 2 * CX_KECCAK_256_SIZE + 3;
-    if ((s_domain_hash_str == NULL) &&
-        !APP_MEM_CALLOC((void **) &s_domain_hash_str, hash_str_size)) {
-        return;
-    }
-    if ((s_message_hash_str == NULL) &&
-        !APP_MEM_CALLOC((void **) &s_message_hash_str, hash_str_size)) {
-        return;
+    if (((s_domain_hash_str == NULL) &&
+         !APP_MEM_CALLOC((void **) &s_domain_hash_str, hash_str_size)) ||
+        ((s_message_hash_str == NULL) &&
+         !APP_MEM_CALLOC((void **) &s_message_hash_str, hash_str_size))) {
+        eip712_hash_strs_cleanup();
+        return false;
     }
     messageSigningContext712_t *ctx = &tmpCtx.messageSigningContext712;
     array_bytes_string(s_domain_hash_str, hash_str_size, ctx->domainHash, CX_KECCAK_256_SIZE);
@@ -95,6 +94,7 @@ void eip712_format_hash(uint8_t index) {
     index++;
     g_pairs[index].item = "Message hash";
     g_pairs[index].value = s_message_hash_str;
+    return true;
 }
 
 /**

@@ -60,3 +60,25 @@ ledger_unit_tests_add_test(NAME test_ui_utils
   LINK_OPTIONS
     ${COMMON_LINK_OPTIONS}
 )
+
+ledger_unit_tests_add_test(NAME test_common_712
+  SOURCES
+    ${COMMON_SOURCES_WITH_GLOBALS}
+    ${APP_DIR}/features/sign_message_eip712_common/common_712.c
+    ${APP_DIR}/nbgl/ui_utils.c
+    ${PLUGIN_DIR}/common_utils.c
+  INCLUDE_DIRS
+    ${COMMON_INCLUDE_DIRS}
+    ${APP_DIR}/features/sign_message_eip712_common
+    ${APP_DIR}/features/provide_tx_simulation
+    ${BOLOS_SDK}/lib_tlv/use_cases
+    ${BOLOS_SDK}/io_legacy/include
+  COMPILE_DEFS
+    ${COMMON_COMPILE_DEFS}
+    HAVE_NBGL
+  LINK_OPTIONS
+    ${COMMON_LINK_OPTIONS}
+    -Wl,--wrap=mem_utils_calloc
+    -Wl,--wrap=mem_utils_free
+    -Wl,--wrap=mem_utils_free_and_null
+)

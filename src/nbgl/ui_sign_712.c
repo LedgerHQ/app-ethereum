@@ -27,9 +27,9 @@ static void ui_typed_message_review_choice(bool confirm) {
  * @param filtering_mode the filtering mode to use
  * @param operationType the type of operation to review
  * @param choiceCallback the callback to call when the user makes a choice
- *
+ * @return whether the review could be started
  */
-static void ui_712_start_review(e_eip712_filtering_mode filtering_mode,
+static bool ui_712_start_review(e_eip712_filtering_mode filtering_mode,
                                 nbgl_operationType_t operationType,
                                 nbgl_choiceCallback_t choiceCallback) {
 #ifdef HAVE_TRANSACTION_CHECKS
@@ -49,7 +49,7 @@ static void ui_712_start_review(e_eip712_filtering_mode filtering_mode,
     finish_len += strlen(tx_check_str);
     finish_len += strlen(title_suffix);
     if (!ui_buffers_init(0, 0, finish_len)) {
-        return;
+        return false;
     }
     snprintf(g_finishMsg, finish_len, "%s%s", tx_check_str, title_suffix);
 
@@ -75,6 +75,7 @@ static void ui_712_start_review(e_eip712_filtering_mode filtering_mode,
                                NULL,
                                &warning,
                                choiceCallback);
+    return true;
 }
 
 /**
@@ -95,8 +96,7 @@ bool ui_sign_712_v1(e_eip712_filtering_mode filtering_mode) {
         }
     }
 
-    ui_712_start_review(filtering_mode, TYPE_MESSAGE, ui_typed_message_review_choice);
-    return true;
+    return ui_712_start_review(filtering_mode, TYPE_MESSAGE, ui_typed_message_review_choice);
 }
 
 /**
@@ -115,8 +115,11 @@ bool ui_sign_712_v0(void) {
     }
 
     // Initialize the tag/value pairs
-    eip712_format_hash(0);
+    if (!eip712_format_hash(0)) {
+        return false;
+    }
 
-    ui_712_start_review(EIP712_FILTERING_BASIC, TYPE_TRANSACTION, ui_typed_message_review_choice);
-    return true;
+    return ui_712_start_review(EIP712_FILTERING_BASIC,
+                               TYPE_TRANSACTION,
+                               ui_typed_message_review_choice);
 }

@@ -6,7 +6,7 @@
 
 bool ui_712_start(e_eip712_filtering_mode filtering);
 
-void eip712_format_hash(uint8_t index);
+bool eip712_format_hash(uint8_t index);
 void eip712_hash_strs_cleanup(void);
 
 void ui_712_approve_cb(void);

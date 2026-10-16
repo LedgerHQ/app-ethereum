@@ -1561,7 +1561,9 @@ bool ui_712_push_pairs(void) {
             return false;
         }
         // Prepare the pairs list with the hashes
-        eip712_format_hash(pair);
+        if (!eip712_format_hash(pair)) {
+            return false;
+        }
         g_pairs[pair].forcePageStart = true;
     }
     return true;

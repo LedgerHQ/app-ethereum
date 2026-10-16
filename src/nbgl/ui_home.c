@@ -23,9 +23,6 @@ nbgl_warning_t warning;
 // Tagline format for plugins
 #define FORMAT_PLUGIN "This app enables clear\nsigning transactions for\nthe %s dApp."
 
-// Maximum caller-provided app name length we accept.
-#define MAX_CALLER_NAME_LEN 64
-
 _Static_assert(sizeof(FORMAT_PLUGIN) + MAX_CALLER_NAME_LEN < 256, "tagline overflow");
 
 enum {

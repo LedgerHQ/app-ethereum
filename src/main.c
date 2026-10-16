@@ -208,6 +208,11 @@ void coin_main(eth_libargs_t *args) {
             g_chain_config = args->chain_config;
         }
         if (args->caller_app != NULL) {
+            // The name is rendered in several screens: refuse to start without a bounded one
+            if ((args->caller_app->name == NULL) ||
+                (strnlen(args->caller_app->name, MAX_CALLER_NAME_LEN + 1) > MAX_CALLER_NAME_LEN)) {
+                app_exit();
+            }
             s_caller_app.name = args->caller_app->name;
 #ifdef HAVE_NBGL
             s_caller_app.icon = args->caller_app->icon;

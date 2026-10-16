@@ -189,6 +189,9 @@ typedef union {
     strDataTmp_t tmp;
 } strings_t;
 
+// Maximum caller-provided app name length we accept.
+#define MAX_CALLER_NAME_LEN 64
+
 extern const caller_app_t *g_caller_app;
 extern const chain_config_t *g_chain_config;
 

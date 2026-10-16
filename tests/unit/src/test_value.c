@@ -333,6 +333,36 @@ static const uint8_t g_key_tlv_nested_mapref[] = {
     'X',
 };
 
+// MAP_REF key_tlv whose inner value is a DATA_PATH (calldata source).
+static const uint8_t g_key_tlv_data_path[] = {
+    0x00,
+    0x01,
+    0x01,
+    0x01,
+    0x01,
+    (uint8_t) TF_BYTES,
+    0x02,
+    0x01,
+    0x01,
+    0x03,
+    0x00,
+};
+
+// A failing calldata key may already hold allocated leaves: they must be released.
+void test_value_get_mapref_key_resolution_failure_cleans_key(void) {
+    s_value v = {0};
+    v.source = SOURCE_MAP_REF;
+    v.map_ref.id = 7;
+    v.map_ref.key_tlv_size = sizeof(g_key_tlv_data_path);
+    memcpy(v.map_ref.key_tlv, g_key_tlv_data_path, sizeof(g_key_tlv_data_path));
+    g_dp_get_ret = false;
+    g_dp_collection.size = 1;
+
+    s_parsed_value_collection collec = {0};
+    TEST_ASSERT_FALSE(value_get(&v, &collec));
+    TEST_ASSERT_EQUAL(g_dp_cleanup_calls, 1);
+}
+
 void test_value_get_mapref_happy_path(void) {
     s_value v = {0};
     v.source = SOURCE_MAP_REF;
@@ -524,6 +554,7 @@ int main(void) {
     RUN_TEST(test_value_get_calldata_delegates_to_data_path_get);
     RUN_TEST(test_value_get_calldata_data_path_failure_propagates);
     RUN_TEST(test_value_get_mapref_happy_path);
+    RUN_TEST(test_value_get_mapref_key_resolution_failure_cleans_key);
     RUN_TEST(test_value_get_mapref_missing_map_entry_rejected);
     RUN_TEST(test_value_get_mapref_nested_rejected);
     RUN_TEST(test_value_get_invalid_source_rejected);

@@ -37,17 +37,42 @@ typedef struct {
 } nbgl_layoutQRCode_t;
 
 struct nbgl_icon_details_s;
+struct nbgl_genericDetails_s;
 
+// Minimal stand-in matching the fields used by the Address Book reviews.
 typedef struct {
+    uint8_t nbBars;
+    const char *const *texts;
+    const char *const *subTexts;
+    const struct nbgl_icon_details_s **icons;
+    const struct nbgl_genericDetails_s *details;
+} nbgl_genericBarList_t;
+
+typedef struct nbgl_genericDetails_s {
     const char *title;
     nbgl_genericDetailsType_t type;
     union {
 #ifdef NBGL_QRCODE
         nbgl_layoutQRCode_t qrCode;
 #endif
+        nbgl_genericBarList_t barList;
         const void *_reserved;
     };
 } nbgl_genericDetails_t;
+
+typedef nbgl_genericDetails_t nbgl_warningDetails_t;
+
+typedef void (*nbgl_choiceCallback_t)(bool confirm);
+
+void nbgl_useCaseAdvancedChoiceWithDetails(const struct nbgl_icon_details_s *icon,
+                                           const struct nbgl_icon_details_s *topRightIcon,
+                                           const char *message,
+                                           const char *subMessage,
+                                           const char *smallText,
+                                           const char *confirmText,
+                                           const char *cancelText,
+                                           nbgl_warningDetails_t *details,
+                                           nbgl_choiceCallback_t callback);
 
 typedef struct {
     const struct nbgl_icon_details_s *icon;

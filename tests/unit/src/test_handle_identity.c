@@ -86,20 +86,29 @@ const s_ab_contact *get_address_book_contact(uint64_t chain_id, const uint8_t *a
     (void) addr;
     return NULL;
 }
-void update_contact_name(const char *old_name, const char *new_name) {
+void update_contact_name(const uint8_t *gid, const char *old_name, const char *new_name) {
+    (void) gid;
     (void) old_name;
     (void) new_name;
 }
-void update_contact_identifier(const uint8_t *old_addr,
+void update_contact_identifier(const uint8_t *gid,
+                               const uint8_t *old_addr,
                                uint64_t chain_id,
                                const uint8_t *new_addr) {
+    (void) gid;
     (void) old_addr;
     (void) chain_id;
     (void) new_addr;
 }
-void update_contact_scope(const uint8_t *addr, uint64_t chain_id, const char *new_scope) {
+void update_contact_scope(const uint8_t *gid,
+                          const uint8_t *addr,
+                          uint64_t chain_id,
+                          const char *old_scope,
+                          const char *new_scope) {
+    (void) gid;
     (void) addr;
     (void) chain_id;
+    (void) old_scope;
     (void) new_scope;
 }
 

@@ -49,18 +49,19 @@ void address_book_contact_cleanup(void) {
 }
 
 /**
- * @brief Rename all Identity cache entries whose contact_name equals @p old_name.
+ * @brief Rename the Identity cache entries of group @p gid named @p old_name.
  *
+ * @param[in] gid      Group ID of the edited contact (no-op if NULL)
  * @param[in] old_name Old contact name to match (no-op if NULL)
  * @param[in] new_name New contact name to apply (no-op if NULL)
  */
-void update_contact_name(const char *old_name, const char *new_name) {
-    if (old_name == NULL || new_name == NULL) {
+void update_contact_name(const uint8_t *gid, const char *old_name, const char *new_name) {
+    if (gid == NULL || old_name == NULL || new_name == NULL) {
         return;
     }
     for (s_ab_contact *node = g_ab_contact_list; node != NULL;
          node = (s_ab_contact *) ((flist_node_t *) node)->next) {
-        if ((node->type == AB_CONTACT_IDENTITY) &&
+        if ((node->type == AB_CONTACT_IDENTITY) && (memcmp(node->gid, gid, GID_SIZE) == 0) &&
             (strncmp(node->contact_name, old_name, CONTACT_NAME_LENGTH) == 0)) {
             strlcpy(node->contact_name, new_name, sizeof(node->contact_name));
             PRINTF("update_contact_name: '%s' → '%s'\n", old_name, new_name);
@@ -69,21 +70,24 @@ void update_contact_name(const char *old_name, const char *new_name) {
 }
 
 /**
- * @brief Update the identifier of the Identity cache entry matching (old_addr, chain_id).
+ * @brief Update the identifier of the group @p gid Identity entry matching (old_addr, chain_id).
  *
+ * @param[in] gid      Group ID of the edited contact (no-op if NULL)
  * @param[in] old_addr Old raw 20-byte Ethereum address (no-op if NULL)
  * @param[in] chain_id Chain ID to match
  * @param[in] new_addr New raw 20-byte Ethereum address (no-op if NULL)
  */
-void update_contact_identifier(const uint8_t *old_addr,
+void update_contact_identifier(const uint8_t *gid,
+                               const uint8_t *old_addr,
                                uint64_t chain_id,
                                const uint8_t *new_addr) {
-    if (old_addr == NULL || new_addr == NULL) {
+    if (gid == NULL || old_addr == NULL || new_addr == NULL) {
         return;
     }
     for (s_ab_contact *node = g_ab_contact_list; node != NULL;
          node = (s_ab_contact *) ((flist_node_t *) node)->next) {
-        if ((node->type == AB_CONTACT_IDENTITY) && (node->chain_id == chain_id) &&
+        if ((node->type == AB_CONTACT_IDENTITY) && (memcmp(node->gid, gid, GID_SIZE) == 0) &&
+            (node->chain_id == chain_id) &&
             (memcmp(node->identifier, old_addr, ADDRESS_LENGTH) == 0)) {
             memcpy(node->identifier, new_addr, ADDRESS_LENGTH);
             PRINTF("update_contact_identifier: updated identifier for chain %llu\n", chain_id);
@@ -93,20 +97,27 @@ void update_contact_identifier(const uint8_t *old_addr,
 }
 
 /**
- * @brief Update the scope of the Identity cache entry matching (addr, chain_id).
+ * @brief Update the scope of the group @p gid Identity entry matching (addr, chain_id, old_scope).
  *
+ * @param[in] gid       Group ID of the edited contact (no-op if NULL)
  * @param[in] addr      Raw 20-byte Ethereum address to match (no-op if NULL)
  * @param[in] chain_id  Chain ID to match
+ * @param[in] old_scope Scope being replaced (no-op if NULL)
  * @param[in] new_scope New scope string (no-op if NULL)
  */
-void update_contact_scope(const uint8_t *addr, uint64_t chain_id, const char *new_scope) {
-    if (addr == NULL || new_scope == NULL) {
+void update_contact_scope(const uint8_t *gid,
+                          const uint8_t *addr,
+                          uint64_t chain_id,
+                          const char *old_scope,
+                          const char *new_scope) {
+    if (gid == NULL || addr == NULL || old_scope == NULL || new_scope == NULL) {
         return;
     }
     for (s_ab_contact *node = g_ab_contact_list; node != NULL;
          node = (s_ab_contact *) ((flist_node_t *) node)->next) {
-        if ((node->type == AB_CONTACT_IDENTITY) && (node->chain_id == chain_id) &&
-            (memcmp(node->identifier, addr, ADDRESS_LENGTH) == 0)) {
+        if ((node->type == AB_CONTACT_IDENTITY) && (memcmp(node->gid, gid, GID_SIZE) == 0) &&
+            (node->chain_id == chain_id) && (memcmp(node->identifier, addr, ADDRESS_LENGTH) == 0) &&
+            (strncmp(node->scope, old_scope, SCOPE_LENGTH) == 0)) {
             strlcpy(node->scope, new_scope, sizeof(node->scope));
             PRINTF("update_contact_scope: updated scope for chain %llu\n", chain_id);
             return;  // (identifier, chain_id) is unique in the list

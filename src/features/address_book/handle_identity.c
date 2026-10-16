@@ -369,13 +369,13 @@ nbgl_contentTagValue_t *get_edit_identifier_tagValue(uint8_t pairIndex) {
  */
 
 /**
- * @brief Update cached contacts whose name matches the previous contact name.
+ * @brief Update the cached contacts of the edited group whose name matches the previous name.
  *
  * Called by the SDK only when the user confirmed the name change and the new
- * HMAC proof was successfully sent to the host. Renames all entries in the
- * Provide Contact cache whose contact_name equals @p edit->old_contact_name
- * so that the wallet immediately sees the new name on the next transaction
- * review without requiring a re-provide.
+ * HMAC proof was successfully sent to the host. Renames the entries of group
+ * @p edit->gid in the Provide Contact cache whose contact_name equals
+ * @p edit->old_contact_name so that the wallet immediately sees the new name on the next
+ * transaction review without requiring a re-provide.
  *
  * @param[in] edit Parsed edit data containing old_contact_name and the new
  *                 contact_name
@@ -384,7 +384,7 @@ void on_edit_contact_name_applied(const edit_contact_name_t *edit) {
     if (edit == NULL) {
         return;
     }
-    update_contact_name(edit->old_contact_name, edit->contact_name);
+    update_contact_name(edit->gid, edit->old_contact_name, edit->contact_name);
 }
 
 /**
@@ -392,10 +392,9 @@ void on_edit_contact_name_applied(const edit_contact_name_t *edit) {
  *
  * Called by the SDK only when the user confirmed the address change and the new
  * HMAC proof was successfully sent to the host. Replaces the identifier in the
- * Provide Contact cache entry that matches (@p edit->old_identifier,
- * @p edit->identity.chain_id) so that the wallet immediately sees the contact
- * name on the next transaction review to the new address without requiring a
- * re-provide.
+ * Provide Contact cache entry that matches (@p edit->identity.gid,
+ * @p edit->old_identifier, @p edit->identity.chain_id) so that the wallet immediately sees the
+ * contact name on the next transaction review to the new address without requiring a re-provide.
  *
  * @param[in] edit Parsed edit data containing old_identifier (raw bytes),
  *                 old_identifier_len, and the new identity
@@ -404,7 +403,8 @@ void on_edit_identifier_applied(const edit_identifier_t *edit) {
     if (edit == NULL) {
         return;
     }
-    update_contact_identifier(edit->old_identifier,
+    update_contact_identifier(edit->identity.gid,
+                              edit->old_identifier,
                               edit->identity.chain_id,
                               edit->identity.identifier);
 }
@@ -414,9 +414,9 @@ void on_edit_identifier_applied(const edit_identifier_t *edit) {
  *
  * Called by the SDK only when the user confirmed the scope change and the new
  * HMAC proof was successfully sent to the host. Replaces the scope field in the
- * Provide Contact cache entry that matches (@p edit->identity.identifier,
- * @p edit->identity.chain_id) so that the wallet immediately sees the updated
- * scope on the next transaction review without requiring a re-provide.
+ * Provide Contact cache entry that matches (@p edit->identity.gid,
+ * @p edit->identity.identifier, @p edit->identity.chain_id, @p edit->old_scope) so that the wallet
+ * immediately sees the updated scope on the next transaction review without requiring a re-provide.
  *
  * @param[in] edit Parsed edit data containing old_scope and the new
  *                 identity (identifier, chain_id, new scope)
@@ -425,7 +425,11 @@ void on_edit_scope_applied(const edit_scope_t *edit) {
     if (edit == NULL) {
         return;
     }
-    update_contact_scope(edit->identity.identifier, edit->identity.chain_id, edit->identity.scope);
+    update_contact_scope(edit->identity.gid,
+                         edit->identity.identifier,
+                         edit->identity.chain_id,
+                         edit->old_scope,
+                         edit->identity.scope);
 }
 
 /* =========================================================================
@@ -477,6 +481,7 @@ bool handle_provide_identity(const identity_t *contact) {
     }
 
     node->type = AB_CONTACT_IDENTITY;
+    memcpy(node->gid, contact->gid, GID_SIZE);
     strlcpy(node->contact_name, contact->contact_name, sizeof(node->contact_name));
     strlcpy(node->scope, contact->scope, sizeof(node->scope));
     memcpy(node->identifier, contact->identifier, ADDRESS_LENGTH);

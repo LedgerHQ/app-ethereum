@@ -1831,6 +1831,109 @@ def test_address_book_cache_invalidation_after_edit_contact_name(scenario_naviga
         scenario_navigator.review_approve()
 
 
+def _provide_default_contact_of_another_group(
+    scenario_navigator: NavigateWithScenario, app_client: EthAppClient
+) -> tuple[bytes, bytes, bytes]:
+    """Cache group A's DEFAULT_ADDRESS contact, then register group B on the same address.
+
+    Returns group B's (group_handle, hmac_name, hmac_rest). Group B is never provided.
+    """
+    group_handle_a, hmac_name_a, hmac_rest_a = _common_register_identity(
+        scenario_navigator,
+        app_client,
+        do_compare=False,
+    )
+    apdu: AddressBookCommand = ProvideContact(
+        identifier=DEFAULT_ADDRESS,
+        group_handle=group_handle_a,
+        hmac_name=hmac_name_a,
+        hmac_rest=hmac_rest_a,
+        contact_name=DEFAULT_CONTACT_NAME,
+        scope=DEFAULT_SCOPE,
+        blockchain_family=FAMILY,
+        chain_id=DEFAULT_CHAIN_ID,
+    )
+    response = app_client.provide_address_book(apdu, False)
+    assert_sw(response.status, StatusWord.SWO_SUCCESS)
+
+    return _common_register_identity(
+        scenario_navigator,
+        app_client,
+        do_compare=False,
+    )
+
+
+def _sign_tx_to_default_address(scenario_navigator: NavigateWithScenario, app_client: EthAppClient) -> None:
+    tx_params: dict = {
+        "nonce": NONCE,
+        "gasPrice": Web3.to_wei(GAS_PRICE, "gwei"),
+        "gas": GAS_LIMIT,
+        "to": DEFAULT_ADDRESS,
+        "value": Web3.to_wei(AMOUNT, "ether"),
+        "chainId": DEFAULT_CHAIN_ID,
+    }
+    with app_client.sign(DEFAULT_BIP32_PATH, tx_params):
+        scenario_navigator.review_approve()
+
+
+def test_address_book_edit_identifier_of_another_group(scenario_navigator: NavigateWithScenario) -> None:
+    """An Edit Identifier of group B must not move group A's cached contact.
+
+    Flow:
+      1. Cache group A's "Alice" on DEFAULT_ADDRESS, register group B on the same address
+      2. Edit Identifier of group B (DEFAULT_ADDRESS → new_address)
+      3. Sign TX to DEFAULT_ADDRESS → "To" still shows "Alice"
+    """
+    backend = scenario_navigator.backend
+    app_client = EthAppClient(backend)
+
+    new_address = bytes.fromhex("a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48")
+    group_handle_b, hmac_name_b, hmac_rest_b = _provide_default_contact_of_another_group(scenario_navigator, app_client)
+
+    apdu: AddressBookCommand = EditIdentifier(
+        old_identifier=DEFAULT_ADDRESS,
+        new_identifier=new_address,
+        contact_name=DEFAULT_CONTACT_NAME,
+        scope=DEFAULT_SCOPE,
+        hmac_proof=hmac_name_b,
+        hmac_rest=hmac_rest_b,
+        group_handle=group_handle_b,
+        blockchain_family=FAMILY,
+        chain_id=DEFAULT_CHAIN_ID,
+    )
+    with app_client.provide_address_book(apdu):
+        scenario_navigator.address_review_approve(do_comparison=False, custom_screen_text="Confirm")
+    check_edit_identifier_response(app_client)
+
+    _sign_tx_to_default_address(scenario_navigator, app_client)
+
+
+def test_address_book_edit_contact_name_of_another_group(scenario_navigator: NavigateWithScenario) -> None:
+    """An Edit Contact Name of group B must not rename group A's cached contact.
+
+    Flow:
+      1. Cache group A's "Alice" on DEFAULT_ADDRESS, register group B ("Alice") on the same address
+      2. Edit Contact Name of group B ("Alice" → "Mallory")
+      3. Sign TX to DEFAULT_ADDRESS → "To" still shows "Alice"
+    """
+    backend = scenario_navigator.backend
+    app_client = EthAppClient(backend)
+
+    group_handle_b, hmac_name_b, _ = _provide_default_contact_of_another_group(scenario_navigator, app_client)
+
+    apdu: AddressBookCommand = EditContactName(
+        old_contact_name=DEFAULT_CONTACT_NAME,
+        new_contact_name="Mallory",
+        hmac_proof=hmac_name_b,
+        group_handle=group_handle_b,
+    )
+    with app_client.provide_address_book(apdu):
+        scenario_navigator.address_review_approve(do_comparison=False, custom_screen_text="Confirm")
+    check_edit_contact_name_response(app_client)
+
+    _sign_tx_to_default_address(scenario_navigator, app_client)
+
+
 def test_address_book_cache_invalidation_after_ledger_account_rename(scenario_navigator: NavigateWithScenario) -> None:
     """Ledger Account rename updates the cached entry in place.
 

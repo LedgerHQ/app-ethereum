@@ -37,3 +37,19 @@ ledger_unit_tests_add_test(NAME test_handle_identity
     -Wl,--wrap=mem_utils_calloc
     -Wl,--wrap=mem_utils_free_and_null
 )
+
+ledger_unit_tests_add_test(NAME test_handle_contacts
+  SOURCES
+    ${COMMON_SOURCES}
+    ${APP_DIR}/features/address_book/handle_contacts.c
+    ${BOLOS_SDK}/lib_lists/lists.c
+  INCLUDE_DIRS
+    ${COMMON_INCLUDE_DIRS}
+    ${APP_DIR}/features/address_book
+    ${BOLOS_SDK}/app_features/address_book/include
+  COMPILE_DEFS
+    ${COMMON_COMPILE_DEFS}
+    HAVE_ADDRESS_BOOK
+  LINK_OPTIONS
+    ${COMMON_LINK_OPTIONS}
+)

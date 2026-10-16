@@ -102,6 +102,8 @@ bool handle_check_register_identity(identity_t *params) {
     }
     PRINTF("Address validation successful\n");
 
+    // Start from an empty context: display buffers are only allocated when NULL
+    address_book_review_cleanup();
     if (APP_MEM_PERMANENT((void **) &g_ctx.register_identity.identity, sizeof(identity_t)) ==
         false) {
         PRINTF("Failed to allocate identity\n");
@@ -139,8 +141,10 @@ nbgl_contentTagValue_t *get_register_identity_tagValue(uint8_t pairIndex) {
             break;
 
         case 2:
-            if (APP_MEM_PERMANENT((void **) &g_ctx.register_identity.identifier_display,
-                                  ADDRESS_LENGTH_HEX_STR) == false) {
+            // NBGL calls this on every page refresh: allocate once, freed on review cleanup
+            if ((g_ctx.register_identity.identifier_display == NULL) &&
+                (APP_MEM_PERMANENT((void **) &g_ctx.register_identity.identifier_display,
+                                   ADDRESS_LENGTH_HEX_STR) == false)) {
                 PRINTF("Failed to allocate identifier display buffer\n");
                 return NULL;
             }
@@ -159,8 +163,9 @@ nbgl_contentTagValue_t *get_register_identity_tagValue(uint8_t pairIndex) {
             break;
 
         case 3:
-            if (APP_MEM_PERMANENT((void **) &g_ctx.register_identity.network_display,
-                                  MAX_NETWORK_LEN) == false) {
+            if ((g_ctx.register_identity.network_display == NULL) &&
+                (APP_MEM_PERMANENT((void **) &g_ctx.register_identity.network_display,
+                                   MAX_NETWORK_LEN) == false)) {
                 PRINTF("Failed to allocate network display buffer\n");
                 return NULL;
             }

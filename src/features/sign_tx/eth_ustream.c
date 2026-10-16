@@ -660,9 +660,12 @@ static parserStatus_e process_tx_internal(txContext_t *context) {
                 chain_id = get_tx_chain_id();
 
                 if (!tx_ctx_init(g_parked_calldata, NULL, to, amount, &chain_id)) {
-                    calldata_delete(g_parked_calldata);
-                    g_parked_calldata = NULL;
-                    return false;
+                    // NULL once the calldata ownership was transferred to the context
+                    if (g_parked_calldata != NULL) {
+                        calldata_delete(g_parked_calldata);
+                        g_parked_calldata = NULL;
+                    }
+                    return USTREAM_FAULT;
                 }
                 g_parked_calldata = NULL;
             }

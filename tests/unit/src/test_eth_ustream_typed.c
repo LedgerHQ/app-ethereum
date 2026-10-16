@@ -413,11 +413,8 @@ void test_tx_ctx_init_failure_returns_fault(void) {
     g_parked_calldata = &g_calldata_sentinel;
 
     parserStatus_e r = process_tx(&ctx, g_eip1559_tx, sizeof(g_eip1559_tx));
-    // The source returns `false` (cast to parserStatus_e == 0 ==
-    // USTREAM_PROCESSING) from this branch rather than USTREAM_FAULT,
-    // pin the actual value so a future cleanup doesn't silently flip
-    // semantics.
-    TEST_ASSERT_EQUAL(r, (parserStatus_e) false);
+    // A fault, not USTREAM_PROCESSING, which the APDU layer answers with 0x9000.
+    TEST_ASSERT_EQUAL(r, USTREAM_FAULT);
     TEST_ASSERT_NULL(g_parked_calldata);
 }
 

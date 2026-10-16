@@ -96,6 +96,11 @@ customStatus_e custom_processor(txContext_t *context) {
     return CUSTOM_NOT_HANDLED;
 }
 
+// Controlled by the tx_ctx_init failure tests: g_tx_ctx_init_ok selects the
+// return value, g_tx_ctx_init_takes_ownership mimics a failure occurring after
+// the calldata was handed over to the new context (g_parked_calldata cleared).
+static bool g_tx_ctx_init_ok = true;
+static bool g_tx_ctx_init_takes_ownership = false;
 bool tx_ctx_init(s_calldata *calldata,
                  const uint8_t *from,
                  const uint8_t *to,
@@ -106,7 +111,10 @@ bool tx_ctx_init(s_calldata *calldata,
     (void) to;
     (void) amount;
     (void) chain_id;
-    return true;
+    if (g_tx_ctx_init_takes_ownership) {
+        g_parked_calldata = NULL;
+    }
+    return g_tx_ctx_init_ok;
 }
 
 // Controlled by the store_calldata tests below: when g_calldata_init_ok
@@ -132,8 +140,13 @@ bool calldata_append(s_calldata *calldata, const uint8_t *buffer, size_t size) {
     return g_calldata_append_ok;
 }
 
+static int g_calldata_delete_calls = 0;
+static int g_calldata_delete_null_calls = 0;
 void calldata_delete(s_calldata *node) {
-    (void) node;
+    g_calldata_delete_calls++;
+    if (node == NULL) {
+        g_calldata_delete_null_calls++;
+    }
 }
 
 // =============================================================================
@@ -151,6 +164,10 @@ static void reset(void) {
     g_calldata_append_ok = true;
     g_calldata_init_calls = 0;
     g_calldata_append_calls = 0;
+    g_calldata_delete_calls = 0;
+    g_calldata_delete_null_calls = 0;
+    g_tx_ctx_init_ok = true;
+    g_tx_ctx_init_takes_ownership = false;
 }
 
 // =============================================================================
@@ -684,6 +701,42 @@ void test_process_data_store_calldata_init_failure_rejected(void) {
     TEST_ASSERT_EQUAL(g_calldata_append_calls, 0);  // never reached
 }
 
+// tx_ctx_init failure once parsing is done: the parser must report a fault
+// (not "processing", which the APDU layer turns into 0x9000) and release the
+// parked calldata only while it still owns it.
+void test_process_tx_store_calldata_ctx_init_failure_rejected(void) {
+    cx_sha3_t sha3;
+    txContent_t content = {0};
+    txContext_t ctx;
+    TEST_ASSERT_TRUE(init_tx(&ctx, &sha3, &content, /*store_calldata=*/true));
+    ctx.txType = LEGACY;
+    g_tx_ctx_init_ok = false;
+
+    parserStatus_e r =
+        process_tx(&ctx, g_legacy_tx_with_8byte_data, sizeof(g_legacy_tx_with_8byte_data));
+    TEST_ASSERT_EQUAL(r, USTREAM_FAULT);
+    TEST_ASSERT_EQUAL(g_calldata_delete_calls, 1);
+    TEST_ASSERT_EQUAL(g_calldata_delete_null_calls, 0);
+    TEST_ASSERT_NULL(g_parked_calldata);
+}
+
+void test_process_tx_store_calldata_ctx_init_failure_after_handover_rejected(void) {
+    cx_sha3_t sha3;
+    txContent_t content = {0};
+    txContext_t ctx;
+    TEST_ASSERT_TRUE(init_tx(&ctx, &sha3, &content, /*store_calldata=*/true));
+    ctx.txType = LEGACY;
+    g_tx_ctx_init_ok = false;
+    g_tx_ctx_init_takes_ownership = true;
+
+    parserStatus_e r =
+        process_tx(&ctx, g_legacy_tx_with_8byte_data, sizeof(g_legacy_tx_with_8byte_data));
+    TEST_ASSERT_EQUAL(r, USTREAM_FAULT);
+    // The context owns the calldata now: it must not be deleted here.
+    TEST_ASSERT_EQUAL(g_calldata_delete_calls, 0);
+    TEST_ASSERT_NULL(g_parked_calldata);
+}
+
 // Same legacy envelope but with a 2-byte data field — shorter than
 // the 4-byte selector. store_calldata mode must refuse rather than
 // initialise a calldata buffer without a complete selector.
@@ -1024,6 +1077,8 @@ int main(void) {
     RUN_TEST(test_process_data_captures_selector_bytes);
     RUN_TEST(test_process_data_store_calldata_happy_path);
     RUN_TEST(test_process_data_store_calldata_init_failure_rejected);
+    RUN_TEST(test_process_tx_store_calldata_ctx_init_failure_rejected);
+    RUN_TEST(test_process_tx_store_calldata_ctx_init_failure_after_handover_rejected);
     RUN_TEST(test_process_data_store_calldata_short_data_rejected);
     RUN_TEST(test_process_tx_eip2930_nonempty_access_list);
     RUN_TEST(test_process_tx_eip7702_nonempty_auth_list);

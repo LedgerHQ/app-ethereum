@@ -81,6 +81,8 @@ uint32_t eth2WithdrawalIndex;
 const internalStorage_t N_storage_real;
 
 const caller_app_t *g_caller_app = NULL;
+// Local copy of the caller description: the caller's own memory is never written to
+static caller_app_t s_caller_app;
 const chain_config_t *g_chain_config;
 
 uint16_t io_seproxyhal_send_status(uint16_t sw, uint32_t tx, bool reset, bool idle) {
@@ -206,12 +208,16 @@ void coin_main(eth_libargs_t *args) {
             g_chain_config = args->chain_config;
         }
         if (args->caller_app != NULL) {
+            s_caller_app.name = args->caller_app->name;
+#ifdef HAVE_NBGL
+            s_caller_app.icon = args->caller_app->icon;
+#endif
             if (g_chain_config != NULL) {
-                args->caller_app->type = CALLER_TYPE_CLONE;
+                s_caller_app.type = CALLER_TYPE_CLONE;
             } else {
-                args->caller_app->type = CALLER_TYPE_PLUGIN;
+                s_caller_app.type = CALLER_TYPE_PLUGIN;
             }
-            g_caller_app = args->caller_app;
+            g_caller_app = &s_caller_app;
         }
     }
     if (g_chain_config == NULL) {

@@ -61,6 +61,8 @@
 static cx_err_t g_cx_sha256_hash_iovec_err = CX_OK;
 static const uint8_t *g_cx_sha256_hash_iovec_out = NULL;
 static bool g_mem_utils_calloc_ret = true;
+// Allocations made through mem_utils_calloc and not yet released.
+static int g_live_allocs = 0;
 
 // =============================================================================
 // Wraps
@@ -96,7 +98,19 @@ bool mem_utils_calloc(void **buffer, uint16_t size, bool permanent, const char *
     *buffer = malloc(size);
     if (*buffer == NULL) return false;
     memset(*buffer, 0, size);
+    g_live_allocs++;
     return true;
+}
+
+// Counted counterpart of the allocator above, used by APP_MEM_FREE_AND_NULL.
+void mem_utils_free_and_null(void **buffer, const char *file, int line) {
+    (void) file;
+    (void) line;
+    if (*buffer != NULL) {
+        free(*buffer);
+        *buffer = NULL;
+        g_live_allocs--;
+    }
 }
 
 // =============================================================================
@@ -262,6 +276,18 @@ void test_following_chunk_overflow_rejected(void) {
     TEST_ASSERT_EQUAL(handle_network_icon_chunks(P1_FOLLOWING_CHUNK, &over), SWO_INCORRECT_DATA);
 }
 
+// A repeated FIRST chunk restarts the reception without leaking the
+// partially received bitmap.
+void test_repeated_first_chunk_does_not_leak(void) {
+    buffer_t partial = {.ptr = s_icon_buf, .size = 8 + 4, .offset = 0};
+    int live = g_live_allocs;
+
+    TEST_ASSERT_EQUAL(handle_network_icon_chunks(P1_FIRST_CHUNK, &partial), SWO_SUCCESS);
+    TEST_ASSERT_EQUAL(handle_network_icon_chunks(P1_FIRST_CHUNK, &partial), SWO_SUCCESS);
+    TEST_ASSERT_EQUAL(handle_network_icon_chunks(P1_FIRST_CHUNK, &partial), SWO_SUCCESS);
+    TEST_ASSERT_EQUAL_INT(live + 1, g_live_allocs);
+}
+
 // =============================================================================
 // Full reception -- hash verification
 // =============================================================================
@@ -359,6 +385,7 @@ int main(void) {
     RUN_TEST(test_following_chunk_overflow_rejected);
     RUN_TEST(test_full_reception_hash_mismatch_rejected);
     RUN_TEST(test_full_reception_hash_compute_failure_rejected);
+    RUN_TEST(test_repeated_first_chunk_does_not_leak);
     RUN_TEST(test_full_reception_hash_ok_transfers_ownership);
     RUN_TEST(test_two_chunks_complete_icon);
     RUN_TEST(test_clear_icon_frees_both_globals);

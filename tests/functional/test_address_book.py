@@ -1934,6 +1934,69 @@ def test_address_book_edit_contact_name_of_another_group(scenario_navigator: Nav
     _sign_tx_to_default_address(scenario_navigator, app_client)
 
 
+def test_address_book_edit_identifier_onto_cached_address(scenario_navigator: NavigateWithScenario) -> None:
+    """An Edit Identifier onto an address that already has a cached contact must not relabel it.
+
+    Flow:
+      1. Cache "Alice" on DEFAULT_ADDRESS and "Bob" on bob_address (two groups)
+      2. Edit Identifier of Alice (DEFAULT_ADDRESS → bob_address)
+      3. Sign TX to bob_address → "To" still shows "Bob"
+    """
+    backend = scenario_navigator.backend
+    app_client = EthAppClient(backend)
+
+    bob_address = bytes.fromhex("a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48")
+    handles = {}
+    for name, address in (("Alice", DEFAULT_ADDRESS), ("Bob", bob_address)):
+        group_handle, hmac_name, hmac_rest = _common_register_identity(
+            scenario_navigator,
+            app_client,
+            contact_name=name,
+            address=address,
+            do_compare=False,
+        )
+        handles[name] = (group_handle, hmac_name, hmac_rest)
+        apdu: AddressBookCommand = ProvideContact(
+            identifier=address,
+            group_handle=group_handle,
+            hmac_name=hmac_name,
+            hmac_rest=hmac_rest,
+            contact_name=name,
+            scope=DEFAULT_SCOPE,
+            blockchain_family=FAMILY,
+            chain_id=DEFAULT_CHAIN_ID,
+        )
+        response = app_client.provide_address_book(apdu, False)
+        assert_sw(response.status, StatusWord.SWO_SUCCESS)
+
+    group_handle, hmac_name, hmac_rest = handles["Alice"]
+    apdu = EditIdentifier(
+        old_identifier=DEFAULT_ADDRESS,
+        new_identifier=bob_address,
+        contact_name="Alice",
+        scope=DEFAULT_SCOPE,
+        hmac_proof=hmac_name,
+        hmac_rest=hmac_rest,
+        group_handle=group_handle,
+        blockchain_family=FAMILY,
+        chain_id=DEFAULT_CHAIN_ID,
+    )
+    with app_client.provide_address_book(apdu):
+        scenario_navigator.address_review_approve(do_comparison=False, custom_screen_text="Confirm")
+    check_edit_identifier_response(app_client)
+
+    tx_params: dict = {
+        "nonce": NONCE,
+        "gasPrice": Web3.to_wei(GAS_PRICE, "gwei"),
+        "gas": GAS_LIMIT,
+        "to": bob_address,
+        "value": Web3.to_wei(AMOUNT, "ether"),
+        "chainId": DEFAULT_CHAIN_ID,
+    }
+    with app_client.sign(DEFAULT_BIP32_PATH, tx_params):
+        scenario_navigator.review_approve()
+
+
 def test_address_book_cache_invalidation_after_ledger_account_rename(scenario_navigator: NavigateWithScenario) -> None:
     """Ledger Account rename updates the cached entry in place.
 

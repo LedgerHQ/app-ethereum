@@ -89,6 +89,15 @@ void update_contact_identifier(const uint8_t *gid,
         if ((node->type == AB_CONTACT_IDENTITY) && (memcmp(node->gid, gid, GID_SIZE) == 0) &&
             (node->chain_id == chain_id) &&
             (memcmp(node->identifier, old_addr, ADDRESS_LENGTH) == 0)) {
+            const s_ab_contact *owner = get_address_book_contact(chain_id, new_addr);
+            if ((owner != NULL) && (owner != node)) {
+                // The new address already has a contact: drop this one rather than duplicate it
+                flist_remove((flist_node_t **) &g_ab_contact_list,
+                             (flist_node_t *) node,
+                             (f_list_node_del) &delete_contact);
+                PRINTF("update_contact_identifier: new address already cached, entry dropped\n");
+                return;
+            }
             memcpy(node->identifier, new_addr, ADDRESS_LENGTH);
             PRINTF("update_contact_identifier: updated identifier for chain %llu\n", chain_id);
             return;  // (identifier, chain_id) is unique in the list

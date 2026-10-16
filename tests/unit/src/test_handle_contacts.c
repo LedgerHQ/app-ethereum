@@ -6,7 +6,9 @@
  * Behaviors covered:
  *   - name, identifier and scope edits only update the contacts of the edited
  *     group (gid), never a contact of another group sharing the name or address,
- *   - a scope edit also requires the previous scope to match.
+ *   - a scope edit also requires the previous scope to match,
+ *   - an identifier edit onto an address that already has a contact drops the
+ *     edited entry instead of duplicating that address.
  */
 
 #include "unity.h"
@@ -102,6 +104,26 @@ void test_scope_edit_of_same_group_applied(void) {
     TEST_ASSERT_EQUAL_STRING("Savings", alice->scope);
 }
 
+void test_identifier_edit_onto_cached_address_drops_entry(void) {
+    add_contact(g_gid_a, "Alice", "Main", g_addr_x);
+    const s_ab_contact *bob = add_contact(g_gid_b, "Bob", "Main", g_addr_y);
+
+    update_contact_identifier(g_gid_a, g_addr_x, CHAIN_ID, g_addr_y);
+
+    // The contact already approved for the new address keeps it, alone
+    TEST_ASSERT_EQUAL_PTR(bob, get_address_book_contact(CHAIN_ID, g_addr_y));
+    TEST_ASSERT_NULL(get_address_book_contact(CHAIN_ID, g_addr_x));
+    TEST_ASSERT_NULL(((const flist_node_t *) bob)->next);
+}
+
+void test_identifier_edit_onto_same_address_kept(void) {
+    const s_ab_contact *alice = add_contact(g_gid_a, "Alice", "Main", g_addr_x);
+
+    update_contact_identifier(g_gid_a, g_addr_x, CHAIN_ID, g_addr_x);
+
+    TEST_ASSERT_EQUAL_PTR(alice, get_address_book_contact(CHAIN_ID, g_addr_x));
+}
+
 // =============================================================================
 // Runner
 // =============================================================================
@@ -118,6 +140,8 @@ int main(void) {
     RUN_TEST(test_rename_only_affects_edited_group);
     RUN_TEST(test_identifier_edit_of_another_group_ignored);
     RUN_TEST(test_identifier_edit_of_same_group_applied);
+    RUN_TEST(test_identifier_edit_onto_cached_address_drops_entry);
+    RUN_TEST(test_identifier_edit_onto_same_address_kept);
     RUN_TEST(test_scope_edit_of_another_group_ignored);
     RUN_TEST(test_scope_edit_with_wrong_old_scope_ignored);
     RUN_TEST(test_scope_edit_of_same_group_applied);

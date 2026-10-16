@@ -39,8 +39,13 @@ static void review_choice(bool confirm) {
 
 static void free_pair_extension_infolist_elem(const struct nbgl_contentInfoList_s *infolist,
                                               int idx) {
-    APP_MEM_FREE((void *) infolist->infoTypes[idx]);
-    APP_MEM_FREE((void *) infolist->infoContents[idx]);
+    // Arrays may be missing when their allocation failed after nbInfos was set
+    if (infolist->infoTypes != NULL) {
+        APP_MEM_FREE((void *) infolist->infoTypes[idx]);
+    }
+    if (infolist->infoContents != NULL) {
+        APP_MEM_FREE((void *) infolist->infoContents[idx]);
+    }
     if (infolist->infoExtensions != NULL) {
         APP_MEM_FREE((void *) infolist->infoExtensions[idx].title);
         APP_MEM_FREE((void *) infolist->infoExtensions[idx].explanation);

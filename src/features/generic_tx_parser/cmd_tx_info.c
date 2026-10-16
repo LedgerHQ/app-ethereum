@@ -29,7 +29,12 @@ static bool handle_tlv_payload(const buffer_t *buf) {
         APP_MEM_FREE(ctx.tx_info);
         return false;
     }
-    return process_empty_txs_before() && set_tx_info_into_tx_ctx(ctx.tx_info);
+    if (!process_empty_txs_before()) {
+        APP_MEM_FREE(ctx.tx_info);
+        return false;
+    }
+    // Attached to the matched context before any check, freed with it
+    return set_tx_info_into_tx_ctx(ctx.tx_info);
 }
 
 uint16_t handle_tx_info(uint8_t p1, uint8_t p2, uint8_t lc, const uint8_t *payload) {

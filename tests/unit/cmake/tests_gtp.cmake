@@ -447,6 +447,8 @@ ledger_unit_tests_add_test(NAME test_cmd_field_tx_info
     ${COMMON_COMPILE_DEFS}
   LINK_OPTIONS
     ${COMMON_LINK_OPTIONS}
+    -Wl,--wrap=mem_utils_calloc
+    -Wl,--wrap=mem_utils_free
 )
 
 ledger_unit_tests_add_test(NAME test_cmd_map_entry

@@ -65,6 +65,7 @@ static const network_info_t NETWORK_MAPPING[] = {
     {.chain_id = 1923, .name = "Swellchain", .ticker = "ETH"},
     {.chain_id = 1924, .name = "Swellchain Testnet", .ticker = "ETH"},
     {.chain_id = 1946, .name = "Soneium Testnet Minato", .ticker = "ETH"},
+    {.chain_id = 2110, .name = "Parallax", .ticker = "LAX"},
     {.chain_id = 2222, .name = "Kava EVM", .ticker = "KAVA"},
     {.chain_id = 3776, .name = "Astar zkEVM", .ticker = "ETH"},
     {.chain_id = 4201, .name = "LUKSO Testnet", .ticker = "LYXt"},

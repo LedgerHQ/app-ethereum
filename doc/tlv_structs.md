@@ -507,7 +507,6 @@ The *Simulation Type* is normalized and interpreted like this:
 
 - `0`: Transaction
 - `1`: Typed Data (EIP-712)
-- `2`: Personal Message (EIP-191)
 
 ## SAFE_ACCOUNT
 

@@ -183,6 +183,9 @@ This struct can contain `NATIVE_CURRENCY` multiple times for multiple addresses.
 | DECIMALS | 0x03 | uint8        | defaults to 0                 | x        | `$.display.formats.<format id>.fields.[<field id>].params.decimals` |
 | PREFIX   | 0x04 | bool         | defaults to false             | x        | `$.display.formats.<format id>.fields.[<field id>].params.prefix`   |
 
+`PREFIX` has to be false: the device does not apply a prefix to the value, and it refuses a descriptor
+that asks for one (`true`).
+
 ### PARAM_ENUM
 
 | Name    | Tag  | Payload type    | Description                              | Optional | Source / value                                                  |

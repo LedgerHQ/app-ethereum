@@ -47,12 +47,15 @@ static bool handle_decimals(const tlv_data_t *data, s_param_unit_context *contex
 }
 
 static bool handle_prefix(const tlv_data_t *data, s_param_unit_context *context) {
-    if (data->value.size != sizeof(bool)) {
+    bool prefix;
+
+    (void) context;
+    if (!get_bool_from_tlv_data(data, &prefix)) {
         return false;
     }
-    (void) context;
-    // unused for now
-    return true;
+    // The prefix is not applied to the value: a descriptor that asks for it is refused rather than
+    // shown without it
+    return !prefix;
 }
 
 DEFINE_TLV_PARSER(PARAM_UNIT_TAGS, NULL, param_unit_tlv_parser)

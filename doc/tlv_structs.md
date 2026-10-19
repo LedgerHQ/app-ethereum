@@ -443,9 +443,9 @@ Embedded as VALUE tag `0x06`. References a stored MAP_ENTRY by ID and key.
 
 | Name                 | Value |
 |----------------------|-------|
-| PROXY                | 0x01  |
-| ISSUED_FROM_FACTORY  | 0x02  |
-| DELEGATOR            | 0x03  |
+| PROXY                | 0x00  |
+| ISSUED_FROM_FACTORY  | 0x01  |
+| DELEGATOR            | 0x02  |
 
 ## AUTH_7702
 

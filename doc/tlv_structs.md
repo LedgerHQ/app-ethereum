@@ -391,6 +391,8 @@ In version 1 of the protocol:
 | START   | 0x02 | int16           | start index (inclusive)              | x        |                 |
 | END     | 0x03 | int16           | end index (exclusive)                | x        |                 |
 
+`WEIGHT` is not zero: the device refuses a weight of zero, or one that does not fit a `uint8`.
+
 ### SLICE_ELEMENT
 
 | Name    | Tag  | Payload type    | Description              | Optional | Source / value  |

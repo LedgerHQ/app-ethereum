@@ -6,7 +6,7 @@
  * Array paths describe how to index into an ABI-encoded array when the
  * field referenced by a GCS parameter lives behind a dynamic-array
  * indirection. The TLV carries:
- *   - TAG_WEIGHT  (0x01): per-element size, 1 byte minimum,
+ *   - TAG_WEIGHT  (0x01): per-element size, 1 to 255 (read as a whole uint8),
  *   - TAG_START   (0x02): inclusive start index, 1 or 2 bytes,
  *                          marked present via has_start,
  *   - TAG_END     (0x03): exclusive end index, 1 or 2 bytes,
@@ -85,13 +85,23 @@ void test_tlv_empty_buffer_accepted(void) {
     TEST_ASSERT_FALSE(args.has_end);
 }
 
-void test_tlv_extra_weight_bytes_keeps_first_byte(void) {
-    // The handler only reads ptr[0] for weight, so passing 4 bytes
-    // succeeds and the first byte wins.
-    const uint8_t bytes[] = {0x01, 0x04, 0x33, 0xAA, 0xBB, 0xCC};
+// The weight is read as every uint8 of a descriptor: the whole payload, so a leading zero is
+// harmless and a value above 255 is refused. It is not the first byte of a longer payload
+void test_tlv_longer_weight_is_read_whole(void) {
+    const uint8_t padded[] = {0x01, 0x04, 0x00, 0x00, 0x00, 0x33};
+    const uint8_t two_bytes[] = {0x01, 0x02, 0x00, 0x20};
+    const uint8_t above_255[] = {0x01, 0x02, 0x01, 0x00};
+    const uint8_t first_byte_only[] = {0x01, 0x04, 0x33, 0xAA, 0xBB, 0xCC};
+    const uint8_t zero_padded[] = {0x01, 0x02, 0x00, 0x00};
     s_array_args args = {0};
-    TEST_ASSERT_TRUE(run_tlv(bytes, sizeof(bytes), &args));
-    TEST_ASSERT_EQUAL(args.weight, 0x33);
+
+    TEST_ASSERT_TRUE(run_tlv(padded, sizeof(padded), &args));
+    TEST_ASSERT_EQUAL(0x33, args.weight);
+    TEST_ASSERT_TRUE(run_tlv(two_bytes, sizeof(two_bytes), &args));
+    TEST_ASSERT_EQUAL(0x20, args.weight);
+    TEST_ASSERT_FALSE(run_tlv(above_255, sizeof(above_255), &args));
+    TEST_ASSERT_FALSE(run_tlv(first_byte_only, sizeof(first_byte_only), &args));
+    TEST_ASSERT_FALSE(run_tlv(zero_padded, sizeof(zero_padded), &args));
 }
 
 void test_tlv_start_end_read_big_endian(void) {
@@ -224,7 +234,7 @@ int main(void) {
     RUN_TEST(test_tlv_weight_start_end_populated);
     RUN_TEST(test_tlv_only_weight_keeps_has_start_end_false);
     RUN_TEST(test_tlv_empty_buffer_accepted);
-    RUN_TEST(test_tlv_extra_weight_bytes_keeps_first_byte);
+    RUN_TEST(test_tlv_longer_weight_is_read_whole);
     RUN_TEST(test_tlv_start_end_read_big_endian);
     RUN_TEST(test_tlv_weight_empty_payload_rejected);
     RUN_TEST(test_tlv_weight_zero_rejected);

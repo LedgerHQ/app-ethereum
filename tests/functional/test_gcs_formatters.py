@@ -471,9 +471,31 @@ GCS_BOUND_LENGTHS = {
 }
 
 
+WEIGHT_LENGTHS = {
+    "one_byte": (RawPathArray(weight=b"\x01"), True),
+    "two_bytes_of_the_same_weight": (RawPathArray(weight=b"\x00\x01"), True),
+    "zero": (RawPathArray(weight=b"\x00"), False),
+    "empty": (RawPathArray(weight=b""), False),
+    # the weight is the whole payload, not its first byte
+    "two_bytes_above_255": (RawPathArray(weight=b"\x01\x00"), False),
+    "two_zero_bytes": (RawPathArray(weight=b"\x00\x00"), False),
+}
+
+
+@pytest.mark.parametrize("array, accepted", WEIGHT_LENGTHS.values(), ids=WEIGHT_LENGTHS.keys())
+def test_gcs_array_weight_lengths(scenario_navigator: NavigateWithScenario, array: PathArray, accepted: bool):
+    """The weight of an array is a uint8 read from the whole payload, and it is not zero."""
+    check_ids_array(scenario_navigator, array, accepted)
+
+
 @pytest.mark.parametrize("array, accepted", GCS_BOUND_LENGTHS.values(), ids=GCS_BOUND_LENGTHS.keys())
 def test_gcs_array_bound_lengths(scenario_navigator: NavigateWithScenario, array: PathArray, accepted: bool):
     """A bound is one byte, 0 to 255, or two bytes, two's complement. Another length is refused."""
+    check_ids_array(scenario_navigator, array, accepted)
+
+
+def check_ids_array(scenario_navigator: NavigateWithScenario, array: PathArray, accepted: bool):
+    """Describe the three `_ids` of a batch transfer with the given array step: it is accepted or refused."""
     app_client = EthAppClient(scenario_navigator.backend)
 
     with open(f"{ABIS_FOLDER}/erc1155.json", encoding="utf-8") as file:
@@ -515,17 +537,17 @@ def test_gcs_array_bound_lengths(scenario_navigator: NavigateWithScenario, array
         "batch transfer",
         creator_name="OpenSea",
     )
-    app_client.provide_operation_info(tx_info.serialize())
+    app_client.provide_transaction_info(tx_info.serialize())
 
     if accepted:
         for field in fields:
-            app_client.provide_operation_field_desc(field.serialize())
+            app_client.provide_transaction_field_desc(field.serialize())
         with app_client.sign(mode=SignMode.START_FLOW):
             scenario_navigator.review_approve(do_comparison=False)
     else:
         with pytest.raises(ExceptionRAPDU) as e:
             for field in fields:
-                app_client.provide_operation_field_desc(field.serialize())
+                app_client.provide_transaction_field_desc(field.serialize())
         assert e.value.status == StatusWord.SWO_INCORRECT_DATA
 
 

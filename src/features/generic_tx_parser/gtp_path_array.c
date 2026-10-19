@@ -13,14 +13,13 @@
     X(0x03, TAG_END, handle_end, ENFORCE_UNIQUE_TAG)
 
 static bool handle_weight(const tlv_data_t *data, s_path_array_context *context) {
-    if (data->value.size < sizeof(context->args->weight)) {
-        return false;
-    }
+    uint8_t weight;
+
     // a zero weight would resolve every element to the first one
-    if (data->value.ptr[0] == 0) {
+    if (!get_uint8_t_from_tlv_data(data, &weight) || (weight == 0)) {
         return false;
     }
-    context->args->weight = data->value.ptr[0];
+    context->args->weight = weight;
     return true;
 }
 

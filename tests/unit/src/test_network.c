@@ -124,17 +124,22 @@ void test_get_name_dynamic_shadows_hardcoded(void) {
 // =============================================================================
 
 void test_get_as_string_known_copies_name(void) {
-    char out[NETWORK_STRING_MAX_SIZE + 1];
+    char out[MAX_NETWORK_LEN];
     memset(out, 0, sizeof(out));
     TEST_ASSERT_TRUE(get_network_as_string_from_chain_id(out, sizeof(out), 137));  // Polygon
     TEST_ASSERT_EQUAL_STRING(out, "Polygon");
 }
 
 void test_get_as_string_unknown_formats_decimal(void) {
-    char out[NETWORK_STRING_MAX_SIZE + 1];
+    char out[MAX_NETWORK_LEN];
     memset(out, 0, sizeof(out));
     TEST_ASSERT_TRUE(get_network_as_string_from_chain_id(out, sizeof(out), 4242));
     TEST_ASSERT_EQUAL_STRING(out, "4242");
+}
+
+void test_get_as_string_known_small_buffer_fails(void) {
+    char out[4];  // not enough to hold "Polygon" + NUL: no truncated name
+    TEST_ASSERT_FALSE(get_network_as_string_from_chain_id(out, sizeof(out), 137));
 }
 
 void test_get_as_string_unknown_small_buffer_fails(void) {
@@ -318,6 +323,7 @@ int main(void) {
     RUN_TEST(test_get_name_dynamic_shadows_hardcoded);
     RUN_TEST(test_get_as_string_known_copies_name);
     RUN_TEST(test_get_as_string_unknown_formats_decimal);
+    RUN_TEST(test_get_as_string_known_small_buffer_fails);
     RUN_TEST(test_get_as_string_unknown_small_buffer_fails);
     RUN_TEST(test_chain_compatible_known_true);
     RUN_TEST(test_chain_compatible_unknown_false);

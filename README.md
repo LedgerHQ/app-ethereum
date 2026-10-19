@@ -99,7 +99,7 @@ An address can be replaced on screen by a name (ENS domain, known contract, ...)
 ### EVM networks
 
 Any EVM network can be used without updating the app: the client provides its configuration at runtime with the
-`PROVIDE NETWORK CONFIGURATION` command.
+`PROVIDE NETWORK INFO` command.
 
 - The configuration (chain ID, name, ticker and icon hash) is a signed TLV descriptor,
   see [NETWORK_INFO](doc/tlv_structs.md#network_info).
@@ -107,7 +107,7 @@ Any EVM network can be used without updating the app: the client provides its co
 - Provided networks stay in memory until the app exits. Sending a configuration for an already known chain ID replaces it.
 - When the network is unknown, the raw chain ID is displayed instead of its name.
 
-The APDU coding is described in [PROVIDE NETWORK CONFIGURATION](doc/apdu.md#provide-network-configuration).
+The APDU coding is described in [PROVIDE NETWORK INFO](doc/apdu.md#provide-network-info).
 
 Adding a new network does not require any change in this repository: follow the
 [procedure in ledger-network-icons](https://github.com/LedgerHQ/ledger-network-icons/blob/main/README.md#procedure-to-add-a-new-network-icon).

@@ -13,6 +13,28 @@ class RawValue(Value):
         return self.payload
 
 
+def raw_bounds(start: bytes | None, end: bytes | None, start_tag: int, end_tag: int) -> bytes:
+    """START and END as the given bytes, whatever their length."""
+    payload = b""
+    if start is not None:
+        payload += Value.serialize_field(start_tag, start)
+    if end is not None:
+        payload += Value.serialize_field(end_tag, end)
+    return payload
+
+
+class RawPathArray(PathArray):
+    """An array step of a DATA_PATH whose bounds are sent as the given bytes."""
+
+    def __init__(self, start: bytes | None = None, end: bytes | None = None):
+        super().__init__(1)
+        self.raw_start = start
+        self.raw_end = end
+
+    def serialize(self) -> bytes:
+        return Value.serialize_field(0x01, self.weight) + raw_bounds(self.raw_start, self.raw_end, 0x02, 0x03)
+
+
 def is_dynamic_type(param_type: str, param: dict) -> bool:
     """Check if a parameter type is dynamic (needs offset/reference)."""
     # Dynamic arrays

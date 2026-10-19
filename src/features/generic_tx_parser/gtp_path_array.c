@@ -1,10 +1,10 @@
 #include <stdint.h>
 #include <string.h>
 #include "gtp_path_array.h"
-#include "read.h"
 #include "os_print.h"
 #include "utils.h"
 #include "tlv_library.h"
+#include "tlv_utils.h"
 
 // Define TLV tags for Path Array
 #define ARRAY_TAGS(X)                                      \
@@ -25,19 +25,17 @@ static bool handle_weight(const tlv_data_t *data, s_path_array_context *context)
 }
 
 static bool handle_start(const tlv_data_t *data, s_path_array_context *context) {
-    if (data->value.size < sizeof(context->args->start)) {
+    if (!tlv_get_int16(data, &context->args->start)) {
         return false;
     }
-    context->args->start = read_u16_be(data->value.ptr, 0);
     context->args->has_start = true;
     return true;
 }
 
 static bool handle_end(const tlv_data_t *data, s_path_array_context *context) {
-    if (data->value.size < sizeof(context->args->end)) {
+    if (!tlv_get_int16(data, &context->args->end)) {
         return false;
     }
-    context->args->end = read_u16_be(data->value.ptr, 0);
     context->args->has_end = true;
     return true;
 }

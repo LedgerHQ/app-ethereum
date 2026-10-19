@@ -398,6 +398,19 @@ In version 1 of the protocol:
 | START   | 0x01 | int16           | start index (inclusive)  | x        |                 |
 | END     | 0x02 | int16           | end index (exclusive)    | x        |                 |
 
+### Bounds of a path
+
+`START` and `END` of an `ARRAY_ELEMENT` and of a `SLICE_ELEMENT` are big-endian integers of one or
+two bytes. The length gives the sign:
+
+| Length  | Values            | Examples                                    |
+|---------|-------------------|---------------------------------------------|
+| 1 byte  | 0 to 255          | `0x05` is 5, `0xFF` is 255                  |
+| 2 bytes | -32768 to 32767   | `0x00FF` is 255, `0xFFFF` is -1             |
+
+A negative bound counts back from the end. The device refuses a bound of any other length, so a
+bound is never read as another number than the one it holds.
+
 ## MAP_ENTRY
 
 Provided via `PROVIDE_MAP_ENTRY` APDU (INS `0x3A`). Signed by CAL. Associates a key with a

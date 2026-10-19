@@ -33,7 +33,7 @@ from client.trusted_name import TrustedName, TrustedNameSource, TrustedNameType
 from client.utils import get_selector_from_data
 from constants import ABIS_FOLDER
 from dynamic_networks_cfg import get_network_config
-from fields_utils import get_all_paths, get_path
+from fields_utils import RawPathArray, get_all_paths, get_path
 from ragger.error import ExceptionRAPDU
 from ragger.navigator.navigation_scenario import NavigateWithScenario
 from web3 import Web3
@@ -455,6 +455,78 @@ def test_gcs_array_bound_past_declared_size(scenario_navigator: NavigateWithScen
         for field in fields:
             app_client.provide_transaction_field_desc(field.serialize())
     assert e.value.status == StatusWord.SWO_INCORRECT_DATA
+
+
+GCS_BOUND_LENGTHS = {
+    "one_byte_start": (RawPathArray(start=b"\x01"), True),
+    "one_byte_end": (RawPathArray(end=b"\x02"), True),
+    "two_bytes": (RawPathArray(start=b"\x00\x01", end=b"\x00\x03"), True),
+    "two_bytes_ffff_is_minus_one": (RawPathArray(end=b"\xff\xff"), True),
+    # one byte is 0 to 255, so this end is past the three elements
+    "one_byte_ff_is_255": (RawPathArray(end=b"\xff"), False),
+    "empty_start": (RawPathArray(start=b""), False),
+    "three_byte_end": (RawPathArray(end=b"\x00\x00\x02"), False),
+    "four_byte_end": (RawPathArray(end=b"\x00\x00\x00\x02"), False),
+    "four_byte_start": (RawPathArray(start=b"\x00\x00\x00\x01"), False),
+}
+
+
+@pytest.mark.parametrize("array, accepted", GCS_BOUND_LENGTHS.values(), ids=GCS_BOUND_LENGTHS.keys())
+def test_gcs_array_bound_lengths(scenario_navigator: NavigateWithScenario, array: PathArray, accepted: bool):
+    """A bound is one byte, 0 to 255, or two bytes, two's complement. Another length is refused."""
+    app_client = EthAppClient(scenario_navigator.backend)
+
+    with open(f"{ABIS_FOLDER}/erc1155.json", encoding="utf-8") as file:
+        contract = Web3().eth.contract(abi=json.load(file), address=None)
+    data = contract.encode_abi(
+        "safeBatchTransferFrom",
+        [
+            bytes.fromhex("1111111111111111111111111111111111111111"),
+            bytes.fromhex("d8da6bf26964af9d7eed9e03e53415d37aa96045"),
+            [1, 2, 3],
+            [100, 200, 300],
+            b"",
+        ],
+    )
+    tx_params = {
+        "nonce": 10,
+        "maxFeePerGas": Web3.to_wei(50, "gwei"),
+        "maxPriorityFeePerGas": Web3.to_wei(5, "gwei"),
+        "gas": 80000,
+        "to": bytes.fromhex("495f947276749ce646f68ac8c248420045cb7b5e"),
+        "data": data,
+        "chainId": 1,
+    }
+
+    with app_client.sign("m/44'/60'/0'/0/0", tx_params, mode=SignMode.STORE):
+        pass
+
+    path = get_path(f"{ABIS_FOLDER}/erc1155.json", "safeBatchTransferFrom", "_ids")
+    path = [array if isinstance(c, PathArray) else c for c in path]
+    fields = [
+        Field(1, "Token ID", ParamRaw(1, Value(1, TypeFamily.UINT, type_size=32, data_path=DataPath(1, path)))),
+    ]
+    tx_info = TxInfo(
+        1,
+        tx_params["chainId"],
+        tx_params["to"],
+        get_selector_from_data(tx_params["data"]),
+        compute_inst_hash(fields),
+        "batch transfer",
+        creator_name="OpenSea",
+    )
+    app_client.provide_operation_info(tx_info.serialize())
+
+    if accepted:
+        for field in fields:
+            app_client.provide_operation_field_desc(field.serialize())
+        with app_client.sign(mode=SignMode.START_FLOW):
+            scenario_navigator.review_approve(do_comparison=False)
+    else:
+        with pytest.raises(ExceptionRAPDU) as e:
+            for field in fields:
+                app_client.provide_operation_field_desc(field.serialize())
+        assert e.value.status == StatusWord.SWO_INCORRECT_DATA
 
 
 def test_gcs_group_sequential_arrays(scenario_navigator: NavigateWithScenario):

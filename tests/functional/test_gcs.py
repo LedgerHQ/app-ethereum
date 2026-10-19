@@ -2880,6 +2880,109 @@ def test_gcs_batch_complex(scenario_navigator: NavigateWithScenario) -> None:
         scenario_navigator.review_approve()
 
 
+def test_gcs_batch_two_empty_then_call(scenario_navigator: NavigateWithScenario) -> None:
+    """Empty calls preceding a described call are reviewed in execution order."""
+    backend = scenario_navigator.backend
+    app_client = EthAppClient(backend)
+
+    token: dict[str, Any] = {
+        "ticker": "USDT",
+        "address": bytes.fromhex("dac17f958d2ee523a2206206994597c13d831ec7"),
+        "decimals": 6,
+    }
+    with Path(f"{ABIS_FOLDER}/erc20.json").open(encoding="utf-8") as f:
+        contract = Web3().eth.contract(abi=json.load(f), address=None)
+    data_transfer = contract.encode_abi(
+        "transfer",
+        [
+            bytes.fromhex("3333333333333333333333333333333333333333"),
+            int(3.3 * pow(10, token["decimals"])),
+        ],
+    )
+
+    with Path(f"{ABIS_FOLDER}/batch.json").open(encoding="utf-8") as f:
+        contract = Web3().eth.contract(  # type: ignore[call-overload]  # web3 stubs reject raw-bytes addresses reused as contract_addr
+            abi=json.load(f),
+            address=bytes.fromhex("2cc8475177918e8C4d840150b68815A4b6f0f5f3"),
+        )
+    data = contract.encode_abi(
+        "batchExecute",
+        [
+            [
+                (bytes.fromhex("1111111111111111111111111111111111111111"), Web3.to_wei(1.1, "ether"), b""),
+                (bytes.fromhex("2222222222222222222222222222222222222222"), Web3.to_wei(2.2, "ether"), b""),
+                (token["address"], Web3.to_wei(0, "ether"), data_transfer),
+            ]
+        ],
+    )
+    tx_params = {
+        "nonce": 79,
+        "maxFeePerGas": Web3.to_wei(4.8, "gwei"),
+        "maxPriorityFeePerGas": Web3.to_wei(2, "gwei"),
+        "gas": 10120,
+        "to": contract.address,
+        "data": data,
+        "chainId": 1,
+    }
+    with app_client.sign("m/44'/60'/0'/0/0", tx_params, mode=SignMode.STORE):
+        pass
+
+    param_paths = get_all_paths(f"{ABIS_FOLDER}/erc20.json", "transfer")
+    sub_fields = [
+        Field(1, "To", ParamRaw(1, Value(1, TypeFamily.ADDRESS, data_path=DataPath(1, param_paths["_to"])))),
+        Field(
+            1,
+            "Amount",
+            ParamTokenAmount(
+                1,
+                Value(1, TypeFamily.UINT, 32, DataPath(1, param_paths["_value"])),
+                Value(1, TypeFamily.ADDRESS, container_path=ContainerPath.TO),
+            ),
+        ),
+    ]
+    param_paths = get_all_tuple_array_paths(f"{ABIS_FOLDER}/batch.json", "batchExecute", "calls")
+    fields = [
+        Field(
+            1,
+            "Destination",
+            ParamCalldata(
+                1,
+                Value(1, TypeFamily.BYTES, data_path=DataPath(1, param_paths["data"])),
+                Value(1, TypeFamily.ADDRESS, data_path=DataPath(1, param_paths["to"])),
+                amount=Value(1, TypeFamily.UINT, data_path=DataPath(1, param_paths["value"])),
+            ),
+        ),
+    ]
+    tx_info = TxInfo(
+        1,
+        tx_params["chainId"],
+        contract.address,
+        get_selector_from_data(data),
+        compute_inst_hash(fields),
+        "Batch transaction",
+        creator_name="Ledger Multisig",
+        creator_legal_name="Ledger",
+    )
+    app_client.provide_transaction_info(tx_info.serialize())
+    sub_tx_info = TxInfo(
+        1,
+        tx_params["chainId"],
+        token["address"],
+        get_selector_from_data(data_transfer),
+        compute_inst_hash(sub_fields),
+        "Transfer token",
+    )
+    for field in fields:
+        app_client.provide_transaction_field_desc(field.serialize())
+        app_client.provide_token_metadata(token["ticker"], token["address"], token["decimals"], tx_params["chainId"])
+        app_client.provide_transaction_info(sub_tx_info.serialize())
+        for sub_field in sub_fields:
+            app_client.provide_transaction_field_desc(sub_field.serialize())
+
+    with app_client.sign(mode=SignMode.START_FLOW):
+        scenario_navigator.review_approve()
+
+
 def _poap_tx_and_fields(value: int | None) -> tuple[dict, list[Field]]:
     """Common POAP mintToken tx + field descriptors, optionally with a native value."""
     with open(f"{ABIS_FOLDER}/poap.abi.json", encoding="utf-8") as file:

@@ -87,16 +87,29 @@ bool get_address_display_name(const uint8_t *addr,
     (void) source_count;
     (void) sources;
     (void) addr;
-    // Mimic the production RAW fallback: always resolves, writing a
-    // placeholder display string and reporting the RAW source.
+    // Mimic the production RAW fallback: always resolves, writing the first
+    // address byte as display string and reporting the RAW source.
     if (buf != NULL && buf_size > 0) {
-        buf[0] = '\0';
+        snprintf(buf, buf_size, "%02x", addr[0]);
     }
     if (name_source_out != NULL) {
         *name_source_out = ADDR_NAME_FROM_RAW;
     }
     if (extra_data_out != NULL) {
         *extra_data_out = NULL;
+    }
+    return true;
+}
+
+// "To" rows added to the field table, in display order
+#define MAX_TO_ROWS 4
+static char g_to_rows[MAX_TO_ROWS][8];
+static int g_to_rows_count = 0;
+bool add_to_field_table(e_param_type type, const char *key, const char *value, const void *extra) {
+    (void) type;
+    (void) extra;
+    if ((strcmp(key, "To") == 0) && (g_to_rows_count < MAX_TO_ROWS)) {
+        strlcpy(g_to_rows[g_to_rows_count++], value, sizeof(g_to_rows[0]));
     }
     return true;
 }
@@ -160,6 +173,7 @@ static void reset(void) {
     memset(g_finalize_hash_out, 0, sizeof(g_finalize_hash_out));
     g_finalize_hash_ret = true;
     g_implem_contract_ret = NULL;
+    g_to_rows_count = 0;
 }
 
 // Helper: set up a node and force g_tx_ctx_current to point at it by
@@ -441,6 +455,27 @@ void test_gcs_cleanup_frees_parked_calldata(void) {
 // empty one (which set_intent_field / amount / trusted_name / address
 // formatting via the stubs above), and removes them from the list.
 
+// Empty predecessors are shown in execution order, not walking backward
+void test_process_empty_txs_before_keeps_execution_order(void) {
+    static const uint8_t to_1[ADDRESS_LENGTH] = {0x01};
+    static const uint8_t to_2[ADDRESS_LENGTH] = {0x02};
+    static const uint8_t to_3[ADDRESS_LENGTH] = {0x03};
+    uint64_t chain = 1;
+    TEST_ASSERT_TRUE(tx_ctx_init(NULL, g_addr_a, to_1, NULL, &chain));
+    TEST_ASSERT_TRUE(tx_ctx_init(NULL, g_addr_a, to_2, NULL, &chain));
+    TEST_ASSERT_TRUE(tx_ctx_init(NULL, g_addr_a, to_3, NULL, &chain));
+    s_calldata *cd = make_complete_calldata(g_match_selector);
+    TEST_ASSERT_TRUE(tx_ctx_init(cd, g_addr_a, g_addr_b, NULL, &chain));
+    TEST_ASSERT_TRUE(find_matching_tx_ctx(g_addr_b, g_match_selector, &chain));
+
+    TEST_ASSERT_TRUE(process_empty_txs_before());
+    TEST_ASSERT_EQUAL(get_tx_ctx_count(), 1);
+    TEST_ASSERT_EQUAL(g_to_rows_count, 3);
+    TEST_ASSERT_EQUAL_STRING("01", g_to_rows[0]);
+    TEST_ASSERT_EQUAL_STRING("02", g_to_rows[1]);
+    TEST_ASSERT_EQUAL_STRING("03", g_to_rows[2]);
+}
+
 void test_process_empty_txs_before_removes_empty_predecessors(void) {
     uint64_t chain = 1;
     // 1) Two empty (calldata == NULL) predecessors
@@ -692,6 +727,7 @@ int main(void) {
     RUN_TEST(test_gcs_cleanup_empties_list);
     RUN_TEST(test_gcs_cleanup_frees_parked_calldata);
     RUN_TEST(test_process_empty_txs_before_removes_empty_predecessors);
+    RUN_TEST(test_process_empty_txs_before_keeps_execution_order);
     RUN_TEST(test_process_empty_txs_after_removes_empty_successors);
     RUN_TEST(test_process_empty_txs_before_stops_at_non_empty);
     RUN_TEST(test_process_empty_txs_with_amount_no_tx_info_uses_nested_chain);

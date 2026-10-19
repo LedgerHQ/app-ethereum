@@ -89,7 +89,7 @@ def common_test_nft(
     # Send Network information (name, ticker, icon)
     name, ticker, icon = get_network_config(backend.device.type, collec.chain_id)
     if name and ticker:
-        app_client.provide_network_information(DynamicNetwork(name, ticker, collec.chain_id, icon))
+        app_client.provide_network_info(DynamicNetwork(name, ticker, collec.chain_id, icon))
 
     if DEVICE_ADDR is None:  # to only have to request it once
         with app_client.get_public_addr(display=False):

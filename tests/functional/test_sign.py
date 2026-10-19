@@ -47,7 +47,7 @@ def common(
     # Send Network information (name, ticker, icon)
     name, ticker, icon = get_network_config(backend.device.type, tx_params["chainId"])
     if name and ticker:
-        app_client.provide_network_information(DynamicNetwork(name, ticker, tx_params["chainId"], icon))
+        app_client.provide_network_info(DynamicNetwork(name, ticker, tx_params["chainId"], icon))
 
     with app_client.sign(path, tx_params):
         if with_simu:

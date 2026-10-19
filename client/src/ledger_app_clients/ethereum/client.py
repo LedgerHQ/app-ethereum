@@ -383,12 +383,12 @@ class EthAppClient:
             sig = CAL_COIN_META_PARTNER.sign(tmp[6:])
         return self._exchange(self._cmd_builder.provide_erc20_token_information(ticker, addr, decimals, chain_id, sig))
 
-    def provide_network_information(self, network_params: DynamicNetwork) -> None:
+    def provide_network_info(self, network_params: DynamicNetwork) -> None:
         # Send ledgerPKI certificate
         self.send_pki_certificate(NETWORK_PARTNER)
 
         # Add the network info
-        chunks = self._cmd_builder.provide_network_information(network_params.serialize(), network_params.icon)
+        chunks = self._cmd_builder.provide_network_info(network_params.serialize(), network_params.icon)
         for chunk in chunks[:-1]:
             response = self._exchange(chunk)
             assert response.status == StatusWord.SWO_SUCCESS

@@ -32,7 +32,7 @@ class InsType(IntEnum):
     PROVIDE_TRANSACTION_INFO = 0x26
     PROVIDE_TRANSACTION_FIELD_DESC = 0x28
     PROVIDE_PROXY_INFO = 0x2A
-    PROVIDE_NETWORK_INFORMATION = 0x30
+    PROVIDE_NETWORK_INFO = 0x30
     PROVIDE_TX_SIMULATION = 0x32
     SIGN_EIP7702_AUTHORIZATION = 0x34
     PROVIDE_SAFE_ACCOUNT = 0x36
@@ -569,9 +569,9 @@ class CommandBuilder:
             p2 = p2l[-1]
         return chunks
 
-    def provide_network_information(self, tlv_payload: bytes, icon: bytes | None = None) -> list[bytes]:
+    def provide_network_info(self, tlv_payload: bytes, icon: bytes | None = None) -> list[bytes]:
         chunks = self.common_tlv_serialize(
-            InsType.PROVIDE_NETWORK_INFORMATION,
+            InsType.PROVIDE_NETWORK_INFO,
             tlv_payload,
             p2l=[P2Type.NETWORK_CONFIG],
         )
@@ -581,7 +581,7 @@ class CommandBuilder:
             while len(icon) > 0:
                 chunks.append(
                     self._serialize(
-                        InsType.PROVIDE_NETWORK_INFORMATION,
+                        InsType.PROVIDE_NETWORK_INFO,
                         p1,
                         P2Type.NETWORK_ICON,
                         icon[:0xFF],

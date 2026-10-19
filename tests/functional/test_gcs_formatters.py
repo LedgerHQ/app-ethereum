@@ -802,7 +802,7 @@ def test_gcs_formatter(scenario_navigator: NavigateWithScenario, test_config: st
         # Send Network information (name, ticker, icon)
         name, ticker, icon = get_network_config(scenario_navigator.backend.device.type, tx_params["chainId"])
         if name and ticker:
-            app_client.provide_network_information(DynamicNetwork(name, ticker, tx_params["chainId"], icon))
+            app_client.provide_network_info(DynamicNetwork(name, ticker, tx_params["chainId"], icon))
 
     app_client.provide_transaction_info(tx_info.serialize())
 

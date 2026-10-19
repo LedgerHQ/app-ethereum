@@ -134,7 +134,7 @@ uint16_t handleApdu(command_t *cmd, uint32_t *tx) {
             sw = handle_proxy_info(cmd->p1, cmd->p2, cmd->lc, cmd->data);
             break;
 
-        case INS_PROVIDE_NETWORK_CONFIGURATION:
+        case INS_PROVIDE_NETWORK_INFO:
             sw = handle_network_info(cmd->p1, cmd->p2, cmd->data, cmd->lc, tx);
             break;
 

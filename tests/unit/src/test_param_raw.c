@@ -1211,7 +1211,16 @@ void test_handle_param_raw_struct_version_and_value_ok(void) {
         0x01,
         0x05,  // VERSION = 5
         0x01,
-        0x00,  // VALUE (empty inner)
+        0x09,
+        0x00,
+        0x01,
+        0x01,  // VALUE: VERSION = 1
+        0x01,
+        0x01,
+        (uint8_t) TF_UINT,  // TYPE_FAMILY
+        0x04,
+        0x01,
+        (uint8_t) CP_FROM,  // CONTAINER_PATH
     };
     buffer_t buf = {.ptr = buf_bytes, .size = sizeof(buf_bytes), .offset = 0};
 

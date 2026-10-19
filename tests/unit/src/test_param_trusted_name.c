@@ -549,9 +549,8 @@ void test_trusted_name_interoperable_network_failure_rejected(void) {
 // TLV tag-handler tests for handle_param_trusted_name_struct.
 //
 // Each handle_X tag dispatch is exercised by feeding a hand-crafted TLV
-// buffer through the public entry point. VALUE (0x01) passes an empty
-// inner TLV — the value sub-parser is real but accepts empty input as a
-// no-op.
+// buffer through the public entry point. VALUE (0x01) passes a complete inner TLV
+// (VERSION, TYPE_FAMILY and one source); the value sub-parser is real.
 //
 // Tags here are all < 0x80 so short-form encoding is used (no DER long
 // form).
@@ -561,8 +560,11 @@ void test_trusted_name_interoperable_network_failure_rejected(void) {
 
 void test_handle_tn_struct_all_tags_ok(void) {
     uint8_t buf_bytes[] = {
-        0x00, 0x01, 0x01,             // VERSION = 1
-        0x01, 0x00,                   // VALUE = empty (inner parser sees 0 tags)
+        0x00, 0x01, 0x01,  // VERSION = 1
+        0x01, 0x09,        // VALUE: VERSION = 1, TYPE_FAMILY = UINT, CONTAINER_PATH = FROM
+        0x00, 0x01, 0x01,
+        0x01, 0x01, (uint8_t) TF_UINT,
+        0x04, 0x01, (uint8_t) CP_FROM,
         0x02, 0x01, TN_TYPE_ACCOUNT,  // TYPES = [ACCOUNT]
         0x03, 0x01, TN_SOURCE_CAL,    // SOURCES = [CAL]
         0x04, 0x04, 0xDE,

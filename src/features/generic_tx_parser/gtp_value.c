@@ -132,9 +132,34 @@ static bool handle_constant(const tlv_data_t *data, s_value_context *context) {
 
 DEFINE_TLV_PARSER(VALUE_TAGS, NULL, value_tlv_parser)
 
+static size_t count_received_sources(TLV_reception_t received) {
+    const TLV_tag_t sources[] = {TAG_DATA_PATH, TAG_CONTAINER_PATH, TAG_CONSTANT, TAG_MAP_REF};
+    size_t count = 0;
+
+    for (size_t i = 0; i < sizeof(sources) / sizeof(sources[0]); i++) {
+        if (tlv_check_received_tags(received, &sources[i], 1)) {
+            count++;
+        }
+    }
+    return count;
+}
+
 bool handle_value_struct(const buffer_t *buf, s_value_context *context) {
     TLV_reception_t received_tags;
-    return value_tlv_parser(buf, context, &received_tags);
+
+    if (!value_tlv_parser(buf, context, &received_tags)) {
+        return false;
+    }
+    if (!TLV_CHECK_RECEIVED_TAGS(received_tags, TAG_VERSION, TAG_TYPE_FAMILY)) {
+        PRINTF("VALUE: missing mandatory tags\n");
+        return false;
+    }
+    // Each source tag sets the source: with several of them the last one received would win
+    if (count_received_sources(received_tags) != 1) {
+        PRINTF("VALUE: exactly one source is required\n");
+        return false;
+    }
+    return true;
 }
 
 // SOURCE_RLP: read a value directly from a well-known RLP field of the current tx.

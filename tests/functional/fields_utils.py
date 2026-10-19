@@ -1,6 +1,16 @@
 import json
 
-from client.gcs import PathArray, PathLeaf, PathLeafType, PathRef, PathTuple
+from client.gcs import PathArray, PathLeaf, PathLeafType, PathRef, PathTuple, Value
+
+
+class RawValue(Value):
+    """A VALUE sent as the given TLV payload, to build what the Value serializer never produces."""
+
+    def __init__(self, payload: bytes):
+        self.payload = payload
+
+    def serialize(self) -> bytes:
+        return self.payload
 
 
 def is_dynamic_type(param_type: str, param: dict) -> bool:

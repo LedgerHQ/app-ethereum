@@ -17,7 +17,8 @@
  * The TLV side is the partner: handle_value_struct() picks which
  * source the value will use based on which tag is present. Some
  * tags (DATA_PATH / CONTAINER_PATH / CONSTANT / MAP_REF) implicitly
- * set the source on success.
+ * set the source on success. VERSION and TYPE_FAMILY are mandatory
+ * and exactly one of those source tags has to be present.
  *
  * Tests focus on:
  *   - each source's happy and reject path inside value_get(),
@@ -219,6 +220,12 @@ void test_value_get_rlp_chain_id_null_tx_info_rejected(void) {
 // (lines 93-102) including the source = SOURCE_CALLDATA tail.
 void test_handle_value_struct_data_path_tag_sets_source_calldata(void) {
     uint8_t buf_bytes[] = {
+        0x00,
+        0x01,
+        0x01,  // VERSION
+        0x01,
+        0x01,
+        (uint8_t) TF_BYTES,  // TYPE_FAMILY
         0x03,
         0x00,  // TAG_DATA_PATH, empty payload
     };
@@ -452,6 +459,9 @@ void test_tlv_happy_path_container_path(void) {
         0x00,
         0x01,
         0x01,
+        0x01,
+        0x01,
+        (uint8_t) TF_BYTES,
         0x04,
         0x01,
         (uint8_t) CP_TO,
@@ -464,23 +474,23 @@ void test_tlv_happy_path_container_path(void) {
 
 void test_tlv_type_size_zero_rejected(void) {
     // handle_type_size enforces 1..32 range.
-    const uint8_t bytes[] = {0x02, 0x01, 0x00};
+    const uint8_t bytes[] =
+        {0x00, 0x01, 0x01, 0x01, 0x01, (uint8_t) TF_BYTES, 0x02, 0x01, 0x00, 0x05, 0x00};
     s_value v = {0};
     TEST_ASSERT_FALSE(run_tlv(bytes, sizeof(bytes), &v));
 }
 
 void test_tlv_type_size_over_32_rejected(void) {
-    const uint8_t bytes[] = {0x02, 0x01, 0x21};  // 33
+    const uint8_t bytes[] =
+        {0x00, 0x01, 0x01, 0x01, 0x01, (uint8_t) TF_BYTES, 0x02, 0x01, 0x21, 0x05, 0x00};  // 33
     s_value v = {0};
     TEST_ASSERT_FALSE(run_tlv(bytes, sizeof(bytes), &v));
 }
 
 void test_tlv_constant_oversize_rejected(void) {
     // CONSTANT payload > CALLDATA_CHUNK_SIZE (32 bytes) is rejected.
-    uint8_t bytes[2 + 33];
-    bytes[0] = 0x05;
-    bytes[1] = 33;
-    memset(&bytes[2], 0xAB, 33);
+    uint8_t bytes[6 + 2 + 33] = {0x00, 0x01, 0x01, 0x01, 0x01, (uint8_t) TF_BYTES, 0x05, 33};
+    memset(&bytes[8], 0xAB, 33);
     s_value v = {0};
     TEST_ASSERT_FALSE(run_tlv(bytes, sizeof(bytes), &v));
 }
@@ -488,6 +498,12 @@ void test_tlv_constant_oversize_rejected(void) {
 void test_tlv_mapref_missing_required_subtag_rejected(void) {
     // MAP_REF sub-TLV requires VERSION + ID + KEY. Send only VERSION.
     const uint8_t bytes[] = {
+        0x00,
+        0x01,
+        0x01,
+        0x01,
+        0x01,
+        (uint8_t) TF_BYTES,
         0x06,
         0x03,
         0x00,
@@ -496,6 +512,92 @@ void test_tlv_mapref_missing_required_subtag_rejected(void) {
     };
     s_value v = {0};
     TEST_ASSERT_FALSE(run_tlv(bytes, sizeof(bytes), &v));
+}
+
+// =============================================================================
+// handle_value_struct (TLV): mandatory tags and exactly one source
+// =============================================================================
+
+static const uint8_t s_value_header[] = {0x00, 0x01, 0x01, 0x01, 0x01, (uint8_t) TF_BYTES};
+
+typedef struct {
+    const uint8_t *bytes;
+    size_t size;
+} s_source_tlv;
+
+static const uint8_t s_source_path[] = {0x03, 0x00};
+static const uint8_t s_source_container[] = {0x04, 0x01, (uint8_t) CP_FROM};
+static const uint8_t s_source_constant[] = {0x05, 0x01, 0xAA};
+static const uint8_t s_source_map_ref[] =
+    {0x06, 0x09, 0x00, 0x01, 0x01, 0x01, 0x01, 0x00, 0x02, 0x01, 0x00};
+
+static const s_source_tlv s_sources[] = {
+    {s_source_path, sizeof(s_source_path)},
+    {s_source_container, sizeof(s_source_container)},
+    {s_source_constant, sizeof(s_source_constant)},
+    {s_source_map_ref, sizeof(s_source_map_ref)},
+};
+#define SOURCE_COUNT (sizeof(s_sources) / sizeof(s_sources[0]))
+
+// VERSION and TYPE_FAMILY, then the given source TLVs in the given order
+static bool run_with_sources(const s_source_tlv *first, const s_source_tlv *second) {
+    uint8_t bytes[sizeof(s_value_header) + 2 * sizeof(s_source_map_ref)];
+    size_t size = 0;
+    s_value v = {0};
+
+    memcpy(bytes, s_value_header, sizeof(s_value_header));
+    size = sizeof(s_value_header);
+    memcpy(&bytes[size], first->bytes, first->size);
+    size += first->size;
+    if (second != NULL) {
+        memcpy(&bytes[size], second->bytes, second->size);
+        size += second->size;
+    }
+    return run_tlv(bytes, size, &v);
+}
+
+void test_tlv_each_source_alone_is_accepted(void) {
+    for (size_t i = 0; i < SOURCE_COUNT; i++) {
+        TEST_ASSERT_TRUE(run_with_sources(&s_sources[i], NULL));
+    }
+}
+
+void test_tlv_two_sources_are_refused_in_either_order(void) {
+    for (size_t i = 0; i < SOURCE_COUNT; i++) {
+        for (size_t j = 0; j < SOURCE_COUNT; j++) {
+            if (i != j) {
+                TEST_ASSERT_FALSE(run_with_sources(&s_sources[i], &s_sources[j]));
+            }
+        }
+    }
+}
+
+void test_tlv_no_source_is_refused(void) {
+    s_value v = {0};
+    TEST_ASSERT_FALSE(run_tlv(s_value_header, sizeof(s_value_header), &v));
+}
+
+void test_tlv_type_size_is_not_a_source(void) {
+    const uint8_t bytes[] = {0x00, 0x01, 0x01, 0x01, 0x01, (uint8_t) TF_BYTES, 0x02, 0x01, 0x04};
+    s_value v = {0};
+    TEST_ASSERT_FALSE(run_tlv(bytes, sizeof(bytes), &v));
+}
+
+void test_tlv_missing_version_is_refused(void) {
+    const uint8_t bytes[] = {0x01, 0x01, (uint8_t) TF_BYTES, 0x05, 0x01, 0xAA};
+    s_value v = {0};
+    TEST_ASSERT_FALSE(run_tlv(bytes, sizeof(bytes), &v));
+}
+
+void test_tlv_missing_type_family_is_refused(void) {
+    const uint8_t bytes[] = {0x00, 0x01, 0x01, 0x05, 0x01, 0xAA};
+    s_value v = {0};
+    TEST_ASSERT_FALSE(run_tlv(bytes, sizeof(bytes), &v));
+}
+
+void test_tlv_empty_value_is_refused(void) {
+    s_value v = {0};
+    TEST_ASSERT_FALSE(run_tlv(NULL, 0, &v));
 }
 
 // =============================================================================
@@ -535,5 +637,12 @@ int main(void) {
     RUN_TEST(test_tlv_type_size_over_32_rejected);
     RUN_TEST(test_tlv_constant_oversize_rejected);
     RUN_TEST(test_tlv_mapref_missing_required_subtag_rejected);
+    RUN_TEST(test_tlv_each_source_alone_is_accepted);
+    RUN_TEST(test_tlv_two_sources_are_refused_in_either_order);
+    RUN_TEST(test_tlv_no_source_is_refused);
+    RUN_TEST(test_tlv_type_size_is_not_a_source);
+    RUN_TEST(test_tlv_missing_version_is_refused);
+    RUN_TEST(test_tlv_missing_type_family_is_refused);
+    RUN_TEST(test_tlv_empty_value_is_refused);
     return UNITY_END();
 }

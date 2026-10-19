@@ -345,7 +345,9 @@ If the network is not found, the device falls back to displaying the raw chain I
 | VALUE    | 0x02  |
 | CHAIN_ID | 0x03  |
 
-> __Note__: The TLV payload must include exactly one of `DATA_PATH`, `CONTAINER_PATH`, `CONSTANT` or `MAP_REF`.
+> __Note__: The TLV payload must include exactly one of `DATA_PATH`, `CONTAINER_PATH`, `CONSTANT` or `MAP_REF`, and both
+> `VERSION` and `TYPE_FAMILY`. A VALUE that lacks one of them, or that has none or several of those sources, is
+> refused, and so is the descriptor that holds it.
 
 ### DATA_PATH
 

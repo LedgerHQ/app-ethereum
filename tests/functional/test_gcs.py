@@ -38,7 +38,7 @@ from client.tx_simu import TxSimu
 from client.utils import get_selector_from_data
 from constants import ABIS_FOLDER
 from dynamic_networks_cfg import get_network_config
-from fields_utils import get_all_paths, get_all_tuple_array_paths, get_all_tuple_paths
+from fields_utils import RawValue, get_all_paths, get_all_tuple_array_paths, get_all_tuple_paths
 from ragger.error import ExceptionRAPDU
 from ragger.navigator import Navigator
 from ragger.navigator.navigation_scenario import NavigateWithScenario
@@ -3121,3 +3121,43 @@ def test_gcs_nonce_and_hash_displayed(navigator: Navigator, scenario_navigator: 
 
     with app_client.sign(mode=SignMode.START_FLOW):
         scenario_navigator.review_approve(test_name=test_name)
+
+
+def _malformed_values() -> dict[str, Value]:
+    """VALUE structures that lack a mandatory tag, or do not have exactly one source."""
+    event_id = DataPath(1, get_all_paths(f"{ABIS_FOLDER}/poap.abi.json", "mintToken")["eventId"])
+    constant = Value.serialize_field(0x05, b"\x01")
+    return {
+        "no_source": Value(1, TypeFamily.UINT, type_size=32),
+        "path_and_container_path": Value(1, TypeFamily.UINT, type_size=32, data_path=event_id, container_path=ContainerPath.FROM),
+        "path_and_constant": Value(1, TypeFamily.UINT, type_size=32, data_path=event_id, constant=b"\x01"),
+        "container_path_and_constant": Value(
+            1, TypeFamily.UINT, type_size=32, container_path=ContainerPath.FROM, constant=b"\x01"
+        ),
+        "missing_version": RawValue(Value.serialize_field(0x01, TypeFamily.UINT) + constant),
+        "missing_type_family": RawValue(Value.serialize_field(0x00, 1) + constant),
+    }
+
+
+@pytest.mark.parametrize("name", _malformed_values().keys())
+def test_gcs_malformed_value_refused(scenario_navigator: NavigateWithScenario, name: str):
+    """A VALUE needs its VERSION and TYPE_FAMILY and exactly one source: the descriptor is refused
+    otherwise, and the next transaction is described normally."""
+    app_client = EthAppClient(scenario_navigator.backend)
+
+    tx_params, fields = _poap_tx_and_fields(None)
+    fields[0] = Field(1, "Event ID", ParamAmount(1, _malformed_values()[name]))
+
+    with app_client.sign("m/44'/60'/0'/0/0", tx_params, mode=SignMode.STORE):
+        pass
+
+    with pytest.raises(ExceptionRAPDU) as err:
+        _provide_gcs_metadata(app_client, tx_params, fields)
+    assert err.value.status == StatusWord.SWO_INCORRECT_DATA
+
+    tx_params, fields = _poap_tx_and_fields(None)
+    with app_client.sign("m/44'/60'/0'/0/0", tx_params, mode=SignMode.STORE):
+        pass
+    _provide_gcs_metadata(app_client, tx_params, fields)
+    with app_client.sign(mode=SignMode.START_FLOW):
+        scenario_navigator.review_approve(do_comparison=False)

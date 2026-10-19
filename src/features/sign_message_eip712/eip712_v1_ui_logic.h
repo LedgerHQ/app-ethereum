@@ -89,7 +89,6 @@ bool ui_712_message_info_received(void);
 void ui_712_token_join_prepare_addr_check(uint8_t id);
 bool ui_712_token_join_prepare_amount(uint8_t id, const char *name, uint8_t name_length);
 bool ui_712_set_amount_join_token_addr(const uint8_t *address);
-bool ui_712_show_raw_key(const s_struct_712_field *field_ptr);
 bool ui_712_push_new_filter_path(uint32_t path_crc);
 bool ui_712_set_discarded_path(const char *path, uint8_t length);
 const char *ui_712_get_discarded_path(void);

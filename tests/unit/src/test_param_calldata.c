@@ -25,7 +25,7 @@
 // ===========================================================================
 
 static int g_vg_call = 0;
-static s_parsed_value_collection g_vg[2];
+static s_parsed_value_collection g_vg[5];
 
 static bool g_tx_ctx_init_ret = true;
 
@@ -73,7 +73,7 @@ bool calldata_append(s_calldata *calldata, const uint8_t *data, size_t length) {
 }
 
 void calldata_delete(s_calldata *calldata) {
-    (void) calldata;
+    free(calldata);
     g_calldata_delete_calls++;
 }
 
@@ -86,11 +86,14 @@ bool tx_ctx_init(s_calldata *calldata,
                  const uint8_t *to,
                  const uint8_t *amount,
                  const uint64_t *chain_id) {
-    (void) calldata;
     (void) from;
     (void) to;
     (void) amount;
     (void) chain_id;
+    // On success, the tx context takes ownership of calldata.
+    if (g_tx_ctx_init_ret) {
+        free(calldata);
+    }
     return (bool) g_tx_ctx_init_ret;
 }
 

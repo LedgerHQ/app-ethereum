@@ -171,8 +171,9 @@ bool find_matching_tx_ctx(const uint8_t *a, const uint8_t *s, const uint64_t *c)
     (void) c;
     return g_find_matching_tx_ctx_ret;
 }
+// The tx context takes ownership of info.
 bool set_tx_info_into_tx_ctx(s_tx_info *info) {
-    (void) info;
+    free(info);
     return g_set_tx_info_into_tx_ctx_ret;
 }
 // =============================================================================

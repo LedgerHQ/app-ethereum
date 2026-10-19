@@ -181,6 +181,7 @@ void test_no_network_rejected(void) {
 }
 
 void test_null_hash_rejected(void) {
+    free(g_network_icon_hash);
     g_network_icon_hash = NULL;
     buffer_t buf = {.ptr = s_icon_buf, .size = ICON_TOTAL_BYTES, .offset = 0};
     TEST_ASSERT_EQUAL(handle_network_icon_chunks(P1_FIRST_CHUNK, &buf), SWO_INCORRECT_DATA);
@@ -327,10 +328,9 @@ void test_two_chunks_complete_icon(void) {
 // =============================================================================
 
 void test_clear_icon_frees_both_globals(void) {
-    // Seed both globals with heap-allocated buffers and confirm
-    // clear_icon() nulls them out (mocks/mem_utils_free_and_null is the
+    // setUp seeds g_network_icon_hash with a heap buffer: confirm
+    // clear_icon() nulls it out (mocks/mem_utils_free_and_null is the
     // observable side effect via the wrap).
-    g_network_icon_hash = malloc(32);
     TEST_ASSERT_NOT_NULL(g_network_icon_hash);
     clear_icon();
     TEST_ASSERT_NULL(g_network_icon_hash);
@@ -340,6 +340,9 @@ void setUp(void) {
     reset();
 }
 void tearDown(void) {
+    clear_icon();
+    // The network owns the bitmap once the icon is complete.
+    free((void *) s_net.icon.bitmap);
 }
 
 int main(void) {

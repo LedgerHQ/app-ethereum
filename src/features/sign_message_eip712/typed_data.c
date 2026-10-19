@@ -354,6 +354,13 @@ bool td_get_domain_chain_id(uint64_t *chain_id) {
                 const uint8_t *data = child->data;
                 uint16_t length = child->length;
 
+                // the standard gives chainId an unsigned integer type: the bytes of any other
+                // type are not a number
+                if (child->field->type != TYPE_SOL_UINT) {
+                    PRINTF("Error: chainId is not an unsigned integer (%u)!\n", child->field->type);
+                    return false;
+                }
+
                 // tolerate zero-left-padded values (the domain hash commits to the full bytes,
                 // the numeric value must stay identical); non-zero padding is rejected at
                 // ingestion by the value parser

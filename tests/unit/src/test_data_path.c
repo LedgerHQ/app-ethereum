@@ -151,7 +151,7 @@ void test_tlv_leaf_each_valid_type_accepted(void) {
 void test_tlv_path_max_size_enforced(void) {
     // Build PATH_MAX_SIZE + 1 = 17 TUPLE entries — the common handler
     // must reject the last one.
-    uint8_t bytes[64];
+    uint8_t bytes[4 * (PATH_MAX_SIZE + 1)];
     size_t off = 0;
     for (int i = 0; i <= PATH_MAX_SIZE; ++i) {
         bytes[off++] = 0x01;
@@ -244,6 +244,7 @@ void test_data_path_get_slice_start_ge_end_rejected(void) {
 
     s_parsed_value_collection collec = {0};
     TEST_ASSERT_FALSE(data_path_get(&path, &collec));
+    data_path_cleanup(&collec);
 }
 
 void test_data_path_get_leaf_missing_chunk_returns_false(void) {

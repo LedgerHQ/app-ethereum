@@ -4,6 +4,8 @@
 #include "tlv_library.h"
 #include "tlv_utils.h"
 
+#define PARAM_UNIT_STRUCT_VERSION 0x01
+
 #define PARAM_UNIT_TAGS(X)                                     \
     X(0x00, TAG_VERSION, handle_version, ENFORCE_UNIQUE_TAG)   \
     X(0x01, TAG_VALUE, handle_value, ENFORCE_UNIQUE_TAG)       \
@@ -12,7 +14,10 @@
     X(0x04, TAG_PREFIX, handle_prefix, ENFORCE_UNIQUE_TAG)
 
 static bool handle_version(const tlv_data_t *data, s_param_unit_context *context) {
-    return tlv_get_uint8_range(data, &context->param->version, 0, UINT8_MAX);
+    return tlv_get_uint8_range(data,
+                               &context->param->version,
+                               PARAM_UNIT_STRUCT_VERSION,
+                               PARAM_UNIT_STRUCT_VERSION);
 }
 
 static bool handle_value(const tlv_data_t *data, s_param_unit_context *context) {

@@ -3139,14 +3139,12 @@ def _malformed_values() -> dict[str, Value]:
     }
 
 
-@pytest.mark.parametrize("name", _malformed_values().keys())
-def test_gcs_malformed_value_refused(scenario_navigator: NavigateWithScenario, name: str):
-    """A VALUE needs its VERSION and TYPE_FAMILY and exactly one source: the descriptor is refused
-    otherwise, and the next transaction is described normally."""
+def _assert_refused_then_recovers(scenario_navigator: NavigateWithScenario, bad_field: Field):
+    """The descriptor is refused, and the next transaction is described and signed normally."""
     app_client = EthAppClient(scenario_navigator.backend)
 
     tx_params, fields = _poap_tx_and_fields(None)
-    fields[0] = Field(1, "Event ID", ParamAmount(1, _malformed_values()[name]))
+    fields[0] = bad_field
 
     with app_client.sign("m/44'/60'/0'/0/0", tx_params, mode=SignMode.STORE):
         pass
@@ -3161,3 +3159,26 @@ def test_gcs_malformed_value_refused(scenario_navigator: NavigateWithScenario, n
     _provide_gcs_metadata(app_client, tx_params, fields)
     with app_client.sign(mode=SignMode.START_FLOW):
         scenario_navigator.review_approve(do_comparison=False)
+
+
+@pytest.mark.parametrize("name", _malformed_values().keys())
+def test_gcs_malformed_value_refused(scenario_navigator: NavigateWithScenario, name: str):
+    """A VALUE needs its VERSION and TYPE_FAMILY and exactly one source."""
+    _assert_refused_then_recovers(scenario_navigator, Field(1, "Event ID", ParamAmount(1, _malformed_values()[name])))
+
+
+def _versioned_fields(version: int) -> dict[str, Field]:
+    """A descriptor whose PARAM, VALUE or DATA_PATH has the given version, and the others have version 1."""
+    event_id = get_all_paths(f"{ABIS_FOLDER}/poap.abi.json", "mintToken")["eventId"]
+    return {
+        "param": Field(1, "Event ID", ParamAmount(version, Value(1, TypeFamily.UINT, 32, data_path=DataPath(1, event_id)))),
+        "value": Field(1, "Event ID", ParamAmount(1, Value(version, TypeFamily.UINT, 32, data_path=DataPath(1, event_id)))),
+        "data_path": Field(1, "Event ID", ParamAmount(1, Value(1, TypeFamily.UINT, 32, data_path=DataPath(version, event_id)))),
+    }
+
+
+@pytest.mark.parametrize("version", [0, 2])
+@pytest.mark.parametrize("struct", ["param", "value", "data_path"])
+def test_gcs_struct_version_other_than_one_refused(scenario_navigator: NavigateWithScenario, struct: str, version: int):
+    """The only version of the PARAM, VALUE and DATA_PATH structures is 1."""
+    _assert_refused_then_recovers(scenario_navigator, _versioned_fields(version)[struct])

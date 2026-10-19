@@ -5,17 +5,19 @@
 #include "shared_context.h"
 #include "tx_ctx.h"
 #include "tlv_library.h"
+#include "tlv_utils.h"
+
+#define PARAM_AMOUNT_STRUCT_VERSION 0x01
 
 #define PARAM_AMOUNT_TAGS(X)                                 \
     X(0x00, TAG_VERSION, handle_version, ENFORCE_UNIQUE_TAG) \
     X(0x01, TAG_VALUE, handle_value, ENFORCE_UNIQUE_TAG)
 
 static bool handle_version(const tlv_data_t *data, s_param_amount_context *context) {
-    if (data->value.size != sizeof(context->param->version)) {
-        return false;
-    }
-    context->param->version = data->value.ptr[0];
-    return true;
+    return tlv_get_uint8_range(data,
+                               &context->param->version,
+                               PARAM_AMOUNT_STRUCT_VERSION,
+                               PARAM_AMOUNT_STRUCT_VERSION);
 }
 
 static bool handle_value(const tlv_data_t *data, s_param_amount_context *context) {

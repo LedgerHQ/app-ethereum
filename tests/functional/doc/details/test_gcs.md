@@ -224,6 +224,7 @@ Most GCS tests follow this pattern:
 | Proxy Patterns        | EIP-1967, minimal proxies              |
 | Safe Integration      | Multisig operations                    |
 | Malformed Values      | Missing tags, zero or several sources  |
+| Struct Versions       | Only version 1 is accepted             |
 
 ## Related Documentation
 

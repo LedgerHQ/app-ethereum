@@ -186,6 +186,23 @@ void test_token_amount_size_mismatch_rejected(void) {
 // All tags here are < 0x80 so short-form encoding is used (no DER long form).
 // Layout per tag: { tag, length, value... }
 
+void test_handle_struct_version_other_than_one_refused(void) {
+    uint8_t buf_bytes[] = {0x00, 0x01, 0x01, 0x01, 0x00};
+    const uint8_t other_versions[] = {0x00, 0x02, 0xFF};
+    s_param_token_amount param;
+    s_param_token_amount_context ctx = {.param = &param};
+    buffer_t buf = {.ptr = buf_bytes, .size = sizeof(buf_bytes), .offset = 0};
+
+    memset(&param, 0, sizeof(param));
+    TEST_ASSERT_TRUE(handle_param_token_amount_struct(&buf, &ctx));
+    for (size_t i = 0; i < sizeof(other_versions); i++) {
+        buf = (buffer_t) {.ptr = buf_bytes, .size = sizeof(buf_bytes), .offset = 0};
+        buf_bytes[2] = other_versions[i];
+        memset(&param, 0, sizeof(param));
+        TEST_ASSERT_FALSE(handle_param_token_amount_struct(&buf, &ctx));
+    }
+}
+
 void test_handle_struct_all_tags_ok(void) {
     // VERSION(0x00) len=1 value=1
     // VALUE(0x01)   len=0 (empty inner — wrap returns true)
@@ -297,6 +314,7 @@ int main(void) {
     UNITY_BEGIN();
     RUN_TEST(test_token_amount_broadcast_ok);
     RUN_TEST(test_token_amount_size_mismatch_rejected);
+    RUN_TEST(test_handle_struct_version_other_than_one_refused);
     RUN_TEST(test_handle_struct_all_tags_ok);
     RUN_TEST(test_handle_struct_native_currency_oversize_rejected);
     RUN_TEST(test_handle_struct_native_currency_overflow_capacity_rejected);

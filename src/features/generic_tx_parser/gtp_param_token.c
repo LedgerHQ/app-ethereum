@@ -9,13 +9,18 @@
 #include "tlv_library.h"
 #include "tlv_utils.h"
 
+#define PARAM_TOKEN_STRUCT_VERSION 0x01
+
 #define PARAM_TOKEN_TAGS(X)                                  \
     X(0x00, TAG_VERSION, handle_version, ENFORCE_UNIQUE_TAG) \
     X(0x01, TAG_ADDRESS, handle_address, ENFORCE_UNIQUE_TAG) \
     X(0x02, TAG_NATIVE_CURRENCY, handle_native_currency, ALLOW_MULTIPLE_TAG)
 
 static bool handle_version(const tlv_data_t *data, s_param_token_context *context) {
-    return tlv_get_uint8_range(data, &context->param->version, 0, UINT8_MAX);
+    return tlv_get_uint8_range(data,
+                               &context->param->version,
+                               PARAM_TOKEN_STRUCT_VERSION,
+                               PARAM_TOKEN_STRUCT_VERSION);
 }
 
 static bool handle_address(const tlv_data_t *data, s_param_token_context *context) {

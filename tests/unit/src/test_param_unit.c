@@ -185,6 +185,19 @@ static bool run_tlv(const uint8_t *bytes, size_t size, s_param_unit *param) {
     return handle_param_unit_struct(&buf, &ctx);
 }
 
+void test_tlv_version_other_than_one_refused(void) {
+    uint8_t bytes[] =
+        {0x00, 0x01, 0x01, 0x01, 0x00, 0x02, 0x04, 'U', 'S', 'D', 'C', 0x03, 0x01, 0x06};
+    const uint8_t other_versions[] = {0x00, 0x02, 0xFF};
+    s_param_unit param = {0};
+
+    TEST_ASSERT_TRUE(run_tlv(bytes, sizeof(bytes), &param));
+    for (size_t i = 0; i < sizeof(other_versions); i++) {
+        bytes[2] = other_versions[i];
+        TEST_ASSERT_FALSE(run_tlv(bytes, sizeof(bytes), &param));
+    }
+}
+
 void test_tlv_happy_path(void) {
     // VERSION=1, VALUE empty, BASE="USDC", DECIMALS=6, PREFIX=true
     const uint8_t bytes[] = {
@@ -290,6 +303,7 @@ int main(void) {
     RUN_TEST(test_format_value_get_failure_returns_false);
     RUN_TEST(test_format_empty_base_rejected);
     RUN_TEST(test_format_add_to_field_table_failure_propagates);
+    RUN_TEST(test_tlv_version_other_than_one_refused);
     RUN_TEST(test_tlv_happy_path);
     RUN_TEST(test_tlv_base_too_long_rejected);
     RUN_TEST(test_tlv_prefix_wrong_size_rejected);

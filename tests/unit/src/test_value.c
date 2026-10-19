@@ -556,6 +556,37 @@ static bool run_with_sources(const s_source_tlv *first, const s_source_tlv *seco
     return run_tlv(bytes, size, &v);
 }
 
+void test_tlv_value_version_other_than_one_refused(void) {
+    uint8_t bytes[sizeof(s_value_header) + sizeof(s_source_constant)];
+    const uint8_t other_versions[] = {0x00, 0x02, 0xFF};
+    s_value v = {0};
+
+    memcpy(bytes, s_value_header, sizeof(s_value_header));
+    memcpy(&bytes[sizeof(s_value_header)], s_source_constant, sizeof(s_source_constant));
+    TEST_ASSERT_TRUE(run_tlv(bytes, sizeof(bytes), &v));
+    for (size_t i = 0; i < sizeof(other_versions); i++) {
+        bytes[2] = other_versions[i];
+        TEST_ASSERT_FALSE(run_tlv(bytes, sizeof(bytes), &v));
+    }
+}
+
+// The VERSION of the MAP_REF is the third byte of its payload, after the VALUE header and the tag
+// and length of the MAP_REF
+void test_tlv_map_ref_version_other_than_one_refused(void) {
+    uint8_t bytes[sizeof(s_value_header) + sizeof(s_source_map_ref)];
+    const size_t map_ref_version = sizeof(s_value_header) + 4;
+    const uint8_t other_versions[] = {0x00, 0x02, 0xFF};
+    s_value v = {0};
+
+    memcpy(bytes, s_value_header, sizeof(s_value_header));
+    memcpy(&bytes[sizeof(s_value_header)], s_source_map_ref, sizeof(s_source_map_ref));
+    TEST_ASSERT_TRUE(run_tlv(bytes, sizeof(bytes), &v));
+    for (size_t i = 0; i < sizeof(other_versions); i++) {
+        bytes[map_ref_version] = other_versions[i];
+        TEST_ASSERT_FALSE(run_tlv(bytes, sizeof(bytes), &v));
+    }
+}
+
 void test_tlv_each_source_alone_is_accepted(void) {
     for (size_t i = 0; i < SOURCE_COUNT; i++) {
         TEST_ASSERT_TRUE(run_with_sources(&s_sources[i], NULL));
@@ -637,6 +668,8 @@ int main(void) {
     RUN_TEST(test_tlv_type_size_over_32_rejected);
     RUN_TEST(test_tlv_constant_oversize_rejected);
     RUN_TEST(test_tlv_mapref_missing_required_subtag_rejected);
+    RUN_TEST(test_tlv_value_version_other_than_one_refused);
+    RUN_TEST(test_tlv_map_ref_version_other_than_one_refused);
     RUN_TEST(test_tlv_each_source_alone_is_accepted);
     RUN_TEST(test_tlv_two_sources_are_refused_in_either_order);
     RUN_TEST(test_tlv_no_source_is_refused);

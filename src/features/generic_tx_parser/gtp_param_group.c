@@ -11,6 +11,8 @@
 // (format_param_group -> format_field) on hostile descriptors.
 #define MAX_PARAM_GROUP_DEPTH 8
 
+#define PARAM_GROUP_STRUCT_VERSION 0x01
+
 // Depth of the parse-time recursion. handle_pg_field() recurses before the
 // accumulated fields hash can be compared against the signed TRANSACTION_INFO,
 // so an unauthenticated descriptor must not be able to drive it arbitrarily deep.
@@ -21,7 +23,10 @@ static uint8_t s_parse_depth;
 // =============================================================================
 
 static bool handle_pg_version(const tlv_data_t *data, s_param_group_context *context) {
-    return tlv_get_uint8_range(data, &context->param->version, 0, UINT8_MAX);
+    return tlv_get_uint8_range(data,
+                               &context->param->version,
+                               PARAM_GROUP_STRUCT_VERSION,
+                               PARAM_GROUP_STRUCT_VERSION);
 }
 
 static bool handle_pg_iteration_type(const tlv_data_t *data, s_param_group_context *context) {

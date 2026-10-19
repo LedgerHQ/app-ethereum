@@ -78,6 +78,8 @@ structs, which attests of the authenticity, order and completeness of all FIELD 
 
 > __Notes__:
 >
+> - `VERSION` is `0x1` in FIELD and in every structure it holds: the `PARAM_*` structures, `VALUE`,
+>   `DATA_PATH` and `MAP_REF`. The device refuses any other version, and the descriptor with it.
 > - `VISIBLE` defaults to `ALWAYS` (0x00) if not present
 > - `VISIBLE` can be present only once and should be served before any `CONSTRAINT`
 > - `CONSTRAINT` is only present when `VISIBLE` is `MUST_BE` or `IF_NOT_IN`

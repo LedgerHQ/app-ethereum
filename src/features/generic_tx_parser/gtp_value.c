@@ -11,6 +11,9 @@
 #include "tlv_utils.h"
 #include "map_entry.h"
 
+#define MAP_REF_STRUCT_VERSION 0x01
+#define VALUE_STRUCT_VERSION   0x01
+
 // =============================================================================
 // MAP_REF sub-parser (nested within VALUE at tag 0x06)
 // =============================================================================
@@ -20,9 +23,8 @@ typedef struct {
 } s_map_ref_parse_ctx;
 
 static bool handle_mr_version(const tlv_data_t *data, s_map_ref_parse_ctx *ctx) {
-    uint8_t v;
     (void) ctx;
-    return tlv_get_uint8_range(data, &v, 0, UINT8_MAX);
+    return tlv_enforce_u8_value(data, MAP_REF_STRUCT_VERSION);
 }
 
 static bool handle_mr_id(const tlv_data_t *data, s_map_ref_parse_ctx *ctx) {
@@ -77,7 +79,10 @@ static bool handle_map_ref(const tlv_data_t *data, s_value_context *context) {
     X(0x06, TAG_MAP_REF, handle_map_ref, ENFORCE_UNIQUE_TAG)
 
 static bool handle_version(const tlv_data_t *data, s_value_context *context) {
-    return tlv_get_uint8_range(data, &context->value->version, 0, UINT8_MAX);
+    return tlv_get_uint8_range(data,
+                               &context->value->version,
+                               VALUE_STRUCT_VERSION,
+                               VALUE_STRUCT_VERSION);
 }
 
 static bool handle_type_family(const tlv_data_t *data, s_value_context *context) {

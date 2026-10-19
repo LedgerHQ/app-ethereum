@@ -169,11 +169,26 @@ void test_group_depth_cap_rejects(void) {
 // are wrapped so the FIELD sub-parser is observable.
 // =============================================================================
 
+void test_handle_pg_struct_version_other_than_one_refused(void) {
+    uint8_t buf_bytes[] = {0x00, 0x01, 0x01, 0x01, 0x01, GROUP_ITER_SEQUENTIAL};
+    const uint8_t other_versions[] = {0x00, 0x02, 0xFF};
+    s_param_group param;
+
+    for (size_t i = 0; i < sizeof(other_versions); i++) {
+        buffer_t buf = {.ptr = buf_bytes, .size = sizeof(buf_bytes), .offset = 0};
+        s_param_group_context ctx = {.param = &param};
+
+        buf_bytes[2] = other_versions[i];
+        memset(&param, 0, sizeof(param));
+        TEST_ASSERT_FALSE(handle_param_group_struct(&buf, &ctx));
+    }
+}
+
 void test_handle_pg_struct_version_and_iteration_ok(void) {
     uint8_t buf_bytes[] = {
         0x00,
         0x01,
-        0x02,  // VERSION = 2
+        0x01,  // VERSION = 1
         0x01,
         0x01,
         GROUP_ITER_SEQUENTIAL,  // ITERATION_TYPE
@@ -184,7 +199,7 @@ void test_handle_pg_struct_version_and_iteration_ok(void) {
     memset(&param, 0, sizeof(param));
     s_param_group_context ctx = {.param = &param};
     TEST_ASSERT_TRUE(handle_param_group_struct(&buf, &ctx));
-    TEST_ASSERT_EQUAL(param.version, 2);
+    TEST_ASSERT_EQUAL(param.version, 1);
     TEST_ASSERT_EQUAL(param.iteration_type, GROUP_ITER_SEQUENTIAL);
 }
 
@@ -295,6 +310,7 @@ int main(void) {
     RUN_TEST(test_group_bundled_rejected);
     RUN_TEST(test_group_subfield_failure_propagates);
     RUN_TEST(test_group_depth_cap_rejects);
+    RUN_TEST(test_handle_pg_struct_version_other_than_one_refused);
     RUN_TEST(test_handle_pg_struct_version_and_iteration_ok);
     RUN_TEST(test_handle_pg_struct_iteration_out_of_range_rejected);
     RUN_TEST(test_handle_pg_struct_field_appends_to_list);

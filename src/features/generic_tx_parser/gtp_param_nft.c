@@ -7,13 +7,18 @@
 #include "tx_ctx.h"
 #include "nft_info.h"
 
+#define PARAM_NFT_STRUCT_VERSION 0x01
+
 #define PARAM_NFT_TAGS(X)                                    \
     X(0x00, TAG_VERSION, handle_version, ENFORCE_UNIQUE_TAG) \
     X(0x01, TAG_ID, handle_id, ENFORCE_UNIQUE_TAG)           \
     X(0x02, TAG_COLLECTION, handle_collection, ENFORCE_UNIQUE_TAG)
 
 static bool handle_version(const tlv_data_t *data, s_param_nft_context *context) {
-    return tlv_get_uint8_range(data, &context->param->version, 0, UINT8_MAX);
+    return tlv_get_uint8_range(data,
+                               &context->param->version,
+                               PARAM_NFT_STRUCT_VERSION,
+                               PARAM_NFT_STRUCT_VERSION);
 }
 
 static bool handle_id(const tlv_data_t *data, s_param_nft_context *context) {

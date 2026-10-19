@@ -86,13 +86,15 @@ bool format_param_token(const s_param_token *param, const char *name) {
             // branch (CWE-451). The native path explicitly carries no
             // s_token_info; the ERC-20 path must repopulate it from scratch.
             const s_token_info *token_info = NULL;
+            s_token_info dummy;
             const char *ticker = NULL;
 
             buf_shrink_expand(collec.value[i].ptr, collec.value[i].length, addr, sizeof(addr));
             if (match_native(addr, param)) {
                 ticker = get_displayable_ticker(&chain_id, g_chain_config, true);
             } else {
-                if ((token_info = get_matching_token_info_or_dummy(&chain_id, addr)) == NULL) {
+                if ((token_info = get_matching_token_info_or_dummy(&chain_id, addr, &dummy)) ==
+                    NULL) {
                     ret = false;
                     break;
                 }

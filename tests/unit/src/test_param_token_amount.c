@@ -58,7 +58,9 @@ const s_tx_info *get_current_tx_info(void) {
 }
 
 const s_token_info *get_matching_token_info_or_dummy(const uint64_t *chain_id,
-                                                     const uint8_t *addr) {
+                                                     const uint8_t *addr,
+                                                     s_token_info *dummy) {
+    (void) dummy;
     (void) chain_id;
     (void) addr;
     return (const s_token_info *) g_get_matching_token_info_or_dummy_ret;

@@ -680,6 +680,81 @@ def test_gcs_4226(scenario_navigator: NavigateWithScenario, known_tokens: bool):
         scenario_navigator.review_approve()
 
 
+def test_gcs_unknown_token_not_cached(scenario_navigator: NavigateWithScenario):
+    """An unknown token met in a FIELD is not added to the token list.
+
+    The token provided afterwards gets index 0, as if no FIELD had been parsed.
+    """
+    backend = scenario_navigator.backend
+    app_client = EthAppClient(backend)
+
+    with open(f"{ABIS_FOLDER}/rSWELL.abi.json", encoding="utf-8") as file:
+        contract = Web3().eth.contract(abi=json.load(file), address=None)
+    data = contract.encode_abi(
+        "deposit",
+        [
+            Web3.to_wei(4.20, "ether"),
+            bytes.fromhex("Dad77910DbDFdE764fC21FCD4E74D71bBACA6D8D"),
+        ],
+    )
+    tx_params = {
+        "nonce": 235,
+        "maxFeePerGas": Web3.to_wei(3, "gwei"),
+        "maxPriorityFeePerGas": Web3.to_wei(1, "gwei"),
+        "gas": 128872,
+        "to": bytes.fromhex("358d94b5b2F147D741088803d932Acb566acB7B6"),
+        "data": data,
+        "chainId": 1,
+    }
+    with app_client.sign("m/44'/60'/0'/0/0", tx_params, mode=SignMode.STORE):
+        pass
+
+    swell_token_addr = bytes.fromhex("0a6e7ba5042b38349e437ec6db6214aec7b35676")
+    param_paths = get_all_paths(f"{ABIS_FOLDER}/rSWELL.abi.json", "deposit")
+    fields = [
+        Field(
+            1,
+            "Deposit asset",
+            ParamTokenAmount(
+                1,
+                Value(1, TypeFamily.UINT, type_size=32, data_path=DataPath(1, param_paths["assets"])),
+                token=Value(1, TypeFamily.ADDRESS, constant=swell_token_addr),
+            ),
+        ),
+        Field(1, "Receive shares", ParamToken(1, Value(1, TypeFamily.ADDRESS, container_path=ContainerPath.TO))),
+        Field(
+            1,
+            "Send shares to",
+            ParamRaw(1, Value(1, TypeFamily.ADDRESS, data_path=DataPath(1, param_paths["receiver"]))),
+        ),
+    ]
+    tx_info = TxInfo(
+        1,
+        tx_params["chainId"],
+        tx_params["to"],
+        get_selector_from_data(tx_params["data"]),
+        compute_inst_hash(fields),
+        "deposit",
+        creator_name="Swell",
+        creator_legal_name="Swell Network",
+        creator_url="www.swellnetwork.io",
+        contract_name="rSWELL Token",
+        deploy_date=1726817291,
+    )
+    app_client.provide_transaction_info(tx_info.serialize())
+
+    # SWELL is unknown when its FIELD is parsed
+    app_client.provide_transaction_field_desc(fields[0].serialize())
+    response = app_client.provide_token_metadata("rSWELL", tx_params["to"], 18, 1)
+    assert response.data[0] == 0, f"Unexpected token index {response.data[0]}"
+
+    for field in fields[1:]:
+        app_client.provide_transaction_field_desc(field.serialize())
+
+    with app_client.sign(mode=SignMode.START_FLOW):
+        scenario_navigator.review_approve()
+
+
 # https://etherscan.io/tx/0x07a80f1b359146129f3369af39e7eb2457581109c8300fc2ef81e997a07cf3f0
 def test_gcs_nested_createProxyWithNonce(scenario_navigator: NavigateWithScenario):
     backend = scenario_navigator.backend

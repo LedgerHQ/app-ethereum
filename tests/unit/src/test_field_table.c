@@ -34,6 +34,7 @@
 
 #include "gtp_field_table.h"
 #include "handle_contacts.h"
+#include "token_info.h"
 #include "gtp_field.h"
 #include "shared_context.h"
 #include "tx_ctx.h"
@@ -273,6 +274,23 @@ void test_add_address_book_keeps_own_copy_of_contact(void) {
     TEST_ASSERT_EACH_EQUAL_HEX8(0x11, shown->identifier, ADDRESS_LENGTH);
 }
 
+// Token details are kept by the table: the caller may pass a short-lived placeholder
+void test_add_token_keeps_own_copy_of_token(void) {
+    s_token_info token = {.chain_id = 1, .decimals = 0};
+    strlcpy(token.ticker, "???", sizeof(token.ticker));
+    memset(token.address, 0x33, ADDRESS_LENGTH);
+
+    TEST_ASSERT_TRUE(add_to_field_table(PARAM_TYPE_TOKEN_AMOUNT, "Amount", "1 ???", &token));
+    strlcpy(token.ticker, "USDT", sizeof(token.ticker));
+    token.decimals = 6;
+
+    const s_token_info *shown = get_from_field_table(0)->extra_data;
+    TEST_ASSERT_TRUE(shown != &token);
+    TEST_ASSERT_EQUAL_STRING("???", shown->ticker);
+    TEST_ASSERT_EQUAL(shown->decimals, 0);
+    TEST_ASSERT_EACH_EQUAL_HEX8(0x33, shown->address, ADDRESS_LENGTH);
+}
+
 void test_cleanup_empties_table(void) {
     add_to_field_table(PARAM_TYPE_RAW, "k", "v", NULL);
     add_to_field_table(PARAM_TYPE_RAW, "k2", "v2", NULL);
@@ -303,6 +321,7 @@ int main(void) {
     RUN_TEST(test_add_intent_raises_flag_and_rewrites_type);
     RUN_TEST(test_add_separator_raises_flag_and_rewrites_type);
     RUN_TEST(test_add_address_book_keeps_own_copy_of_contact);
+    RUN_TEST(test_add_token_keeps_own_copy_of_token);
     RUN_TEST(test_add_in_eip712_routes_to_ui_helpers);
     RUN_TEST(test_add_intent_in_eip712_with_batch_calls_set_intent);
     RUN_TEST(test_add_intent_in_eip712_single_batch_skips_set_intent);

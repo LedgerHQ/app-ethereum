@@ -93,8 +93,10 @@ bool ui_191_message_fits(const char *message) {
 
 static void ui_191_finish_cb(bool confirm) {
     if (confirm) {
-        io_seproxyhal_touch_signMessage_ok();
-        nbgl_useCaseReviewStatus(STATUS_TYPE_MESSAGE_SIGNED, ui_idle);
+        nbgl_useCaseReviewStatus(io_seproxyhal_touch_signMessage_ok()
+                                     ? STATUS_TYPE_MESSAGE_SIGNED
+                                     : STATUS_TYPE_MESSAGE_REJECTED,
+                                 ui_idle);
     } else {
         io_seproxyhal_touch_signMessage_cancel();
         nbgl_useCaseReviewStatus(STATUS_TYPE_MESSAGE_REJECTED, ui_idle);

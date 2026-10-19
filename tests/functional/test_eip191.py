@@ -111,6 +111,26 @@ def test_personal_sign_long_message(scenario_navigator: NavigateWithScenario):
     assert recover_message(msg, vrs) == device_addr
 
 
+def test_personal_sign_disallowed_path(scenario_navigator: NavigateWithScenario):
+    """A path the OS refuses to derive fails cleanly after the review, and the app keeps running."""
+    backend = scenario_navigator.backend
+    app_client = EthAppClient(backend)
+    msg = b"Example `personal_sign` message"
+
+    with pytest.raises(ExceptionRAPDU) as err:
+        with app_client.personal_sign("m/44'/0'/0'/0/0", msg):
+            scenario_navigator.review_approve(do_comparison=False)
+    assert err.value.status == StatusWord.SWO_INCORRECT_DATA
+
+    with app_client.get_public_addr(display=False):
+        pass
+    _, device_addr, _ = ResponseParser.pk_addr(app_client.response().data)
+    with app_client.personal_sign(BIP32_PATH, msg):
+        scenario_navigator.review_approve(do_comparison=False)
+    vrs = ResponseParser.signature(app_client.response().data)
+    assert recover_message(msg, vrs) == device_addr
+
+
 def test_personal_sign_reject(scenario_navigator: NavigateWithScenario):
 
     backend = scenario_navigator.backend

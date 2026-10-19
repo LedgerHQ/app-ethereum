@@ -62,7 +62,7 @@ unsigned int io_seproxyhal_touch_tx_ok(void);
 unsigned int io_seproxyhal_touch_tx_cancel(void);
 unsigned int io_seproxyhal_touch_address_ok(void);
 unsigned int io_seproxyhal_touch_address_cancel(void);
-unsigned int io_seproxyhal_touch_signMessage_ok(void);
+bool io_seproxyhal_touch_signMessage_ok(void);
 unsigned int io_seproxyhal_touch_signMessage_cancel(void);
 unsigned int io_seproxyhal_touch_data_ok(void);
 unsigned int io_seproxyhal_touch_data_cancel(void);

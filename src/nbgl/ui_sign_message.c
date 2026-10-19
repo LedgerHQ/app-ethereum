@@ -104,7 +104,7 @@ static void ui_191_finish_cb(bool confirm) {
     ui_all_cleanup();
 }
 
-void ui_191_start(const char *message) {
+void ui_191_start(const char *message, bool is_hex) {
     // Honor the "Always display the transaction or message hash" setting for
     // EIP-191 personal messages so that the user can verify the exact bytes
     // being signed even when rendering is ambiguous (whitespace, encoding,
@@ -147,7 +147,8 @@ void ui_191_start(const char *message) {
              ui_tx_simulation_finish_str());
 
     g_pairsList->wrapping = true;
-    g_pairs[0].item = "Message";
+    // A binary message is shown hex encoded: tell it apart from a text starting with "0x"
+    g_pairs[0].item = is_hex ? "Message (hex)" : "Message";
     g_pairs[0].value = message;
 
     if (show_hash) {

@@ -51,6 +51,11 @@ def test_personal_sign_non_ascii(scenario_navigator: NavigateWithScenario, test_
     common(scenario_navigator, test_name, msg)
 
 
+def test_personal_sign_hex_looking_text(scenario_navigator: NavigateWithScenario, test_name: str):
+    """A text message that looks like hex keeps the "Message" label, unlike a binary message."""
+    common(scenario_navigator, test_name, "0x01")
+
+
 def test_personal_sign_opensea(scenario_navigator: NavigateWithScenario, test_name: str):
 
     msg = "Welcome to OpenSea!\n\n"

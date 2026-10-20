@@ -194,6 +194,34 @@ void test_format_add_to_field_table_failure_propagates(void) {
     TEST_ASSERT_FALSE(format_param_amount(&param, "Amount"));
 }
 
+static bool format_amount_of_length(uint16_t length) {
+    static uint8_t amount[256 + 1];
+
+    memset(amount, 0xFF, sizeof(amount));
+    g_vg[0].size = 1;
+    g_vg[0].value[0] =
+        (s_parsed_value) {.ptr = amount, .size = length, .offset = 0, .length = length};
+
+    s_param_amount param = {0};
+    return format_param_amount(&param, "Amount");
+}
+
+void test_format_amount_length_bounds(void) {
+    TEST_ASSERT_FALSE(format_amount_of_length(0));
+    TEST_ASSERT_EQUAL(1, g_value_cleanup_calls);
+    reset();
+    TEST_ASSERT_TRUE(format_amount_of_length(1));
+    reset();
+    TEST_ASSERT_TRUE(format_amount_of_length(INT256_LENGTH));
+    reset();
+    TEST_ASSERT_FALSE(format_amount_of_length(INT256_LENGTH + 1));
+    reset();
+    // 256 would wrap to 0 in amountToString()'s uint8_t length
+    TEST_ASSERT_FALSE(format_amount_of_length(256));
+    reset();
+    TEST_ASSERT_FALSE(format_amount_of_length(256 + 1));
+}
+
 // =============================================================================
 // handle_param_amount_struct (TLV parser)
 // =============================================================================
@@ -280,6 +308,7 @@ int main(void) {
     RUN_TEST(test_format_tx_info_null_returns_false);
     RUN_TEST(test_format_add_to_field_table_failure_propagates);
     RUN_TEST(test_tlv_version_other_than_one_refused);
+    RUN_TEST(test_format_amount_length_bounds);
     RUN_TEST(test_tlv_happy_path_sets_version);
     RUN_TEST(test_tlv_version_wrong_size_rejected);
     RUN_TEST(test_tlv_value_handler_failure_propagates);

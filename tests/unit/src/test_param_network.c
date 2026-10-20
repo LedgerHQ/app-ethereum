@@ -179,22 +179,60 @@ void test_format_network_wrong_type_family(void) {
 // handle_param_network_struct — TLV dispatch
 // =============================================================================
 
-// Real handle_value_struct is in gtp_value.c and is linked here. Empty
-// VALUE payload makes the inner parser accept with no tags consumed.
-void test_handle_network_struct_version_and_empty_value_ok(void) {
+// Real handle_value_struct is in gtp_value.c and is linked here: the inner VALUE is a complete one.
+void test_handle_network_struct_version_other_than_one_refused(void) {
     uint8_t buf_bytes[] = {
         0x00,
         0x01,
-        0x07,  // VERSION = 7
         0x01,
-        0x00,  // VALUE (empty inner)
+        0x01,
+        0x09,
+        0x00,
+        0x01,
+        0x01,
+        0x01,
+        0x01,
+        (uint8_t) TF_UINT,
+        0x04,
+        0x01,
+        (uint8_t) CP_CHAIN_ID,
+    };
+    const uint8_t other_versions[] = {0x00, 0x02, 0xFF};
+    s_param_network param = {0};
+    s_param_network_context ctx = {.param = &param};
+    buffer_t buf = {.ptr = buf_bytes, .size = sizeof(buf_bytes), .offset = 0};
+
+    TEST_ASSERT_TRUE(handle_param_network_struct(&buf, &ctx));
+    for (size_t i = 0; i < sizeof(other_versions); i++) {
+        buf = (buffer_t) {.ptr = buf_bytes, .size = sizeof(buf_bytes), .offset = 0};
+        buf_bytes[2] = other_versions[i];
+        TEST_ASSERT_FALSE(handle_param_network_struct(&buf, &ctx));
+    }
+}
+
+void test_handle_network_struct_version_and_value_ok(void) {
+    uint8_t buf_bytes[] = {
+        0x00,
+        0x01,
+        0x01,  // VERSION = 1
+        0x01,
+        0x09,
+        0x00,
+        0x01,
+        0x01,  // VALUE: VERSION = 1
+        0x01,
+        0x01,
+        (uint8_t) TF_UINT,  // TYPE_FAMILY
+        0x04,
+        0x01,
+        (uint8_t) CP_CHAIN_ID,  // CONTAINER_PATH
     };
     buffer_t buf = {.ptr = buf_bytes, .size = sizeof(buf_bytes), .offset = 0};
 
     s_param_network param = {0};
     s_param_network_context ctx = {.param = &param};
     TEST_ASSERT_TRUE(handle_param_network_struct(&buf, &ctx));
-    TEST_ASSERT_EQUAL(param.version, 7);
+    TEST_ASSERT_EQUAL(param.version, 1);
 }
 
 // format_network_name rejects payloads whose length is not exactly 8
@@ -240,7 +278,8 @@ int main(void) {
     RUN_TEST(test_format_network_max_chain_id);
     RUN_TEST(test_format_network_chain_id_overflow);
     RUN_TEST(test_format_network_wrong_type_family);
-    RUN_TEST(test_handle_network_struct_version_and_empty_value_ok);
+    RUN_TEST(test_handle_network_struct_version_other_than_one_refused);
+    RUN_TEST(test_handle_network_struct_version_and_value_ok);
     RUN_TEST(test_format_network_length_mismatch_rejected);
     return UNITY_END();
 }

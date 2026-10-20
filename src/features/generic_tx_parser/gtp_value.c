@@ -11,6 +11,9 @@
 #include "tlv_utils.h"
 #include "map_entry.h"
 
+#define MAP_REF_STRUCT_VERSION 0x01
+#define VALUE_STRUCT_VERSION   0x01
+
 // =============================================================================
 // MAP_REF sub-parser (nested within VALUE at tag 0x06)
 // =============================================================================
@@ -20,9 +23,8 @@ typedef struct {
 } s_map_ref_parse_ctx;
 
 static bool handle_mr_version(const tlv_data_t *data, s_map_ref_parse_ctx *ctx) {
-    uint8_t v;
     (void) ctx;
-    return tlv_get_uint8_range(data, &v, 0, UINT8_MAX);
+    return tlv_enforce_u8_value(data, MAP_REF_STRUCT_VERSION);
 }
 
 static bool handle_mr_id(const tlv_data_t *data, s_map_ref_parse_ctx *ctx) {
@@ -77,7 +79,10 @@ static bool handle_map_ref(const tlv_data_t *data, s_value_context *context) {
     X(0x06, TAG_MAP_REF, handle_map_ref, ENFORCE_UNIQUE_TAG)
 
 static bool handle_version(const tlv_data_t *data, s_value_context *context) {
-    return tlv_get_uint8_range(data, &context->value->version, 0, UINT8_MAX);
+    return tlv_get_uint8_range(data,
+                               &context->value->version,
+                               VALUE_STRUCT_VERSION,
+                               VALUE_STRUCT_VERSION);
 }
 
 static bool handle_type_family(const tlv_data_t *data, s_value_context *context) {
@@ -132,9 +137,34 @@ static bool handle_constant(const tlv_data_t *data, s_value_context *context) {
 
 DEFINE_TLV_PARSER(VALUE_TAGS, NULL, value_tlv_parser)
 
+static size_t count_received_sources(TLV_reception_t received) {
+    const TLV_tag_t sources[] = {TAG_DATA_PATH, TAG_CONTAINER_PATH, TAG_CONSTANT, TAG_MAP_REF};
+    size_t count = 0;
+
+    for (size_t i = 0; i < sizeof(sources) / sizeof(sources[0]); i++) {
+        if (tlv_check_received_tags(received, &sources[i], 1)) {
+            count++;
+        }
+    }
+    return count;
+}
+
 bool handle_value_struct(const buffer_t *buf, s_value_context *context) {
     TLV_reception_t received_tags;
-    return value_tlv_parser(buf, context, &received_tags);
+
+    if (!value_tlv_parser(buf, context, &received_tags)) {
+        return false;
+    }
+    if (!TLV_CHECK_RECEIVED_TAGS(received_tags, TAG_VERSION, TAG_TYPE_FAMILY)) {
+        PRINTF("VALUE: missing mandatory tags\n");
+        return false;
+    }
+    // Each source tag sets the source: with several of them the last one received would win
+    if (count_received_sources(received_tags) != 1) {
+        PRINTF("VALUE: exactly one source is required\n");
+        return false;
+    }
+    return true;
 }
 
 // SOURCE_RLP: read a value directly from a well-known RLP field of the current tx.

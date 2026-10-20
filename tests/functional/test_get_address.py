@@ -45,7 +45,7 @@ def test_get_pk(
     if chain is not None:
         name, ticker, icon = get_network_config(backend.device.type, chain)
         if name and ticker:
-            app_client.provide_network_information(DynamicNetwork(name, ticker, chain, icon))
+            app_client.provide_network_info(DynamicNetwork(name, ticker, chain, icon))
 
     test_name += f"_{chain}"
     with app_client.get_public_addr(chaincode=with_chaincode, chain_id=chain):

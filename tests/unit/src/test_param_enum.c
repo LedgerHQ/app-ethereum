@@ -246,6 +246,18 @@ static bool run_tlv(const uint8_t *bytes, size_t size, s_param_enum *param) {
     return handle_param_enum_struct(&buf, &ctx);
 }
 
+void test_tlv_version_other_than_one_refused(void) {
+    uint8_t bytes[] = {0x00, 0x01, 0x01, 0x01, 0x01, 0x03, 0x02, 0x00};
+    const uint8_t other_versions[] = {0x00, 0x02, 0xFF};
+    s_param_enum param = {0};
+
+    TEST_ASSERT_TRUE(run_tlv(bytes, sizeof(bytes), &param));
+    for (size_t i = 0; i < sizeof(other_versions); i++) {
+        bytes[2] = other_versions[i];
+        TEST_ASSERT_FALSE(run_tlv(bytes, sizeof(bytes), &param));
+    }
+}
+
 void test_tlv_happy_path(void) {
     // VERSION=1, ID=3, VALUE empty
     const uint8_t bytes[] = {
@@ -302,6 +314,7 @@ int main(void) {
     RUN_TEST(test_format_selector_missing_rejects);
     RUN_TEST(test_format_unknown_enum_rejects);
     RUN_TEST(test_format_add_to_field_table_failure_propagates);
+    RUN_TEST(test_tlv_version_other_than_one_refused);
     RUN_TEST(test_tlv_happy_path);
     RUN_TEST(test_tlv_duplicate_id_rejected);
     return UNITY_END();

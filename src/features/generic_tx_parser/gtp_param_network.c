@@ -22,6 +22,8 @@
 /**
  * @brief TLV tags for network parameter structure
  */
+#define PARAM_NETWORK_STRUCT_VERSION 0x01
+
 #define PARAM_NETWORK_TAGS(X)                                \
     X(0x00, TAG_VERSION, handle_version, ENFORCE_UNIQUE_TAG) \
     X(0x01, TAG_VALUE, handle_value, ENFORCE_UNIQUE_TAG)
@@ -36,7 +38,10 @@
  * @return true if version was successfully parsed, false otherwise
  */
 static bool handle_version(const tlv_data_t *data, s_param_network_context *context) {
-    return tlv_get_uint8_range(data, &context->param->version, 0, UINT8_MAX);
+    return tlv_get_uint8_range(data,
+                               &context->param->version,
+                               PARAM_NETWORK_STRUCT_VERSION,
+                               PARAM_NETWORK_STRUCT_VERSION);
 }
 
 /**

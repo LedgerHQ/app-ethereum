@@ -123,6 +123,18 @@ void test_tlv_happy_path_all_five_element_types(void) {
     TEST_ASSERT_EQUAL(path.elements[4].type, ELEMENT_TYPE_SLICE);
 }
 
+void test_tlv_version_other_than_one_refused(void) {
+    uint8_t bytes[] = {0x00, 0x01, 0x01, 0x04, 0x01, 0x03};
+    const uint8_t other_versions[] = {0x00, 0x02, 0xFF};
+    s_data_path path = {0};
+
+    TEST_ASSERT_TRUE(run_tlv(bytes, sizeof(bytes), &path));
+    for (size_t i = 0; i < sizeof(other_versions); i++) {
+        bytes[2] = other_versions[i];
+        TEST_ASSERT_FALSE(run_tlv(bytes, sizeof(bytes), &path));
+    }
+}
+
 void test_tlv_ref_with_payload_rejected(void) {
     // REF must have an empty payload; any byte is a hard reject.
     const uint8_t bytes[] = {0x03, 0x01, 0x00};
@@ -525,6 +537,7 @@ void tearDown(void) {
 int main(void) {
     UNITY_BEGIN();
     RUN_TEST(test_tlv_happy_path_all_five_element_types);
+    RUN_TEST(test_tlv_version_other_than_one_refused);
     RUN_TEST(test_tlv_ref_with_payload_rejected);
     RUN_TEST(test_tlv_leaf_invalid_type_rejected);
     RUN_TEST(test_tlv_leaf_each_valid_type_accepted);

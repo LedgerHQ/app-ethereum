@@ -32,7 +32,7 @@
 #define INS_GTP_TRANSACTION_INFO            0x26
 #define INS_GTP_FIELD                       0x28
 #define INS_PROVIDE_PROXY_INFO              0x2A
-#define INS_PROVIDE_NETWORK_CONFIGURATION   0x30
+#define INS_PROVIDE_NETWORK_INFO            0x30
 #define INS_PROVIDE_TX_SIMULATION           0x32
 #define INS_SIGN_EIP7702_AUTHORIZATION      0x34
 #define INS_PROVIDE_SAFE_ACCOUNT            0x36
@@ -61,7 +61,7 @@
      : x == INS_GTP_TRANSACTION_INFO            ? "GTP_TRANSACTION_INFO"       \
      : x == INS_GTP_FIELD                       ? "GTP_FIELD"                  \
      : x == INS_PROVIDE_PROXY_INFO              ? "PROVIDE_PROXY_INFO"         \
-     : x == INS_PROVIDE_NETWORK_CONFIGURATION   ? "PROVIDE_NETWORK_CONFIG"     \
+     : x == INS_PROVIDE_NETWORK_INFO            ? "PROVIDE_NETWORK_INFO"       \
      : x == INS_PROVIDE_TX_SIMULATION           ? "PROVIDE_TX_SIMULATION"      \
      : x == INS_SIGN_EIP7702_AUTHORIZATION      ? "SIGN_EIP7702_AUTHORIZATION" \
      : x == INS_PROVIDE_SAFE_ACCOUNT            ? "PROVIDE_SAFE_ACCOUNT"       \

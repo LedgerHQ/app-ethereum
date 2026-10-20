@@ -272,6 +272,18 @@ static bool run_tlv(const uint8_t *bytes, size_t size, s_param_token *param) {
     return handle_param_token_struct(&buf, &ctx);
 }
 
+void test_tlv_version_other_than_one_refused(void) {
+    uint8_t bytes[] = {0x00, 0x01, 0x01, 0x01, 0x00};
+    const uint8_t other_versions[] = {0x00, 0x02, 0xFF};
+    s_param_token param = {0};
+
+    TEST_ASSERT_TRUE(run_tlv(bytes, sizeof(bytes), &param));
+    for (size_t i = 0; i < sizeof(other_versions); i++) {
+        bytes[2] = other_versions[i];
+        TEST_ASSERT_FALSE(run_tlv(bytes, sizeof(bytes), &param));
+    }
+}
+
 void test_tlv_happy_path_two_native(void) {
     // VERSION=1, ADDRESS empty, two NATIVE_CURRENCY entries
     const uint8_t bytes[] = {
@@ -380,6 +392,7 @@ int main(void) {
     RUN_TEST(test_format_value_get_failure_returns_false);
     RUN_TEST(test_format_native_ticker_null_rejected);
     RUN_TEST(test_format_add_to_field_table_failure_propagates);
+    RUN_TEST(test_tlv_version_other_than_one_refused);
     RUN_TEST(test_tlv_happy_path_two_native);
     RUN_TEST(test_tlv_too_many_native_addrs_rejected);
     RUN_TEST(test_tlv_native_addr_too_long_rejected);

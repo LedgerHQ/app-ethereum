@@ -1128,7 +1128,7 @@ def main() -> None:
                     decode_tlv_apdu(apdu_bytes, decode_enum_value_tlv, "Enum Value Struct")
                 elif ins == InsType.PROVIDE_PROXY_INFO:
                     decode_tlv_apdu(apdu_bytes, decode_tlv, "Proxy Info Struct")
-                elif ins == InsType.PROVIDE_NETWORK_INFORMATION:
+                elif ins == InsType.PROVIDE_NETWORK_INFO:
                     decode_tlv_apdu(apdu_bytes, decode_tlv, "Network Info Struct")
                 elif ins == InsType.EIP712_SEND_STRUCT_DEF:
                     decode_eip712_struct_def_apdu(apdu_bytes)

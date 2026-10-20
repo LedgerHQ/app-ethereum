@@ -11,6 +11,8 @@
 #include "tlv_library.h"
 #include "tlv_utils.h"
 
+#define DATA_PATH_STRUCT_VERSION 0x01
+
 #define DATA_PATH_TAGS(X)                                    \
     X(0x00, TAG_VERSION, handle_version, ENFORCE_UNIQUE_TAG) \
     X(0x01, TAG_TUPLE, handle_tuple, ALLOW_MULTIPLE_TAG)     \
@@ -20,7 +22,10 @@
     X(0x05, TAG_SLICE, handle_slice, ALLOW_MULTIPLE_TAG)
 
 static bool handle_version(const tlv_data_t *data, s_data_path_context *context) {
-    return tlv_get_uint8_range(data, &context->data_path->version, 0, UINT8_MAX);
+    return tlv_get_uint8_range(data,
+                               &context->data_path->version,
+                               DATA_PATH_STRUCT_VERSION,
+                               DATA_PATH_STRUCT_VERSION);
 }
 
 static bool handle_tuple(const tlv_data_t *data, s_data_path_context *context) {

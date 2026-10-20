@@ -34,12 +34,16 @@ The following APDUs are managed by the application. They are detailed in the fol
 | EIP712 SEND STRUCT IMPLEMENTATION | 0x1C        |
 | EIP712 FILTERING                  | 0x1E        |
 | GET CHALLENGE                     | 0x20        |
-| PROVIDE DOMAIN NAME               | 0x22        |
-| PROVIDE NETWORK INFORMATION       | 0x30        |
+| PROVIDE TRUSTED NAME              | 0x22        |
+| PROVIDE ENUM VALUE                | 0x24        |
+| TRANSACTION INFO                  | 0x26        |
+| TRANSACTION FIELD DESCRIPTION     | 0x28        |
+| PROVIDE PROXY INFO                | 0x2A        |
+| PROVIDE NETWORK INFO              | 0x30        |
 | PROVIDE TX SIMULATION             | 0x32        |
 | SIGN EIP 7702 AUTHORIZATION       | 0x34        |
 | PROVIDE SAFE ACCOUNT              | 0x36        |
-| PROVIDE GATED SIGNING             | 0x38        |
+| PROVIDE GATING                    | 0x38        |
 | PROVIDE MAP ENTRY                 | 0x3A        |
 
 ## General purpose APDUs
@@ -1253,7 +1257,7 @@ _Output data:_
 
 None
 
-### PROVIDE NETWORK CONFIGURATION
+### PROVIDE NETWORK INFO
 
 #### Description
 
@@ -1490,7 +1494,7 @@ _Output data:_
 
 None
 
-### PROVIDE GATED SIGNING
+### PROVIDE GATING
 
 #### Description
 

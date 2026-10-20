@@ -13,8 +13,9 @@
  *
  * The TLV side has an additional handler per tag compared to amount /
  * duration: TAG_BASE copies a NUL-terminated string (rejecting payloads
- * >= 11 bytes so the trailing NUL always fits) and TAG_PREFIX validates
- * the payload size even though the field is currently unused.
+ * >= 11 bytes so the trailing NUL always fits) and TAG_PREFIX is a bool
+ * that has to be false: the prefix is not applied to the value, so a
+ * descriptor asking for it is refused.
  */
 
 #include "unity.h"
@@ -185,8 +186,21 @@ static bool run_tlv(const uint8_t *bytes, size_t size, s_param_unit *param) {
     return handle_param_unit_struct(&buf, &ctx);
 }
 
+void test_tlv_version_other_than_one_refused(void) {
+    uint8_t bytes[] =
+        {0x00, 0x01, 0x01, 0x01, 0x00, 0x02, 0x04, 'U', 'S', 'D', 'C', 0x03, 0x01, 0x06};
+    const uint8_t other_versions[] = {0x00, 0x02, 0xFF};
+    s_param_unit param = {0};
+
+    TEST_ASSERT_TRUE(run_tlv(bytes, sizeof(bytes), &param));
+    for (size_t i = 0; i < sizeof(other_versions); i++) {
+        bytes[2] = other_versions[i];
+        TEST_ASSERT_FALSE(run_tlv(bytes, sizeof(bytes), &param));
+    }
+}
+
 void test_tlv_happy_path(void) {
-    // VERSION=1, VALUE empty, BASE="USDC", DECIMALS=6, PREFIX=true
+    // VERSION=1, VALUE empty, BASE="USDC", DECIMALS=6, PREFIX=false
     const uint8_t bytes[] = {
         0x00,
         0x01,
@@ -204,7 +218,7 @@ void test_tlv_happy_path(void) {
         0x06,
         0x04,
         0x01,
-        0x01,
+        0x00,
     };
     s_param_unit param = {0};
     TEST_ASSERT_TRUE(run_tlv(bytes, sizeof(bytes), &param));
@@ -224,9 +238,10 @@ void test_tlv_base_too_long_rejected(void) {
     TEST_ASSERT_FALSE(run_tlv(bytes, sizeof(bytes), &param));
 }
 
-void test_tlv_prefix_wrong_size_rejected(void) {
-    // PREFIX must be exactly sizeof(bool) bytes — usually 1.
-    const uint8_t bytes[] = {
+// PREFIX is a bool. The prefix is not applied to the value, so a descriptor that asks for it is
+// refused, and one that does not is accepted
+static bool run_with_prefix(const uint8_t *prefix, size_t prefix_size) {
+    uint8_t bytes[32] = {
         0x00,
         0x01,
         0x01,
@@ -240,12 +255,37 @@ void test_tlv_prefix_wrong_size_rejected(void) {
         0x01,
         0x00,
         0x04,
-        0x02,
-        0x00,
-        0x01,
     };
+    size_t size = 13;
     s_param_unit param = {0};
-    TEST_ASSERT_FALSE(run_tlv(bytes, sizeof(bytes), &param));
+
+    bytes[size++] = (uint8_t) prefix_size;
+    if (prefix_size > 0) {
+        memcpy(&bytes[size], prefix, prefix_size);
+    }
+    size += prefix_size;
+    return run_tlv(bytes, size, &param);
+}
+
+void test_tlv_prefix_false_accepted(void) {
+    const uint8_t no_prefix[] = {0x00};
+    TEST_ASSERT_TRUE(run_with_prefix(no_prefix, sizeof(no_prefix)));
+}
+
+void test_tlv_prefix_true_refused(void) {
+    const uint8_t prefix[] = {0x01};
+    TEST_ASSERT_FALSE(run_with_prefix(prefix, sizeof(prefix)));
+}
+
+void test_tlv_prefix_that_is_not_a_bool_refused(void) {
+    const uint8_t two[] = {0x02};
+    const uint8_t max[] = {0xFF};
+    TEST_ASSERT_FALSE(run_with_prefix(two, sizeof(two)));
+    TEST_ASSERT_FALSE(run_with_prefix(max, sizeof(max)));
+}
+
+void test_tlv_prefix_empty_refused(void) {
+    TEST_ASSERT_FALSE(run_with_prefix(NULL, 0));
 }
 
 void test_tlv_duplicate_base_rejected(void) {
@@ -290,9 +330,13 @@ int main(void) {
     RUN_TEST(test_format_value_get_failure_returns_false);
     RUN_TEST(test_format_empty_base_rejected);
     RUN_TEST(test_format_add_to_field_table_failure_propagates);
+    RUN_TEST(test_tlv_version_other_than_one_refused);
     RUN_TEST(test_tlv_happy_path);
     RUN_TEST(test_tlv_base_too_long_rejected);
-    RUN_TEST(test_tlv_prefix_wrong_size_rejected);
+    RUN_TEST(test_tlv_prefix_false_accepted);
+    RUN_TEST(test_tlv_prefix_true_refused);
+    RUN_TEST(test_tlv_prefix_that_is_not_a_bool_refused);
+    RUN_TEST(test_tlv_prefix_empty_refused);
     RUN_TEST(test_tlv_duplicate_base_rejected);
     return UNITY_END();
 }

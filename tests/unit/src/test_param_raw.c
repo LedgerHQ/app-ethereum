@@ -1205,20 +1205,59 @@ void test_raw_uint_separator_with_index(void) {
 // TLV dispatch + format_bytes oversize
 // =============================================================================
 
+void test_handle_param_raw_struct_version_other_than_one_refused(void) {
+    uint8_t buf_bytes[] = {
+        0x00,
+        0x01,
+        0x01,
+        0x01,
+        0x09,
+        0x00,
+        0x01,
+        0x01,
+        0x01,
+        0x01,
+        (uint8_t) TF_UINT,
+        0x04,
+        0x01,
+        (uint8_t) CP_FROM,
+    };
+    const uint8_t other_versions[] = {0x00, 0x02, 0xFF};
+    s_param_raw param = {0};
+    s_param_raw_context ctx = {.param = &param};
+    buffer_t buf = {.ptr = buf_bytes, .size = sizeof(buf_bytes), .offset = 0};
+
+    TEST_ASSERT_TRUE(handle_param_raw_struct(&buf, &ctx));
+    for (size_t i = 0; i < sizeof(other_versions); i++) {
+        buf = (buffer_t) {.ptr = buf_bytes, .size = sizeof(buf_bytes), .offset = 0};
+        buf_bytes[2] = other_versions[i];
+        TEST_ASSERT_FALSE(handle_param_raw_struct(&buf, &ctx));
+    }
+}
+
 void test_handle_param_raw_struct_version_and_value_ok(void) {
     uint8_t buf_bytes[] = {
         0x00,
         0x01,
-        0x05,  // VERSION = 5
+        0x01,  // VERSION = 1
         0x01,
-        0x00,  // VALUE (empty inner)
+        0x09,
+        0x00,
+        0x01,
+        0x01,  // VALUE: VERSION = 1
+        0x01,
+        0x01,
+        (uint8_t) TF_UINT,  // TYPE_FAMILY
+        0x04,
+        0x01,
+        (uint8_t) CP_FROM,  // CONTAINER_PATH
     };
     buffer_t buf = {.ptr = buf_bytes, .size = sizeof(buf_bytes), .offset = 0};
 
     s_param_raw param = {0};
     s_param_raw_context ctx = {.param = &param};
     TEST_ASSERT_TRUE(handle_param_raw_struct(&buf, &ctx));
-    TEST_ASSERT_EQUAL(param.version, 5);
+    TEST_ASSERT_EQUAL(param.version, 1);
 }
 
 // =============================================================================
@@ -1273,6 +1312,7 @@ int main(void) {
     RUN_TEST(test_raw_map_ref_nested_rejected);
     RUN_TEST(test_raw_uint_separator_literal);
     RUN_TEST(test_raw_uint_separator_with_index);
+    RUN_TEST(test_handle_param_raw_struct_version_other_than_one_refused);
     RUN_TEST(test_handle_param_raw_struct_version_and_value_ok);
     return UNITY_END();
 }

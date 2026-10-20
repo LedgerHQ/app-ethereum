@@ -1,7 +1,7 @@
 #include "gtp_path_slice.h"
 #include "os_print.h"
-#include "read.h"
 #include "tlv_library.h"
+#include "tlv_utils.h"
 
 // Define TLV tags for Path Slice
 #define SLICE_TAGS(X)                                    \
@@ -9,21 +9,17 @@
     X(0x02, TAG_END, handle_end, ENFORCE_UNIQUE_TAG)
 
 static bool handle_start(const tlv_data_t *data, s_path_slice_context *context) {
-    if (data->value.size < sizeof(context->args->start)) {
+    if (!tlv_get_int16(data, &context->args->start)) {
         return false;
     }
-    uint16_t value = read_u16_be(data->value.ptr, 0);
-    context->args->start = value;
     context->args->has_start = true;
     return true;
 }
 
 static bool handle_end(const tlv_data_t *data, s_path_slice_context *context) {
-    if (data->value.size < sizeof(context->args->end)) {
+    if (!tlv_get_int16(data, &context->args->end)) {
         return false;
     }
-    uint16_t value = read_u16_be(data->value.ptr, 0);
-    context->args->end = value;
     context->args->has_end = true;
     return true;
 }

@@ -381,6 +381,7 @@ smart-contract use-cases.
 
 - `test_gcs_map_entry`, `test_gcs_map_entry_chain_id_key`
 - `test_gcs_group_sequential`, `test_gcs_group_sequential_arrays`
+- `test_gcs_array_bound_lengths`, `test_gcs_array_weight_lengths`
 - `test_gcs_iteration_broadcast`
 - `test_gcs_separator`
 - `test_gcs_formatter`, `test_gcs_constraints`

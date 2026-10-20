@@ -160,11 +160,14 @@ customStatus_e custom_processor(txContext_t *context) {
             // Can process or display
             if (dataContext.tokenContext.pluginStatus >= ETH_PLUGIN_RESULT_SUCCESSFUL) {
                 ethPluginProvideParameter_t pluginProvideParameter;
+                // The parameter starts where the parser stood before reading it
+                if (context->currentFieldPos < dataContext.tokenContext.fieldOffset) {
+                    return CUSTOM_FAULT;
+                }
                 eth_plugin_prepare_provide_parameter(
                     &pluginProvideParameter,
                     dataContext.tokenContext.data,
-                    dataContext.tokenContext.fieldIndex * CALLDATA_CHUNK_SIZE +
-                        CALLDATA_SELECTOR_SIZE,
+                    context->currentFieldPos - dataContext.tokenContext.fieldOffset,
                     (uint8_t) dataContext.tokenContext.fieldOffset);
                 if (!eth_plugin_call(ETH_PLUGIN_PROVIDE_PARAMETER,
                                      (void *) &pluginProvideParameter)) {

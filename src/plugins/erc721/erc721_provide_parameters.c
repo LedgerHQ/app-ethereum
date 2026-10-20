@@ -82,10 +82,7 @@ static void handle_transfer(ethPluginProvideParameter_t *msg,
             context->next_param = DATA_LENGTH;
             break;
         case DATA_LENGTH:
-            if (msg->parameterOffset < context->data_offset) {
-                // not there yet
-                break;
-            }
+            // Canonical encoding: the payload starts right after the head
             if ((msg->parameterOffset != context->data_offset) ||
                 !get_word_u32(msg->parameter, &context->data_length)) {
                 PRINTF("Receiver data length not where it was declared!\n");

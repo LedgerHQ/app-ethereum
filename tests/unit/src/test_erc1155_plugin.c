@@ -375,9 +375,59 @@ void test_batch_offset_mismatch_rejected(void) {
     ethPluginProvideParameter_t msg = {0};
     msg.pluginContext = (uint8_t *) &ctx;
     msg.parameter = param;
+    msg.parameter_size = PARAMETER_LENGTH;
     msg.parameterOffset = 999;  // far past ids_offset
     erc1155_plugin_call(ETH_PLUGIN_PROVIDE_PARAMETER, &msg);
     TEST_ASSERT_EQUAL(msg.result, ETH_PLUGIN_RESULT_ERROR);
+}
+
+// Feed one word and return the plugin result.
+static int feed_param_result(erc1155_context_t *ctx, uint8_t *param, uint32_t offset) {
+    ethPluginProvideParameter_t msg = {0};
+    msg.pluginContext = (uint8_t *) ctx;
+    msg.parameter = param;
+    msg.parameter_size = PARAMETER_LENGTH;
+    msg.parameterOffset = offset;
+    erc1155_plugin_call(ETH_PLUGIN_PROVIDE_PARAMETER, &msg);
+    return msg.result;
+}
+
+void test_batch_ids_offset_gap_rejected(void) {
+    erc1155_context_t ctx = {0};
+    uint8_t param[PARAMETER_LENGTH];
+
+    run_init(&ctx, SEL_SAFE_BATCH);
+    // ids[] declared one word past the end of the head
+    run_batch_head(&ctx, 192, 288, 384);
+    make_abi_u32(param, 0);
+    TEST_ASSERT_EQUAL(ETH_PLUGIN_RESULT_ERROR, feed_param_result(&ctx, param, 164));
+}
+
+void test_batch_values_offset_gap_rejected(void) {
+    erc1155_context_t ctx = {0};
+    uint8_t param[PARAMETER_LENGTH];
+
+    run_init(&ctx, SEL_SAFE_BATCH);
+    // values[] declared one word past the end of an empty ids[]
+    run_batch_head(&ctx, 160, 224, 256);
+    make_abi_u32(param, 0);
+    TEST_ASSERT_NOT_EQUAL(ETH_PLUGIN_RESULT_ERROR, feed_param_result(&ctx, param, 164));
+    TEST_ASSERT_EQUAL(VALUE_LENGTH, ctx.next_param);
+    TEST_ASSERT_EQUAL(ETH_PLUGIN_RESULT_ERROR, feed_param_result(&ctx, param, 196));
+}
+
+void test_batch_data_offset_backward_rejected(void) {
+    erc1155_context_t ctx = {0};
+    uint8_t param[PARAMETER_LENGTH];
+
+    run_init(&ctx, SEL_SAFE_BATCH);
+    // data declared inside the head, empty ids[] and values[]
+    run_batch_head(&ctx, 160, 192, 64);
+    make_abi_u32(param, 0);
+    TEST_ASSERT_NOT_EQUAL(ETH_PLUGIN_RESULT_ERROR, feed_param_result(&ctx, param, 164));
+    TEST_ASSERT_NOT_EQUAL(ETH_PLUGIN_RESULT_ERROR, feed_param_result(&ctx, param, 196));
+    TEST_ASSERT_EQUAL(DATA_LENGTH, ctx.next_param);
+    TEST_ASSERT_EQUAL(ETH_PLUGIN_RESULT_ERROR, feed_param_result(&ctx, param, 228));
 }
 
 void test_batch_arrays_length_mismatch_rejected(void) {
@@ -1038,6 +1088,9 @@ int main(void) {
     RUN_TEST(test_batch_two_pair_walk);
     RUN_TEST(test_batch_truncates_beyond_display_max);
     RUN_TEST(test_batch_offset_mismatch_rejected);
+    RUN_TEST(test_batch_ids_offset_gap_rejected);
+    RUN_TEST(test_batch_values_offset_gap_rejected);
+    RUN_TEST(test_batch_data_offset_backward_rejected);
     RUN_TEST(test_batch_arrays_length_mismatch_rejected);
     RUN_TEST(test_batch_aggregate_quantity_overflow_rejected);
     RUN_TEST(test_approval_for_all_walk);

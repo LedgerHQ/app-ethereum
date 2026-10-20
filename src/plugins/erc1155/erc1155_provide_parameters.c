@@ -56,10 +56,7 @@ static void handle_data_offset(ethPluginProvideParameter_t *msg, erc1155_context
 
 // Returns true once the payload length word has been read
 static bool handle_data_length(ethPluginProvideParameter_t *msg, erc1155_context_t *context) {
-    if (msg->parameterOffset < context->data_offset) {
-        // not there yet
-        return false;
-    }
+    // Canonical encoding: the payload starts right after what precedes it
     if ((msg->parameterOffset != context->data_offset) ||
         !get_word_u32(msg->parameter, &context->data_length)) {
         PRINTF("Receiver data length not where it was declared!\n");
@@ -145,10 +142,7 @@ static void handle_batch_transfer(ethPluginProvideParameter_t *msg, erc1155_cont
             context->next_param = TOKEN_IDS_LENGTH;
             break;
         case TOKEN_IDS_LENGTH:
-            if (msg->parameterOffset < context->ids_offset) {
-                // not there yet
-                break;
-            }
+            // Canonical encoding: the ids array starts right after the head
             if (msg->parameterOffset != context->ids_offset) {
                 msg->result = ETH_PLUGIN_RESULT_ERROR;
                 break;
@@ -178,10 +172,7 @@ static void handle_batch_transfer(ethPluginProvideParameter_t *msg, erc1155_cont
             context->array_index++;
             break;
         case VALUE_LENGTH:
-            if (msg->parameterOffset < context->values_offset) {
-                // not there yet
-                break;
-            }
+            // Canonical encoding: the values array starts right after the ids array
             if (msg->parameterOffset != context->values_offset) {
                 msg->result = ETH_PLUGIN_RESULT_ERROR;
                 break;

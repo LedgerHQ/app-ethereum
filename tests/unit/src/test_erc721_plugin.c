@@ -267,6 +267,44 @@ void test_safe_transfer_data_tolerates_extra_params(void) {
     TEST_ASSERT_EQUAL(msg.result, ETH_PLUGIN_RESULT_SUCCESSFUL);
 }
 
+// Walk safeTransferFrom(from, to, id, bytes) with the given payload offset, and
+// return the plugin result on the word that follows the head.
+static int walk_safe_transfer_data_offset(uint8_t declared_offset) {
+    erc721_context_t ctx = {.selectorIndex = SAFE_TRANSFER_DATA, .next_param = FROM};
+    ethPluginProvideParameter_t msg = {0};
+    uint8_t param[PARAMETER_LENGTH] = {0};
+    msg.pluginContext = (uint8_t *) &ctx;
+    msg.parameter = param;
+    msg.parameter_size = PARAMETER_LENGTH;
+
+    for (int i = 0; i < 3; ++i) {  // FROM, TO, TOKEN_ID
+        msg.parameterOffset = SELECTOR_SIZE + i * PARAMETER_LENGTH;
+        erc721_plugin_call(ETH_PLUGIN_PROVIDE_PARAMETER, &msg);
+    }
+    param[PARAMETER_LENGTH - 1] = declared_offset;
+    msg.parameterOffset = SELECTOR_SIZE + 3 * PARAMETER_LENGTH;
+    erc721_plugin_call(ETH_PLUGIN_PROVIDE_PARAMETER, &msg);  // DATA_OFFSET
+    TEST_ASSERT_EQUAL(DATA_LENGTH, ctx.next_param);
+
+    param[PARAMETER_LENGTH - 1] = 9;
+    msg.parameterOffset = SELECTOR_SIZE + 4 * PARAMETER_LENGTH;
+    msg.result = ETH_PLUGIN_RESULT_SUCCESSFUL;
+    erc721_plugin_call(ETH_PLUGIN_PROVIDE_PARAMETER, &msg);
+    return msg.result;
+}
+
+void test_safe_transfer_data_non_canonical_offset_rejected(void) {
+    // Canonical: the payload follows the 4 head words
+    TEST_ASSERT_NOT_EQUAL(ETH_PLUGIN_RESULT_ERROR,
+                          walk_safe_transfer_data_offset(4 * PARAMETER_LENGTH));
+    // Backward offset aliasing the token id, which hid the payload screen
+    TEST_ASSERT_EQUAL(ETH_PLUGIN_RESULT_ERROR,
+                      walk_safe_transfer_data_offset(2 * PARAMETER_LENGTH));
+    // Forward offset leaving unchecked words between head and payload
+    TEST_ASSERT_EQUAL(ETH_PLUGIN_RESULT_ERROR,
+                      walk_safe_transfer_data_offset(5 * PARAMETER_LENGTH));
+}
+
 void test_approval_for_all_walks_two_params(void) {
     erc721_context_t ctx = {.selectorIndex = SET_APPROVAL_FOR_ALL, .next_param = OPERATOR};
     ethPluginProvideParameter_t msg = {0};
@@ -744,6 +782,7 @@ int main(void) {
     RUN_TEST(test_approve_param_walk);
     RUN_TEST(test_transfer_param_walk_strict);
     RUN_TEST(test_safe_transfer_data_tolerates_extra_params);
+    RUN_TEST(test_safe_transfer_data_non_canonical_offset_rejected);
     RUN_TEST(test_approval_for_all_walks_two_params);
     RUN_TEST(test_approval_for_all_non_canonical_bool_rejected);
     RUN_TEST(test_unknown_selector_index_rejects);

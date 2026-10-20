@@ -133,6 +133,12 @@ void handle_provide_parameter_721(ethPluginProvideParameter_t *msg) {
            PARAMETER_LENGTH,
            msg->parameter);
 
+    // Every expected parameter is a full ABI word; only trailing payload bytes may be shorter
+    if ((context->next_param != NONE) && (msg->parameter_size != PARAMETER_LENGTH)) {
+        PRINTF("Truncated parameter\n");
+        msg->result = ETH_PLUGIN_RESULT_ERROR;
+        return;
+    }
     msg->result = ETH_PLUGIN_RESULT_SUCCESSFUL;
     switch (context->selectorIndex) {
         case APPROVE:

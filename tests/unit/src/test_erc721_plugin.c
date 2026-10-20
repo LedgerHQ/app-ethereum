@@ -183,6 +183,7 @@ void test_approve_param_walk(void) {
     msg.pluginContext = (uint8_t *) &ctx;
     uint8_t param[PARAMETER_LENGTH];
     msg.parameter = param;
+    msg.parameter_size = PARAMETER_LENGTH;
 
     // 1st parameter: operator address.
     make_abi_address(param, 0xAA);
@@ -209,6 +210,7 @@ void test_transfer_param_walk_strict(void) {
     msg.pluginContext = (uint8_t *) &ctx;
     uint8_t param[PARAMETER_LENGTH];
     msg.parameter = param;
+    msg.parameter_size = PARAMETER_LENGTH;
 
     // FROM (consumed, not stored)
     make_abi_address(param, 0xBB);
@@ -237,6 +239,7 @@ void test_safe_transfer_data_tolerates_extra_params(void) {
     msg.pluginContext = (uint8_t *) &ctx;
     uint8_t param[PARAMETER_LENGTH];
     msg.parameter = param;
+    msg.parameter_size = PARAMETER_LENGTH;
 
     make_abi_address(param, 0xAA);
     erc721_plugin_call(ETH_PLUGIN_PROVIDE_PARAMETER, &msg);  // FROM
@@ -340,7 +343,7 @@ void test_unknown_selector_index_rejects(void) {
 // =============================================================================
 
 void test_finalize_transfer_five_screens(void) {
-    erc721_context_t ctx = {.selectorIndex = TRANSFER};
+    erc721_context_t ctx = {.selectorIndex = TRANSFER, .next_param = NONE};
     txContent_t tx = {0};
     ethPluginFinalize_t msg = {0};
     msg.pluginContext = (uint8_t *) &ctx;
@@ -351,8 +354,46 @@ void test_finalize_transfer_five_screens(void) {
     TEST_ASSERT_EQUAL(msg.uiType, ETH_UI_TYPE_GENERIC);
 }
 
+void test_finalize_with_missing_parameters_rejected(void) {
+    static const uint8_t pending[] =
+        {FROM, TO, TOKEN_ID, DATA_OFFSET, DATA_LENGTH, OPERATOR, APPROVED};
+    txContent_t tx = {0};
+
+    for (size_t i = 0; i < sizeof(pending); ++i) {
+        erc721_context_t ctx = {.selectorIndex = TRANSFER, .next_param = pending[i]};
+        ethPluginFinalize_t msg = {0};
+        msg.pluginContext = (uint8_t *) &ctx;
+        msg.txContent = &tx;
+        erc721_plugin_call(ETH_PLUGIN_FINALIZE, &msg);
+        TEST_ASSERT_EQUAL(ETH_PLUGIN_RESULT_ERROR, msg.result);
+    }
+}
+
+void test_truncated_head_word_rejected(void) {
+    erc721_context_t ctx = {.selectorIndex = TRANSFER, .next_param = TOKEN_ID};
+    uint8_t param[PARAMETER_LENGTH] = {0};
+    ethPluginProvideParameter_t msg = {0};
+    msg.pluginContext = (uint8_t *) &ctx;
+    msg.parameter = param;
+    msg.parameter_size = PARAMETER_LENGTH - 1;
+    erc721_plugin_call(ETH_PLUGIN_PROVIDE_PARAMETER, &msg);
+    TEST_ASSERT_EQUAL(ETH_PLUGIN_RESULT_ERROR, msg.result);
+    TEST_ASSERT_EQUAL(TOKEN_ID, ctx.next_param);
+}
+
+void test_short_trailing_payload_word_tolerated(void) {
+    erc721_context_t ctx = {.selectorIndex = SAFE_TRANSFER_DATA, .next_param = NONE};
+    uint8_t param[PARAMETER_LENGTH] = {0};
+    ethPluginProvideParameter_t msg = {0};
+    msg.pluginContext = (uint8_t *) &ctx;
+    msg.parameter = param;
+    msg.parameter_size = 5;
+    erc721_plugin_call(ETH_PLUGIN_PROVIDE_PARAMETER, &msg);
+    TEST_ASSERT_NOT_EQUAL(ETH_PLUGIN_RESULT_ERROR, msg.result);
+}
+
 void test_finalize_set_approval_three_screens(void) {
-    erc721_context_t ctx = {.selectorIndex = SET_APPROVAL_FOR_ALL};
+    erc721_context_t ctx = {.selectorIndex = SET_APPROVAL_FOR_ALL, .next_param = NONE};
     txContent_t tx = {0};
     ethPluginFinalize_t msg = {0};
     msg.pluginContext = (uint8_t *) &ctx;
@@ -363,7 +404,7 @@ void test_finalize_set_approval_three_screens(void) {
 }
 
 void test_finalize_transfer_with_eth_value_adds_screen(void) {
-    erc721_context_t ctx = {.selectorIndex = TRANSFER};
+    erc721_context_t ctx = {.selectorIndex = TRANSFER, .next_param = NONE};
     txContent_t tx = {0};
     tx.value.value[0] = 0x01;  // non-zero ETH
     tx.value.length = 1;
@@ -376,7 +417,7 @@ void test_finalize_transfer_with_eth_value_adds_screen(void) {
 }
 
 void test_finalize_set_approval_with_eth_rejected(void) {
-    erc721_context_t ctx = {.selectorIndex = SET_APPROVAL_FOR_ALL};
+    erc721_context_t ctx = {.selectorIndex = SET_APPROVAL_FOR_ALL, .next_param = NONE};
     txContent_t tx = {0};
     tx.value.value[0] = 0x01;
     tx.value.length = 1;
@@ -707,6 +748,9 @@ int main(void) {
     RUN_TEST(test_approval_for_all_non_canonical_bool_rejected);
     RUN_TEST(test_unknown_selector_index_rejects);
     RUN_TEST(test_finalize_transfer_five_screens);
+    RUN_TEST(test_finalize_with_missing_parameters_rejected);
+    RUN_TEST(test_truncated_head_word_rejected);
+    RUN_TEST(test_short_trailing_payload_word_tolerated);
     RUN_TEST(test_finalize_set_approval_three_screens);
     RUN_TEST(test_finalize_transfer_with_eth_value_adds_screen);
     RUN_TEST(test_finalize_set_approval_with_eth_rejected);

@@ -1067,6 +1067,61 @@ void test_raw_string_embedded_nul_rejected(void) {
     TEST_ASSERT_FALSE(format_param_raw(&field));
 }
 
+/**
+ * @brief Format a STRING made of the given raw bytes.
+ */
+static bool format_raw_string_bytes(const uint8_t *bytes, size_t size) {
+    s_param_raw param = {
+        .version = 1,
+        .value = {.type_family = TF_STRING, .source = SOURCE_CONSTANT, .constant = {.size = size}}};
+    memcpy(param.value.constant.buf, bytes, size);
+
+    s_field field = {.param_type = PARAM_TYPE_RAW,
+                     .visibility = PARAM_VISIBILITY_ALWAYS,
+                     .constraints = NULL,
+                     .param_raw = param,
+                     .name = "Message"};
+    g_add_to_field_table_ret = true;
+    return format_param_raw(&field);
+}
+
+/**
+ * @brief A STRING holding a C0 control other than line feed, or DEL, is rejected.
+ */
+void test_raw_string_control_char_rejected(void) {
+    static const uint8_t controls[] = {'\r', '\t', 0x1B, 0x01, 0x1F, 0x7F};
+
+    for (size_t i = 0; i < sizeof(controls); ++i) {
+        uint8_t str[] = {'a', controls[i], 'b'};
+        TEST_ASSERT_FALSE(format_raw_string_bytes(str, sizeof(str)));
+    }
+}
+
+/**
+ * @brief A STRING holding a UTF-8 encoded C1 control is rejected.
+ */
+void test_raw_string_c1_control_rejected(void) {
+    static const uint8_t first_c1[] = {'a', 0xC2, 0x80, 'b'};
+    static const uint8_t last_c1[] = {'a', 0xC2, 0x9F, 'b'};
+
+    TEST_ASSERT_FALSE(format_raw_string_bytes(first_c1, sizeof(first_c1)));
+    TEST_ASSERT_FALSE(format_raw_string_bytes(last_c1, sizeof(last_c1)));
+}
+
+/**
+ * @brief A STRING holding line feeds or non-ASCII UTF-8 is displayed as is.
+ */
+void test_raw_string_line_feed_and_utf8_accepted(void) {
+    static const uint8_t multi_line[] = {'l', 'i', 'n', 'e', '1', '\n', 'l', 'i', 'n', 'e', '2'};
+    // "café ©" in UTF-8: 0xC2 0xA9 is a printable code point, not a C1 control
+    static const uint8_t utf8[] = {'c', 'a', 'f', 0xC3, 0xA9, ' ', 0xC2, 0xA9};
+
+    TEST_ASSERT_TRUE(format_raw_string_bytes(multi_line, sizeof(multi_line)));
+    TEST_ASSERT_EQUAL_STRING("line1\nline2", g_last_field_value);
+    TEST_ASSERT_TRUE(format_raw_string_bytes(utf8, sizeof(utf8)));
+    TEST_ASSERT_EQUAL_MEMORY(utf8, g_last_field_value, sizeof(utf8));
+}
+
 // =============================================================================
 // Test cases - SOURCE_MAP_REF
 // =============================================================================
@@ -1268,6 +1323,9 @@ int main(void) {
     RUN_TEST(test_raw_string_if_not_in_no_match);
     RUN_TEST(test_raw_string_oversize_rejected);
     RUN_TEST(test_raw_string_embedded_nul_rejected);
+    RUN_TEST(test_raw_string_control_char_rejected);
+    RUN_TEST(test_raw_string_c1_control_rejected);
+    RUN_TEST(test_raw_string_line_feed_and_utf8_accepted);
     RUN_TEST(test_raw_map_ref_found);
     RUN_TEST(test_raw_map_ref_not_found);
     RUN_TEST(test_raw_map_ref_nested_rejected);

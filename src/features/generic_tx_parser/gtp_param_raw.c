@@ -248,7 +248,13 @@ static bool format_bool(const s_field *field,
                         size_t buf_size) {
     uint8_t tmp;
 
-    buf_shrink_expand(value->ptr, value->length, &tmp, 1);
+    // Only the canonical encodings are accepted: leading zeros, then 0 or 1
+    if ((value->length == 0) || !allzeroes(value->ptr, value->length - 1) ||
+        (value->ptr[value->length - 1] > 1)) {
+        PRINTF("Error: non-canonical boolean\n");
+        return false;
+    }
+    tmp = value->ptr[value->length - 1];
     snprintf(buf, buf_size, "%s", tmp ? "true" : "false");
     return apply_visibility_constraint(field, to_be_displayed, check_bool_constraint(field, tmp));
 }

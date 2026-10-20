@@ -165,7 +165,7 @@ customStatus_e custom_processor(txContext_t *context) {
                     dataContext.tokenContext.data,
                     dataContext.tokenContext.fieldIndex * CALLDATA_CHUNK_SIZE +
                         CALLDATA_SELECTOR_SIZE,
-                    (uint8_t) copySize);
+                    (uint8_t) dataContext.tokenContext.fieldOffset);
                 if (!eth_plugin_call(ETH_PLUGIN_PROVIDE_PARAMETER,
                                      (void *) &pluginProvideParameter)) {
                     PRINTF("Plugin parameter call failed\n");

@@ -37,7 +37,9 @@ static void eip7002_plugin_init_contract(ethPluginInitContract_t *param) {
     eip7002_context_t *context = (eip7002_context_t *) param->pluginContext;
 
     explicit_bzero(context, sizeof(*context));
-    if ((size_t) context->received + CALLDATA_SELECTOR_SIZE > sizeof(context->withdrawal_request)) {
+    if ((param->dataSize != sizeof(context->withdrawal_request)) ||
+        ((size_t) context->received + CALLDATA_SELECTOR_SIZE >
+         sizeof(context->withdrawal_request))) {
         param->result = ETH_PLUGIN_RESULT_ERROR;
     } else {
         memcpy(&context->withdrawal_request[context->received],

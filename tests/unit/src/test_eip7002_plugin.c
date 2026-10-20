@@ -91,6 +91,7 @@ static void run_init(eip7002_context_t *ctx, const uint8_t *selector, const txCo
     msg.pluginContextLength = sizeof(*ctx);
     msg.selector = selector;
     msg.txContent = tx;
+    msg.dataSize = WITHDRAWAL_REQUEST_SIZE;
     eip7002_plugin_call(ETH_PLUGIN_INIT_CONTRACT, &msg);
 }
 
@@ -123,6 +124,24 @@ void test_init_copies_selector_and_resets_received(void) {
     // The rest of the context must be zeroed (explicit_bzero in source).
     TEST_ASSERT_EQUAL(ctx.withdrawal_request[4], 0);
     TEST_ASSERT_EQUAL(ctx.withdrawal_request[55], 0);
+}
+
+void test_init_wrong_data_size_rejected(void) {
+    static const size_t sizes[] = {WITHDRAWAL_REQUEST_SIZE - 1, WITHDRAWAL_REQUEST_SIZE + 1, 0};
+    static const uint8_t selector[CALLDATA_SELECTOR_SIZE] = {0xDE, 0xAD, 0xBE, 0xEF};
+    eip7002_context_t ctx;
+    txContent_t tx = {0};
+
+    for (size_t i = 0; i < sizeof(sizes) / sizeof(sizes[0]); ++i) {
+        ethPluginInitContract_t msg = {0};
+        msg.pluginContext = (uint8_t *) &ctx;
+        msg.pluginContextLength = sizeof(ctx);
+        msg.selector = selector;
+        msg.txContent = &tx;
+        msg.dataSize = sizes[i];
+        eip7002_plugin_call(ETH_PLUGIN_INIT_CONTRACT, &msg);
+        TEST_ASSERT_EQUAL(ETH_PLUGIN_RESULT_ERROR, msg.result);
+    }
 }
 
 void test_parameters_concatenate_into_request(void) {
@@ -463,6 +482,7 @@ void tearDown(void) {
 int main(void) {
     UNITY_BEGIN();
     RUN_TEST(test_init_copies_selector_and_resets_received);
+    RUN_TEST(test_init_wrong_data_size_rejected);
     RUN_TEST(test_parameters_concatenate_into_request);
     RUN_TEST(test_parameter_overflow_rejected);
     RUN_TEST(test_finalize_complete_request_one_screen);

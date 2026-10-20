@@ -218,6 +218,29 @@ void test_provide_amount_parameter(void) {
     TEST_ASSERT_EQUAL_MEMORY(g_ctx.amount, param, CALLDATA_CHUNK_SIZE);
 }
 
+void test_provide_truncated_mandatory_parameters_rejected(void) {
+    static const uint32_t offsets[] = {CALLDATA_SELECTOR_SIZE,
+                                       CALLDATA_SELECTOR_SIZE + CALLDATA_CHUNK_SIZE};
+    static const uint8_t sizes[] = {1, CALLDATA_CHUNK_SIZE - 1};
+    uint8_t param[CALLDATA_CHUNK_SIZE] = {0};
+
+    for (size_t i = 0; i < ARRAYLEN(offsets); ++i) {
+        for (size_t j = 0; j < ARRAYLEN(sizes); ++j) {
+            ethPluginProvideParameter_t msg = {0};
+            memset(&g_ctx, 0, sizeof(g_ctx));
+            msg.parameter = param;
+            msg.parameterOffset = offsets[i];
+            msg.parameter_size = sizes[j];
+            msg.pluginContext = (uint8_t *) &g_ctx;
+            erc20_plugin_call(ETH_PLUGIN_PROVIDE_PARAMETER, &msg);
+
+            TEST_ASSERT_EQUAL(ETH_PLUGIN_RESULT_ERROR, msg.result);
+            TEST_ASSERT_FALSE(g_ctx.destination_parsed);
+            TEST_ASSERT_FALSE(g_ctx.amount_parsed);
+        }
+    }
+}
+
 void test_provide_extra_data_parameter(void) {
     ethPluginProvideParameter_t msg = {0};
     uint8_t param[CALLDATA_CHUNK_SIZE];
@@ -622,6 +645,7 @@ int main(void) {
     RUN_TEST(test_init_nonzero_tx_value_rejected);
     RUN_TEST(test_provide_destination_parameter);
     RUN_TEST(test_provide_amount_parameter);
+    RUN_TEST(test_provide_truncated_mandatory_parameters_rejected);
     RUN_TEST(test_provide_extra_data_parameter);
     RUN_TEST(test_provide_extra_data_overflow_rejected);
     RUN_TEST(test_finalize_missing_destination_rejected);

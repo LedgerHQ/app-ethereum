@@ -84,6 +84,11 @@ void erc20_plugin_call(eth_plugin_msg_t message, void *parameters) {
                 // function approve(address _spender, uint256 _value)
                 //                  ^^^^^^^^^^^^^^^^
                 case CALLDATA_SELECTOR_SIZE:
+                    if (msg->parameter_size != CALLDATA_CHUNK_SIZE) {
+                        PRINTF("Error: truncated destination\n");
+                        msg->result = ETH_PLUGIN_RESULT_ERROR;
+                        break;
+                    }
                     memmove(context->destinationAddress,
                             msg->parameter + (CALLDATA_CHUNK_SIZE - ADDRESS_LENGTH),
                             ADDRESS_LENGTH);
@@ -96,6 +101,11 @@ void erc20_plugin_call(eth_plugin_msg_t message, void *parameters) {
                 // function approve(address _spender, uint256 _value)
                 //                                    ^^^^^^^^^^^^^^
                 case CALLDATA_SELECTOR_SIZE + CALLDATA_CHUNK_SIZE:
+                    if (msg->parameter_size != CALLDATA_CHUNK_SIZE) {
+                        PRINTF("Error: truncated amount\n");
+                        msg->result = ETH_PLUGIN_RESULT_ERROR;
+                        break;
+                    }
                     memmove(context->amount, msg->parameter, CALLDATA_CHUNK_SIZE);
                     context->amount_parsed = true;
                     msg->result = ETH_PLUGIN_RESULT_OK;

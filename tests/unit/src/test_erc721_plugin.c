@@ -270,6 +270,7 @@ void test_approval_for_all_walks_two_params(void) {
     msg.pluginContext = (uint8_t *) &ctx;
     uint8_t param[PARAMETER_LENGTH];
     msg.parameter = param;
+    msg.parameter_size = PARAMETER_LENGTH;
 
     // OPERATOR.
     make_abi_address(param, 0xDD);
@@ -287,6 +288,41 @@ void test_approval_for_all_walks_two_params(void) {
     // Extra param → error.
     erc721_plugin_call(ETH_PLUGIN_PROVIDE_PARAMETER, &msg);
     TEST_ASSERT_EQUAL(msg.result, ETH_PLUGIN_RESULT_ERROR);
+}
+
+// Feed `approved` to setApprovalForAll and return the plugin result.
+static int provide_approved(erc721_context_t *ctx, const uint8_t *word, uint8_t size) {
+    ethPluginProvideParameter_t msg = {0};
+    *ctx = (erc721_context_t) {.selectorIndex = SET_APPROVAL_FOR_ALL, .next_param = APPROVED};
+    msg.pluginContext = (uint8_t *) ctx;
+    msg.parameter = word;
+    msg.parameter_size = size;
+    msg.result = ETH_PLUGIN_RESULT_OK;
+    erc721_plugin_call(ETH_PLUGIN_PROVIDE_PARAMETER, &msg);
+    return msg.result;
+}
+
+void test_approval_for_all_non_canonical_bool_rejected(void) {
+    erc721_context_t ctx;
+    uint8_t word[PARAMETER_LENGTH] = {0};
+
+    word[PARAMETER_LENGTH - 1] = 0;
+    TEST_ASSERT_NOT_EQUAL(ETH_PLUGIN_RESULT_ERROR, provide_approved(&ctx, word, PARAMETER_LENGTH));
+    TEST_ASSERT_FALSE(ctx.approved);
+    // Value other than 0 or 1
+    word[PARAMETER_LENGTH - 1] = 2;
+    TEST_ASSERT_EQUAL(ETH_PLUGIN_RESULT_ERROR, provide_approved(&ctx, word, PARAMETER_LENGTH));
+    // Non-zero padding with a zero last byte, which used to read as "Revoke"
+    memset(word, 0, sizeof(word));
+    word[0] = 1;
+    TEST_ASSERT_EQUAL(ETH_PLUGIN_RESULT_ERROR, provide_approved(&ctx, word, PARAMETER_LENGTH));
+    memset(word, 0, sizeof(word));
+    word[PARAMETER_LENGTH - 2] = 1;
+    TEST_ASSERT_EQUAL(ETH_PLUGIN_RESULT_ERROR, provide_approved(&ctx, word, PARAMETER_LENGTH));
+    // Truncated word
+    memset(word, 0, sizeof(word));
+    word[PARAMETER_LENGTH - 1] = 1;
+    TEST_ASSERT_EQUAL(ETH_PLUGIN_RESULT_ERROR, provide_approved(&ctx, word, PARAMETER_LENGTH - 1));
 }
 
 void test_unknown_selector_index_rejects(void) {
@@ -668,6 +704,7 @@ int main(void) {
     RUN_TEST(test_transfer_param_walk_strict);
     RUN_TEST(test_safe_transfer_data_tolerates_extra_params);
     RUN_TEST(test_approval_for_all_walks_two_params);
+    RUN_TEST(test_approval_for_all_non_canonical_bool_rejected);
     RUN_TEST(test_unknown_selector_index_rejects);
     RUN_TEST(test_finalize_transfer_five_screens);
     RUN_TEST(test_finalize_set_approval_three_screens);

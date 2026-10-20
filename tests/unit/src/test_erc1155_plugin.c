@@ -99,6 +99,7 @@ static void feed_param(erc1155_context_t *ctx, uint8_t *param, uint32_t offset) 
     msg.pluginContext = (uint8_t *) ctx;
     msg.parameter = param;
     msg.parameterOffset = offset;
+    msg.parameter_size = PARAMETER_LENGTH;
     erc1155_plugin_call(ETH_PLUGIN_PROVIDE_PARAMETER, &msg);
 }
 
@@ -458,6 +459,41 @@ void test_approval_for_all_walk(void) {
     msg.parameter = param;
     erc1155_plugin_call(ETH_PLUGIN_PROVIDE_PARAMETER, &msg);
     TEST_ASSERT_EQUAL(msg.result, ETH_PLUGIN_RESULT_ERROR);
+}
+
+// Feed `approved` to setApprovalForAll and return the plugin result.
+static int provide_approved(erc1155_context_t *ctx, const uint8_t *word, uint8_t size) {
+    ethPluginProvideParameter_t msg = {0};
+    *ctx = (erc1155_context_t) {.selectorIndex = SET_APPROVAL_FOR_ALL, .next_param = APPROVED};
+    msg.pluginContext = (uint8_t *) ctx;
+    msg.parameter = word;
+    msg.parameter_size = size;
+    msg.result = ETH_PLUGIN_RESULT_OK;
+    erc1155_plugin_call(ETH_PLUGIN_PROVIDE_PARAMETER, &msg);
+    return msg.result;
+}
+
+void test_approval_for_all_non_canonical_bool_rejected(void) {
+    erc1155_context_t ctx;
+    uint8_t word[PARAMETER_LENGTH] = {0};
+
+    word[PARAMETER_LENGTH - 1] = 0;
+    TEST_ASSERT_NOT_EQUAL(ETH_PLUGIN_RESULT_ERROR, provide_approved(&ctx, word, PARAMETER_LENGTH));
+    TEST_ASSERT_FALSE(ctx.approved);
+    // Value other than 0 or 1
+    word[PARAMETER_LENGTH - 1] = 2;
+    TEST_ASSERT_EQUAL(ETH_PLUGIN_RESULT_ERROR, provide_approved(&ctx, word, PARAMETER_LENGTH));
+    // Non-zero padding with a zero last byte, which used to read as "Revoke"
+    memset(word, 0, sizeof(word));
+    word[0] = 1;
+    TEST_ASSERT_EQUAL(ETH_PLUGIN_RESULT_ERROR, provide_approved(&ctx, word, PARAMETER_LENGTH));
+    memset(word, 0, sizeof(word));
+    word[PARAMETER_LENGTH - 2] = 1;
+    TEST_ASSERT_EQUAL(ETH_PLUGIN_RESULT_ERROR, provide_approved(&ctx, word, PARAMETER_LENGTH));
+    // Truncated word
+    memset(word, 0, sizeof(word));
+    word[PARAMETER_LENGTH - 1] = 1;
+    TEST_ASSERT_EQUAL(ETH_PLUGIN_RESULT_ERROR, provide_approved(&ctx, word, PARAMETER_LENGTH - 1));
 }
 
 // =============================================================================
@@ -963,6 +999,7 @@ int main(void) {
     RUN_TEST(test_batch_arrays_length_mismatch_rejected);
     RUN_TEST(test_batch_aggregate_quantity_overflow_rejected);
     RUN_TEST(test_approval_for_all_walk);
+    RUN_TEST(test_approval_for_all_non_canonical_bool_rejected);
     RUN_TEST(test_finalize_safe_transfer_six_screens);
     RUN_TEST(test_finalize_batch_screens_formula);
     RUN_TEST(test_finalize_transfer_with_data_extra_screen);

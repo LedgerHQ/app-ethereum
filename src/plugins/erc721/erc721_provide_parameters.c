@@ -14,6 +14,17 @@ static bool get_word_u32(const uint8_t *parameter, uint32_t *out) {
     return true;
 }
 
+// ABI bool words are 31 zero bytes followed by 0 or 1; reject any other encoding
+static bool get_word_bool(const ethPluginProvideParameter_t *msg, bool *out) {
+    if ((msg->parameter_size != PARAMETER_LENGTH) ||
+        (allzeroes(msg->parameter, PARAMETER_LENGTH - 1) != 1) ||
+        (msg->parameter[PARAMETER_LENGTH - 1] > 1)) {
+        return false;
+    }
+    *out = (msg->parameter[PARAMETER_LENGTH - 1] == 1);
+    return true;
+}
+
 // Read a dynamic offset and rebase it past the selector; rejects overflow
 static bool get_dynamic_offset(const uint8_t *parameter, uint32_t *out) {
     uint32_t offset;
@@ -101,8 +112,11 @@ static void handle_approval_for_all(ethPluginProvideParameter_t *msg, erc721_con
             copy_address(context->address, msg->parameter, sizeof(context->address));
             break;
         case APPROVED:
+            if (!get_word_bool(msg, &context->approved)) {
+                msg->result = ETH_PLUGIN_RESULT_ERROR;
+                break;
+            }
             context->next_param = NONE;
-            context->approved = msg->parameter[PARAMETER_LENGTH - 1];
             break;
         default:
             PRINTF("Param %d not supported\n", context->next_param);

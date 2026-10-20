@@ -13,10 +13,9 @@
  *   - clear_token_infos: drop all entries.
  *   - get_matching_token_info: strict (chain_id, address) lookup or
  *     NULL.
- *   - get_matching_token_info_or_dummy: lookup-or-create variant —
- *     missing entries are auto-registered with ticker="???" and
- *     decimals=0 so downstream code never has to special-case
- *     "unknown" tokens.
+ *   - get_matching_token_info_or_dummy: lookup-or-placeholder variant —
+ *     a missing entry is described in the caller's buffer with
+ *     ticker="???" and decimals=0, without being added to the list.
  */
 
 #include "unity.h"
@@ -161,8 +160,10 @@ void test_get_unknown_chain_returns_null(void) {
 
 void test_dummy_null_inputs_return_null(void) {
     uint64_t chain = 1;
-    TEST_ASSERT_NULL(get_matching_token_info_or_dummy(NULL, g_usdc));
-    TEST_ASSERT_NULL(get_matching_token_info_or_dummy(&chain, NULL));
+    s_token_info dummy;
+    TEST_ASSERT_NULL(get_matching_token_info_or_dummy(NULL, g_usdc, &dummy));
+    TEST_ASSERT_NULL(get_matching_token_info_or_dummy(&chain, NULL, &dummy));
+    TEST_ASSERT_NULL(get_matching_token_info_or_dummy(&chain, g_usdc, NULL));
 }
 
 void test_dummy_known_returns_existing(void) {
@@ -172,35 +173,38 @@ void test_dummy_known_returns_existing(void) {
     set_token_info(&info);
 
     uint64_t chain = 1;
-    const s_token_info *got = get_matching_token_info_or_dummy(&chain, g_usdc);
-    TEST_ASSERT_NOT_NULL(got);
+    s_token_info dummy;
+    const s_token_info *got = get_matching_token_info_or_dummy(&chain, g_usdc, &dummy);
+    TEST_ASSERT_TRUE(got != &dummy);
     TEST_ASSERT_EQUAL_STRING(got->ticker, "USDC");
     TEST_ASSERT_EQUAL(got->decimals, 6);
 }
 
-void test_dummy_unknown_creates_unknown_marker(void) {
+void test_dummy_unknown_fills_placeholder(void) {
     uint64_t chain = 1;
-    const s_token_info *got = get_matching_token_info_or_dummy(&chain, g_dai);
-    TEST_ASSERT_NOT_NULL(got);
+    s_token_info dummy;
+    const s_token_info *got = get_matching_token_info_or_dummy(&chain, g_dai, &dummy);
+    TEST_ASSERT_EQUAL_PTR(&dummy, got);
     // The unknown marker uses g_unknown_ticker ("???") and decimals=0
     // so downstream renderers can fall through with no special case.
     TEST_ASSERT_EQUAL_STRING(got->ticker, g_unknown_ticker);
     TEST_ASSERT_EQUAL(got->decimals, 0);
     TEST_ASSERT_EQUAL(got->chain_id, 1);
     TEST_ASSERT_EQUAL_MEMORY(got->address, g_dai, ADDRESS_LENGTH);
-
-    // Subsequent get_matching_token_info now returns the registered
-    // dummy entry (the side effect is persistent).
-    TEST_ASSERT_EQUAL_PTR(get_matching_token_info(&chain, g_dai), got);
 }
 
-void test_dummy_persists_across_calls(void) {
-    // Two consecutive get_or_dummy calls for the same key must return
-    // the same registered entry, NOT create two dummies.
+void test_dummy_unknown_not_registered(void) {
+    // The placeholder must not end up in the token list: later lookups and
+    // the indexes returned to the host only see provided tokens.
     uint64_t chain = 1;
-    const s_token_info *a = get_matching_token_info_or_dummy(&chain, g_dai);
-    const s_token_info *b = get_matching_token_info_or_dummy(&chain, g_dai);
-    TEST_ASSERT_EQUAL_PTR(a, b);
+    s_token_info dummy;
+    get_matching_token_info_or_dummy(&chain, g_dai, &dummy);
+    TEST_ASSERT_NULL(get_matching_token_info(&chain, g_dai));
+
+    s_token_info usdc = {.chain_id = 1, .decimals = 6};
+    memcpy(usdc.address, g_usdc, ADDRESS_LENGTH);
+    strlcpy(usdc.ticker, "USDC", sizeof(usdc.ticker));
+    TEST_ASSERT_EQUAL(set_token_info(&usdc), 0);
 }
 
 // =============================================================================
@@ -250,8 +254,8 @@ int main(void) {
     RUN_TEST(test_get_unknown_chain_returns_null);
     RUN_TEST(test_dummy_null_inputs_return_null);
     RUN_TEST(test_dummy_known_returns_existing);
-    RUN_TEST(test_dummy_unknown_creates_unknown_marker);
-    RUN_TEST(test_dummy_persists_across_calls);
+    RUN_TEST(test_dummy_unknown_fills_placeholder);
+    RUN_TEST(test_dummy_unknown_not_registered);
     RUN_TEST(test_clear_empties_registry);
     return UNITY_END();
 }

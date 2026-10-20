@@ -56,6 +56,13 @@ bool value_get(const s_value *value, s_parsed_value_collection *collection) {
     return g_vg_ret;
 }
 
+static int g_value_cleanup_calls = 0;
+void value_cleanup(const s_value *value, const s_parsed_value_collection *collection) {
+    (void) value;
+    (void) collection;
+    g_value_cleanup_calls++;
+}
+
 static bool g_hvs_ret = true;
 bool handle_value_struct(const buffer_t *buf, s_value_context *context) {
     (void) buf;
@@ -116,6 +123,7 @@ const uint8_t *get_current_tx_to(void) {
 static void reset(void) {
     memset(&g_vg, 0, sizeof(g_vg));
     g_vg_call = 0;
+    g_value_cleanup_calls = 0;
     g_vg_ret = true;
     g_hvs_ret = true;
     g_add_to_field_table_ret = true;
@@ -192,7 +200,11 @@ void test_format_tx_info_null_returns_false(void) {
     s_tx_info_ret = NULL;
 
     s_param_enum param = {0};
+    param.value.type_family = TF_UINT;
+    param.value.type_size = sizeof(uint8_t);
     TEST_ASSERT_FALSE(format_param_enum(&param, "Action"));
+    // The extracted values are released on this early exit too
+    TEST_ASSERT_EQUAL(g_value_cleanup_calls, 1);
 }
 
 void test_format_empty_value_rejected(void) {

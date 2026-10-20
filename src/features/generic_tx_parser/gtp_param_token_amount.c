@@ -120,6 +120,7 @@ static bool process_token_amount(const s_param_token_amount *param,
     uint256_t zero256 = {0};
     uint256_t val256;
     const s_token_info *token_info = NULL;
+    s_token_info dummy;
     uint64_t chain_id;
     const char *ticker = g_unknown_ticker;
     uint8_t decimals = 0;
@@ -132,7 +133,8 @@ static bool process_token_amount(const s_param_token_amount *param,
             ticker = get_displayable_ticker(&chain_id, g_chain_config, true);
             decimals = WEI_TO_ETHER;
         } else {
-            if ((token_info = get_matching_token_info_or_dummy(&chain_id, addr_buf)) == NULL) {
+            if ((token_info = get_matching_token_info_or_dummy(&chain_id, addr_buf, &dummy)) ==
+                NULL) {
                 return false;
             }
             ticker = token_info->ticker;

@@ -69,7 +69,6 @@ static bool handle_auth7702_tlv_internal(const buffer_t *buf) {
     uint8_t hashSize;
     uint16_t sw;
     cx_ecfp_public_key_t publicKey;
-    const char *networkName;
     const char *delegateName;
 
     // Default internal error triggered by CX_CHECK
@@ -161,21 +160,11 @@ static bool handle_auth7702_tlv_internal(const buffer_t *buf) {
     if (auth7702->chainId == CHAIN_ID_ALL) {
         // handle special wildcard case
         strlcpy(strings.common.network_name, "All", sizeof(strings.common.network_name));
-    } else {
-        networkName = get_network_name_from_chain_id(&auth7702->chainId);
-        if (networkName == NULL) {
-            // Display the numeric chainId if no name was found
-            if (!format_u64(strings.common.network_name,
-                            sizeof(strings.common.network_name),
-                            auth7702->chainId)) {
-                // return SWO_PARAMETER_ERROR_NO_INFO;
-                // Do not crash if the chain id is too long
-                strings.common.network_name[0] = '?';
-                strings.common.network_name[1] = '\0';
-            }
-        } else {
-            strlcpy(strings.common.network_name, networkName, sizeof(strings.common.network_name));
-        }
+    } else if (!get_network_as_string_from_chain_id(strings.common.network_name,
+                                                    sizeof(strings.common.network_name),
+                                                    auth7702->chainId)) {
+        // Network name, or the numeric chain ID when no name is known
+        return false;
     }
     // * Nonce
     if (!format_u64(strings.common.nonce, sizeof(strings.common.nonce), auth7702->nonce)) {

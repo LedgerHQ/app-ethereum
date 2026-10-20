@@ -470,9 +470,9 @@ Embedded as VALUE tag `0x06`. References a stored MAP_ENTRY by ID and key.
 
 | Name                 | Value |
 |----------------------|-------|
-| PROXY                | 0x01  |
-| ISSUED_FROM_FACTORY  | 0x02  |
-| DELEGATOR            | 0x03  |
+| PROXY                | 0x00  |
+| ISSUED_FROM_FACTORY  | 0x01  |
+| DELEGATOR            | 0x02  |
 
 ## AUTH_7702
 
@@ -534,7 +534,6 @@ The *Simulation Type* is normalized and interpreted like this:
 
 - `0`: Transaction
 - `1`: Typed Data (EIP-712)
-- `2`: Personal Message (EIP-191)
 
 ## SAFE_ACCOUNT
 

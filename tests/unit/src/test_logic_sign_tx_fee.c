@@ -44,9 +44,9 @@
 // by max_transaction_fee_to_string but whose absence blocks the link.
 // =============================================================================
 
-const char *get_network_as_string(const uint64_t *chain_id) {
-    (void) chain_id;
-    return "ETH";
+bool get_network_as_string(char *out, size_t out_size) {
+    strlcpy(out, "Ethereum", out_size);
+    return true;
 }
 uint16_t ux_approve_tx(bool fromPlugin) {
     (void) fromPlugin;

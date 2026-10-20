@@ -18,3 +18,6 @@ extern nbgl_icon_details_t test_home_glyph;
 // C_Ledger_14px (Nano). Declare both; the test TU defines whichever applies.
 extern const nbgl_icon_details_t C_Ledger_64px;
 extern const nbgl_icon_details_t C_Ledger_14px;
+
+// INFO_I_ICON (Address Book Ledger Account review on wallet screens).
+extern const nbgl_icon_details_t C_Info_40px;

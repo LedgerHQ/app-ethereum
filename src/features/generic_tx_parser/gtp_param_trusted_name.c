@@ -179,7 +179,7 @@ static bool parse_eip7930_address(const uint8_t *buf,
  */
 static bool append_network_suffix(char *buf, size_t buf_size, uint64_t chain_id) {
     // large enough for a network name or any decimal uint64 chain ID
-    char network_name[MAX(NETWORK_STRING_MAX_SIZE + 1, sizeof("18446744073709551615"))] = {0};
+    char network_name[MAX_NETWORK_LEN] = {0};
 
     if (!get_network_as_string_from_chain_id(network_name, sizeof(network_name), chain_id)) {
         return false;

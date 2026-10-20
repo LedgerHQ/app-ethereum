@@ -300,12 +300,10 @@ bool handle_provide_ledger_account(const ledger_account_t *account) {
     getEthAddressFromRawKey(raw_pubkey, address);
     explicit_bzero(raw_pubkey, sizeof(raw_pubkey));
 
-    {
-        const s_ab_contact *existing = get_address_book_contact(account->chain_id, address);
-        if (existing != NULL && existing->type == AB_CONTACT_LEDGER_ACCOUNT) {
-            PRINTF("Contact already stored, ignoring\n");
-            return true;
-        }
+    // Any contact already cached for this address wins, whatever its type
+    if (get_address_book_contact(account->chain_id, address) != NULL) {
+        PRINTF("Contact already stored, ignoring\n");
+        return true;
     }
 
     if (APP_MEM_PERMANENT((void **) &node, sizeof(*node)) == false) {

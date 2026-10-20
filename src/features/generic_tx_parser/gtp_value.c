@@ -255,6 +255,8 @@ static bool value_get_map_ref(const s_value *value, s_parsed_value_collection *c
     }
     // Resolve the key descriptor to its concrete byte value
     if (!value_get(&key_value, &key_collection)) {
+        // A failing data path may have already allocated some leaves
+        value_cleanup(&key_value, &key_collection);
         return false;
     }
     // A map key must resolve to exactly one value fitting in a uint8 length

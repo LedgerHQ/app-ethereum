@@ -162,6 +162,9 @@ static uint16_t handle_first_icon_chunk(const buffer_t *buf) {
         return SWO_INCORRECT_DATA;
     }
 
+    // A new first chunk restarts the reception: drop any partially received icon
+    APP_MEM_FREE_AND_NULL((void **) &g_icon_bitmap);
+
     // Do not track the allocation in logs, because this buffer is expected to stay allocated
     if (APP_MEM_PERMANENT((void **) &g_icon_bitmap, img_len) == false) {
         PRINTF("Error: Not enough memory for icon bitmap!\n");

@@ -279,7 +279,7 @@ bool filtering_message_info(const uint8_t *payload, uint8_t length) {
                         return false;
                     }
                 } else {
-                    if (!format_u64(strings.tmp.tmp, NETWORK_STRING_MAX_SIZE, domain_chain_id)) {
+                    if (!format_u64(strings.tmp.tmp, sizeof(strings.tmp.tmp), domain_chain_id)) {
                         return false;
                     }
                     if (!ui_712_set_value(strings.tmp.tmp, strlen(strings.tmp.tmp))) {

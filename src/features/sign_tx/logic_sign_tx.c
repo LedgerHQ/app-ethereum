@@ -187,6 +187,9 @@ customStatus_e custom_processor(txContext_t *context) {
                            4,
                            strings.tmp.tmp,
                            sizeof(strings.tmp.tmp));
+                // A shorter next block must not show bytes of this one
+                explicit_bzero(dataContext.tokenContext.data,
+                               sizeof(dataContext.tokenContext.data));
                 ui_confirm_selector();
             } else {
                 uint32_t offset = 0;
@@ -199,6 +202,8 @@ customStatus_e custom_processor(txContext_t *context) {
                         strings.tmp.tmp[offset++] = ':';
                     }
                 }
+                explicit_bzero(dataContext.tokenContext.data,
+                               sizeof(dataContext.tokenContext.data));
                 ui_confirm_parameter();
             }
         } else {

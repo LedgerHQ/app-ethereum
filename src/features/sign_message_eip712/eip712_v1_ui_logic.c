@@ -1411,27 +1411,6 @@ bool ui_712_token_join_prepare_amount(uint8_t id, const char *name, uint8_t name
 }
 
 /**
- * Set UI pair key to the raw JSON key
- *
- * @param[in] field_ptr pointer to the field
- * @return whether it was successful or not
- */
-bool ui_712_show_raw_key(const s_struct_712_field *field_ptr) {
-    const char *key;
-
-    if ((key = field_ptr->key_name) == NULL) {
-        return false;
-    }
-
-    if (ui_712_field_shown() && !(ui_ctx->field_flags & UI_712_FIELD_NAME_PROVIDED)) {
-        if (!ui_712_set_title(key, strlen(key))) {
-            return false;
-        }
-    }
-    return true;
-}
-
-/**
  * Push a new filter path
  *
  * @param[in] path_crc CRC of the filter path
@@ -1561,7 +1540,9 @@ bool ui_712_push_pairs(void) {
             return false;
         }
         // Prepare the pairs list with the hashes
-        eip712_format_hash(pair);
+        if (!eip712_format_hash(pair)) {
+            return false;
+        }
         g_pairs[pair].forcePageStart = true;
     }
     return true;

@@ -328,6 +328,25 @@ static bool check_string_constraint(const s_field *field, const s_parsed_value *
     return false;
 }
 
+/**
+ * @brief Check that a string holds no control character other than line feed
+ *
+ * Rejects C0 controls (NUL included) except '\n', DEL, and C1 controls in their
+ * UTF-8 encoding (0xC2 0x80..0x9F).
+ */
+static bool has_only_displayable_chars(const uint8_t *str, size_t length) {
+    for (size_t i = 0; i < length; ++i) {
+        if (((str[i] < 0x20) && (str[i] != '\n')) || (str[i] == 0x7F)) {
+            return false;
+        }
+        if ((str[i] == 0xC2) && ((i + 1) < length) && (str[i + 1] >= 0x80) &&
+            (str[i + 1] <= 0x9F)) {
+            return false;
+        }
+    }
+    return true;
+}
+
 static bool format_string(const s_field *field,
                           bool *to_be_displayed,
                           const s_parsed_value *value,
@@ -339,8 +358,8 @@ static bool format_string(const s_field *field,
                (unsigned) buf_size);
         return false;
     }
-    if (memchr(value->ptr, '\0', value->length) != NULL) {
-        PRINTF("RAW STRING value contains embedded NUL\n");
+    if (!has_only_displayable_chars(value->ptr, value->length)) {
+        PRINTF("RAW STRING value contains a control character\n");
         return false;
     }
     memmove(buf, value->ptr, value->length);

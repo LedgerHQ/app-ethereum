@@ -8,6 +8,8 @@
 #include "caller_app.h"
 
 #define MAX_NETWORK_LEN 32  // 31 characters + '\0'
+// Also holds any chain ID written in decimal, for networks without a known name
+_Static_assert(MAX_NETWORK_LEN >= sizeof("18446744073709551615"), "chain ID does not fit");
 
 typedef struct network_info_s {
     flist_node_t node;  // MUST be first for direct casting from flist_node_t* to network_info_t*

@@ -191,9 +191,9 @@ bool get_network_as_string_from_chain_id(char *out, size_t out_size, uint64_t ch
         if (!format_u64(out, out_size, chain_id)) {
             return false;
         }
-    } else {
-        // Network name found, simply copy it.
-        strlcpy(out, name, out_size);
+    } else if (strlcpy(out, name, out_size) >= out_size) {
+        // A truncated network name must not be displayed
+        return false;
     }
     return true;
 }

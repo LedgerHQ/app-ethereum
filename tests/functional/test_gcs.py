@@ -680,6 +680,81 @@ def test_gcs_4226(scenario_navigator: NavigateWithScenario, known_tokens: bool):
         scenario_navigator.review_approve()
 
 
+def test_gcs_unknown_token_not_cached(scenario_navigator: NavigateWithScenario):
+    """An unknown token met in a FIELD is not added to the token list.
+
+    The token provided afterwards gets index 0, as if no FIELD had been parsed.
+    """
+    backend = scenario_navigator.backend
+    app_client = EthAppClient(backend)
+
+    with open(f"{ABIS_FOLDER}/rSWELL.abi.json", encoding="utf-8") as file:
+        contract = Web3().eth.contract(abi=json.load(file), address=None)
+    data = contract.encode_abi(
+        "deposit",
+        [
+            Web3.to_wei(4.20, "ether"),
+            bytes.fromhex("Dad77910DbDFdE764fC21FCD4E74D71bBACA6D8D"),
+        ],
+    )
+    tx_params = {
+        "nonce": 235,
+        "maxFeePerGas": Web3.to_wei(3, "gwei"),
+        "maxPriorityFeePerGas": Web3.to_wei(1, "gwei"),
+        "gas": 128872,
+        "to": bytes.fromhex("358d94b5b2F147D741088803d932Acb566acB7B6"),
+        "data": data,
+        "chainId": 1,
+    }
+    with app_client.sign("m/44'/60'/0'/0/0", tx_params, mode=SignMode.STORE):
+        pass
+
+    swell_token_addr = bytes.fromhex("0a6e7ba5042b38349e437ec6db6214aec7b35676")
+    param_paths = get_all_paths(f"{ABIS_FOLDER}/rSWELL.abi.json", "deposit")
+    fields = [
+        Field(
+            1,
+            "Deposit asset",
+            ParamTokenAmount(
+                1,
+                Value(1, TypeFamily.UINT, type_size=32, data_path=DataPath(1, param_paths["assets"])),
+                token=Value(1, TypeFamily.ADDRESS, constant=swell_token_addr),
+            ),
+        ),
+        Field(1, "Receive shares", ParamToken(1, Value(1, TypeFamily.ADDRESS, container_path=ContainerPath.TO))),
+        Field(
+            1,
+            "Send shares to",
+            ParamRaw(1, Value(1, TypeFamily.ADDRESS, data_path=DataPath(1, param_paths["receiver"]))),
+        ),
+    ]
+    tx_info = TxInfo(
+        1,
+        tx_params["chainId"],
+        tx_params["to"],
+        get_selector_from_data(tx_params["data"]),
+        compute_inst_hash(fields),
+        "deposit",
+        creator_name="Swell",
+        creator_legal_name="Swell Network",
+        creator_url="www.swellnetwork.io",
+        contract_name="rSWELL Token",
+        deploy_date=1726817291,
+    )
+    app_client.provide_transaction_info(tx_info.serialize())
+
+    # SWELL is unknown when its FIELD is parsed
+    app_client.provide_transaction_field_desc(fields[0].serialize())
+    response = app_client.provide_token_metadata("rSWELL", tx_params["to"], 18, 1)
+    assert response.data[0] == 0, f"Unexpected token index {response.data[0]}"
+
+    for field in fields[1:]:
+        app_client.provide_transaction_field_desc(field.serialize())
+
+    with app_client.sign(mode=SignMode.START_FLOW):
+        scenario_navigator.review_approve()
+
+
 # https://etherscan.io/tx/0x07a80f1b359146129f3369af39e7eb2457581109c8300fc2ef81e997a07cf3f0
 def test_gcs_nested_createProxyWithNonce(scenario_navigator: NavigateWithScenario):
     backend = scenario_navigator.backend
@@ -2875,6 +2950,109 @@ def test_gcs_batch_complex(scenario_navigator: NavigateWithScenario) -> None:
             app_client.provide_transaction_info(sub_info.serialize())
             for sub_field in sub_fields:
                 app_client.provide_transaction_field_desc(sub_field.serialize())
+
+    with app_client.sign(mode=SignMode.START_FLOW):
+        scenario_navigator.review_approve()
+
+
+def test_gcs_batch_two_empty_then_call(scenario_navigator: NavigateWithScenario) -> None:
+    """Empty calls preceding a described call are reviewed in execution order."""
+    backend = scenario_navigator.backend
+    app_client = EthAppClient(backend)
+
+    token: dict[str, Any] = {
+        "ticker": "USDT",
+        "address": bytes.fromhex("dac17f958d2ee523a2206206994597c13d831ec7"),
+        "decimals": 6,
+    }
+    with Path(f"{ABIS_FOLDER}/erc20.json").open(encoding="utf-8") as f:
+        contract = Web3().eth.contract(abi=json.load(f), address=None)
+    data_transfer = contract.encode_abi(
+        "transfer",
+        [
+            bytes.fromhex("3333333333333333333333333333333333333333"),
+            int(3.3 * pow(10, token["decimals"])),
+        ],
+    )
+
+    with Path(f"{ABIS_FOLDER}/batch.json").open(encoding="utf-8") as f:
+        contract = Web3().eth.contract(  # type: ignore[call-overload]  # web3 stubs reject raw-bytes addresses reused as contract_addr
+            abi=json.load(f),
+            address=bytes.fromhex("2cc8475177918e8C4d840150b68815A4b6f0f5f3"),
+        )
+    data = contract.encode_abi(
+        "batchExecute",
+        [
+            [
+                (bytes.fromhex("1111111111111111111111111111111111111111"), Web3.to_wei(1.1, "ether"), b""),
+                (bytes.fromhex("2222222222222222222222222222222222222222"), Web3.to_wei(2.2, "ether"), b""),
+                (token["address"], Web3.to_wei(0, "ether"), data_transfer),
+            ]
+        ],
+    )
+    tx_params = {
+        "nonce": 79,
+        "maxFeePerGas": Web3.to_wei(4.8, "gwei"),
+        "maxPriorityFeePerGas": Web3.to_wei(2, "gwei"),
+        "gas": 10120,
+        "to": contract.address,
+        "data": data,
+        "chainId": 1,
+    }
+    with app_client.sign("m/44'/60'/0'/0/0", tx_params, mode=SignMode.STORE):
+        pass
+
+    param_paths = get_all_paths(f"{ABIS_FOLDER}/erc20.json", "transfer")
+    sub_fields = [
+        Field(1, "To", ParamRaw(1, Value(1, TypeFamily.ADDRESS, data_path=DataPath(1, param_paths["_to"])))),
+        Field(
+            1,
+            "Amount",
+            ParamTokenAmount(
+                1,
+                Value(1, TypeFamily.UINT, 32, DataPath(1, param_paths["_value"])),
+                Value(1, TypeFamily.ADDRESS, container_path=ContainerPath.TO),
+            ),
+        ),
+    ]
+    param_paths = get_all_tuple_array_paths(f"{ABIS_FOLDER}/batch.json", "batchExecute", "calls")
+    fields = [
+        Field(
+            1,
+            "Destination",
+            ParamCalldata(
+                1,
+                Value(1, TypeFamily.BYTES, data_path=DataPath(1, param_paths["data"])),
+                Value(1, TypeFamily.ADDRESS, data_path=DataPath(1, param_paths["to"])),
+                amount=Value(1, TypeFamily.UINT, data_path=DataPath(1, param_paths["value"])),
+            ),
+        ),
+    ]
+    tx_info = TxInfo(
+        1,
+        tx_params["chainId"],
+        contract.address,
+        get_selector_from_data(data),
+        compute_inst_hash(fields),
+        "Batch transaction",
+        creator_name="Ledger Multisig",
+        creator_legal_name="Ledger",
+    )
+    app_client.provide_transaction_info(tx_info.serialize())
+    sub_tx_info = TxInfo(
+        1,
+        tx_params["chainId"],
+        token["address"],
+        get_selector_from_data(data_transfer),
+        compute_inst_hash(sub_fields),
+        "Transfer token",
+    )
+    for field in fields:
+        app_client.provide_transaction_field_desc(field.serialize())
+        app_client.provide_token_metadata(token["ticker"], token["address"], token["decimals"], tx_params["chainId"])
+        app_client.provide_transaction_info(sub_tx_info.serialize())
+        for sub_field in sub_fields:
+            app_client.provide_transaction_field_desc(sub_field.serialize())
 
     with app_client.sign(mode=SignMode.START_FLOW):
         scenario_navigator.review_approve()

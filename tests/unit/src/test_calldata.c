@@ -49,6 +49,10 @@ void test_init_with_selector(void) {
     calldata_delete(cd);
 }
 
+void test_delete_null_is_noop(void) {
+    calldata_delete(NULL);
+}
+
 void test_init_with_null_selector(void) {
     s_calldata *cd = calldata_init(32, NULL);
     TEST_ASSERT_NOT_NULL(cd);
@@ -277,6 +281,7 @@ void tearDown(void) {
 int main(void) {
     UNITY_BEGIN();
     RUN_TEST(test_init_with_selector);
+    RUN_TEST(test_delete_null_is_noop);
     RUN_TEST(test_init_with_null_selector);
     RUN_TEST(test_set_selector_happy_path);
     RUN_TEST(test_set_selector_null_calldata_rejected);

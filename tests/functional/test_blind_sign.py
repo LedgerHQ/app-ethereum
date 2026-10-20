@@ -235,6 +235,46 @@ def test_sign_parameter_selector(
     assert addr == DEVICE_ADDR
 
 
+def test_sign_parameter_short_last_block(
+    backend: BackendInterface,
+    navigator: Navigator,
+    test_name: str,
+    default_screenshot_path: Path,
+):
+    """A last calldata block shorter than 32 bytes must not show bytes of the previous parameter."""
+    app_client = EthAppClient(backend)
+    device = backend.device
+
+    common_get_address(app_client)
+
+    settings_toggle(device, navigator, [SettingID.BLIND_SIGNING, SettingID.DEBUG_DATA])
+
+    tx_params = common_tx_params(0.0)
+    tx_params["data"] += "aabbccddee"
+    # The full address parameter, then the 5-byte trailing block
+    params = 2
+    with app_client.sign(BIP32_PATH, tx_params):
+        moves = []
+        if device.is_nano:
+            # verify | selector
+            moves += [NavInsID.RIGHT_CLICK] * 2 + [NavInsID.BOTH_CLICK]
+            # (verify | parameter) * flows
+            moves += ([NavInsID.RIGHT_CLICK] * 2 + [NavInsID.BOTH_CLICK]) * params
+            # blind signing | review | from | amount | to | fees
+            moves += [NavInsID.BOTH_CLICK] + [NavInsID.RIGHT_CLICK] * 6 + [NavInsID.BOTH_CLICK]
+        else:
+            moves += ([NavInsID.SWIPE_CENTER_TO_LEFT] * 2 + [NavInsID.USE_CASE_REVIEW_CONFIRM]) * (1 + params)
+            moves += [NavInsID.USE_CASE_CHOICE_REJECT]
+            tap_number = 3
+            moves += [NavInsID.SWIPE_CENTER_TO_LEFT] * tap_number
+            moves += [NavInsID.USE_CASE_REVIEW_CONFIRM]
+        navigator.navigate_and_compare(default_screenshot_path, test_name, moves)
+
+    vrs = ResponseParser.signature(app_client.response().data)
+    addr = recover_transaction(tx_params, vrs)
+    assert addr == DEVICE_ADDR
+
+
 def test_blind_sign_not_enabled_error(
     backend: BackendInterface,
     navigator: Navigator,

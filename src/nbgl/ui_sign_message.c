@@ -93,8 +93,10 @@ bool ui_191_message_fits(const char *message) {
 
 static void ui_191_finish_cb(bool confirm) {
     if (confirm) {
-        io_seproxyhal_touch_signMessage_ok();
-        nbgl_useCaseReviewStatus(STATUS_TYPE_MESSAGE_SIGNED, ui_idle);
+        nbgl_useCaseReviewStatus(io_seproxyhal_touch_signMessage_ok()
+                                     ? STATUS_TYPE_MESSAGE_SIGNED
+                                     : STATUS_TYPE_MESSAGE_REJECTED,
+                                 ui_idle);
     } else {
         io_seproxyhal_touch_signMessage_cancel();
         nbgl_useCaseReviewStatus(STATUS_TYPE_MESSAGE_REJECTED, ui_idle);
@@ -102,7 +104,7 @@ static void ui_191_finish_cb(bool confirm) {
     ui_all_cleanup();
 }
 
-void ui_191_start(const char *message) {
+void ui_191_start(const char *message, bool is_hex) {
     // Honor the "Always display the transaction or message hash" setting for
     // EIP-191 personal messages so that the user can verify the exact bytes
     // being signed even when rendering is ambiguous (whitespace, encoding,
@@ -145,7 +147,8 @@ void ui_191_start(const char *message) {
              ui_tx_simulation_finish_str());
 
     g_pairsList->wrapping = true;
-    g_pairs[0].item = "Message";
+    // A binary message is shown hex encoded: tell it apart from a text starting with "0x"
+    g_pairs[0].item = is_hex ? "Message (hex)" : "Message";
     g_pairs[0].value = message;
 
     if (show_hash) {

@@ -30,7 +30,7 @@ void ui_confirm_parameter(void);
 void ui_display_safe_account(void);
 
 // EIP-191
-void ui_191_start(const char *message);
+void ui_191_start(const char *message, bool is_hex);
 
 /**
  * Whether an EIP-191 message can be fully reached in the review's details view.
@@ -62,7 +62,7 @@ unsigned int io_seproxyhal_touch_tx_ok(void);
 unsigned int io_seproxyhal_touch_tx_cancel(void);
 unsigned int io_seproxyhal_touch_address_ok(void);
 unsigned int io_seproxyhal_touch_address_cancel(void);
-unsigned int io_seproxyhal_touch_signMessage_ok(void);
+bool io_seproxyhal_touch_signMessage_ok(void);
 unsigned int io_seproxyhal_touch_signMessage_cancel(void);
 unsigned int io_seproxyhal_touch_data_ok(void);
 unsigned int io_seproxyhal_touch_data_cancel(void);

@@ -133,9 +133,9 @@ uint32_t get_public_key_string(bip32_path_t *bip32,
     return CX_OK;
 }
 
-const char *get_network_name_from_chain_id(const uint64_t *chain_id) {
-    (void) chain_id;
-    return NULL;
+// No known network name: the chain ID is written in decimal
+bool get_network_as_string_from_chain_id(char *out, size_t out_size, uint64_t chain_id) {
+    return format_u64(out, out_size, chain_id);
 }
 
 void hash_nbytes(const uint8_t *bytes, size_t n, cx_hash_t *hash_ctx) {
@@ -220,10 +220,16 @@ static size_t build_tlv_payload(uint8_t *out,
     tlv[off++] = ADDRESS_LENGTH;
     memcpy(tlv + off, delegate, ADDRESS_LENGTH);
     off += ADDRESS_LENGTH;
-    tlv[off++] = 0x02;  // TAG_CHAIN_ID
-    tlv[off++] = 0x01;
-    tlv[off++] = (uint8_t) (chain_id & 0xFF);  // single byte chain_id (sufficient for tests)
-    tlv[off++] = 0x03;                         // TAG_NONCE
+    tlv[off++] = 0x02;  // TAG_CHAIN_ID, minimal big-endian encoding
+    size_t chain_id_len = 1;
+    while ((chain_id_len < sizeof(chain_id)) && ((chain_id >> (8 * chain_id_len)) != 0)) {
+        chain_id_len++;
+    }
+    tlv[off++] = (uint8_t) chain_id_len;
+    for (size_t i = chain_id_len; i > 0; --i) {
+        tlv[off++] = (uint8_t) (chain_id >> (8 * (i - 1)));
+    }
+    tlv[off++] = 0x03;  // TAG_NONCE
     tlv[off++] = 0x01;
     tlv[off++] = nonce;
 
@@ -336,13 +342,23 @@ void test_invalid_version_rejected(void) {
 
 void test_chain_id_all_uses_wildcard_display(void) {
     // CHAIN_ID_ALL (= 0) lands on the "All" wildcard label rather
-    // than calling get_network_name_from_chain_id / format_u64.
+    // than calling get_network_as_string_from_chain_id.
     uint8_t payload[80];
     size_t len =
         build_tlv_payload(payload, sizeof(payload), 0x01, g_simple7702_account, CHAIN_ID_ALL, 0x00);
     uint16_t sw = handle_sign_eip7702_authorization(P1_FIRST_CHUNK, payload, (uint8_t) len);
     TEST_ASSERT_EQUAL(sw, SWO_NO_RESPONSE);
     TEST_ASSERT_EQUAL_STRING(strings.common.network_name, "All");
+}
+
+void test_max_chain_id_fully_displayed(void) {
+    // The largest chain ID is displayed with all its digits, never replaced by a placeholder
+    uint8_t payload[80];
+    size_t len =
+        build_tlv_payload(payload, sizeof(payload), 0x01, g_simple7702_account, UINT64_MAX, 0x00);
+    uint16_t sw = handle_sign_eip7702_authorization(P1_FIRST_CHUNK, payload, (uint8_t) len);
+    TEST_ASSERT_EQUAL(sw, SWO_NO_RESPONSE);
+    TEST_ASSERT_EQUAL_STRING(strings.common.network_name, "18446744073709551615");
 }
 
 void test_finalize_hash_failure_short_circuits_review(void) {
@@ -406,6 +422,7 @@ int main(void) {
     RUN_TEST(test_delegate_not_in_whitelist_rejected);
     RUN_TEST(test_invalid_version_rejected);
     RUN_TEST(test_chain_id_all_uses_wildcard_display);
+    RUN_TEST(test_max_chain_id_fully_displayed);
     RUN_TEST(test_finalize_hash_failure_short_circuits_review);
     RUN_TEST(test_hashRLP_with_too_small_buffer_returns_parameter_error);
     RUN_TEST(test_hash_ctx_alloc_failure_short_circuits_review);

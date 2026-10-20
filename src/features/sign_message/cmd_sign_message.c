@@ -12,6 +12,7 @@ typedef struct {
     uint16_t processed_size;
     char *received_buffer;
     char *display_buffer;
+    bool is_hex;  // display_buffer holds the hex encoding of a binary message
 } signMsgCtx_t;
 
 cx_sha3_t *g_msg_hash_ctx = NULL;
@@ -173,6 +174,7 @@ static uint16_t final_process(void) {
             break;
         }
     }
+    signMsgCtx->is_hex = is_hex;
     // Allocate the buffer for the display
     buffer_length++;  // for the NULL byte
     if (APP_MEM_CALLOC((void **) &(signMsgCtx->display_buffer), buffer_length) == false) {
@@ -299,7 +301,7 @@ uint16_t handle_sign_personal_message(uint8_t p1, const uint8_t *const payload, 
             set_idle();
             return sw;
         }
-        ui_191_start(signMsgCtx->display_buffer);
+        ui_191_start(signMsgCtx->display_buffer, signMsgCtx->is_hex);
         return SWO_NO_RESPONSE;
     }
     return SWO_SUCCESS;

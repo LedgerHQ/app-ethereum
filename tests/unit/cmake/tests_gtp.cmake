@@ -298,8 +298,11 @@ ledger_unit_tests_add_test(NAME test_field_table
     ${COMMON_INCLUDE_DIRS}
     ${APP_DIR}/features/sign_message_eip712
     ${APP_DIR}/features/provide_trusted_name
+    ${APP_DIR}/features/address_book
+    ${BOLOS_SDK}/app_features/address_book/include
   COMPILE_DEFS
     ${COMMON_COMPILE_DEFS}
+    HAVE_ADDRESS_BOOK
   LINK_OPTIONS
     ${COMMON_LINK_OPTIONS}
 )
@@ -447,6 +450,8 @@ ledger_unit_tests_add_test(NAME test_cmd_field_tx_info
     ${COMMON_COMPILE_DEFS}
   LINK_OPTIONS
     ${COMMON_LINK_OPTIONS}
+    -Wl,--wrap=mem_utils_calloc
+    -Wl,--wrap=mem_utils_free
 )
 
 ledger_unit_tests_add_test(NAME test_cmd_map_entry

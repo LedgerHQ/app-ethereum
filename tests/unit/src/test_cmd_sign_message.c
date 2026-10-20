@@ -89,8 +89,10 @@ void ui_idle(void) {
 
 static int g_ui_191_calls = 0;
 static char g_ui_191_display[1024];
-void ui_191_start(const char *display_buffer) {
+static bool g_ui_191_is_hex = false;
+void ui_191_start(const char *display_buffer, bool is_hex) {
     g_ui_191_calls++;
+    g_ui_191_is_hex = is_hex;
     if (display_buffer != NULL) {
         strncpy(g_ui_191_display, display_buffer, sizeof(g_ui_191_display) - 1);
         g_ui_191_display[sizeof(g_ui_191_display) - 1] = '\0';
@@ -159,6 +161,7 @@ static void reset(void) {
     g_ui_idle_calls = 0;
     g_ui_191_calls = 0;
     memset(g_ui_191_display, 0, sizeof(g_ui_191_display));
+    g_ui_191_is_hex = false;
     memset(&tmpCtx, 0, sizeof(tmpCtx));
     memset(&strings, 0, sizeof(strings));
 }
@@ -235,6 +238,7 @@ void test_single_chunk_ascii_starts_ui(void) {
     TEST_ASSERT_EQUAL(sw, SWO_NO_RESPONSE);
     TEST_ASSERT_EQUAL(g_ui_191_calls, 1);
     TEST_ASSERT_EQUAL_STRING(g_ui_191_display, "hello");
+    TEST_ASSERT_FALSE(g_ui_191_is_hex);
 }
 
 void test_single_chunk_hex_uses_0x_prefix(void) {
@@ -246,6 +250,7 @@ void test_single_chunk_hex_uses_0x_prefix(void) {
     uint16_t sw = handle_sign_personal_message(P1_FIRST, data, (uint8_t) len);
     TEST_ASSERT_EQUAL(sw, SWO_NO_RESPONSE);
     TEST_ASSERT_EQUAL_STRING(g_ui_191_display, "0x010203");
+    TEST_ASSERT_TRUE(g_ui_191_is_hex);
 }
 
 void test_multichunk_completes_on_last_chunk(void) {

@@ -6,10 +6,16 @@
 #include "shared_context.h"  // appState
 #include "eip712_v1_ui_logic.h"
 #include "tx_ctx.h"
+#include "token_info.h"
+#include "nft_info.h"
+#ifdef HAVE_ADDRESS_BOOK
+#include "handle_contacts.h"
+#endif
 
 typedef struct {
     flist_node_t _list;
     s_field_table_entry field;
+    bool owns_extra_data;  // extra_data is a copy freed with the node
 } s_field_table_node;
 
 static s_field_table_node *g_table = NULL;
@@ -26,11 +32,31 @@ bool field_table_init(void) {
 static void delete_table_node(s_field_table_node *node) {
     APP_MEM_FREE(node->field.key);
     APP_MEM_FREE(node->field.value);
+    if (node->owns_extra_data) {
+        APP_MEM_FREE((void *) node->field.extra_data);
+    }
     APP_MEM_FREE(node);
 }
 
 void field_table_cleanup(void) {
     flist_clear((flist_node_t **) &g_table, (f_list_node_del) &delete_table_node);
+}
+
+// Size of the extra data kept as a copy by the table, 0 when it is only referenced
+static size_t owned_extra_data_size(e_param_type type) {
+    switch (type) {
+        case PARAM_TYPE_TOKEN:
+        case PARAM_TYPE_TOKEN_AMOUNT:
+            return sizeof(s_token_info);
+        case PARAM_TYPE_NFT:
+            return sizeof(s_nft_info);
+#ifdef HAVE_ADDRESS_BOOK
+        case PARAM_TYPE_ADDRESS_BOOK:
+            return sizeof(s_ab_contact);
+#endif
+        default:
+            return 0;
+    }
 }
 
 bool add_to_field_table(e_param_type type,
@@ -39,6 +65,7 @@ bool add_to_field_table(e_param_type type,
                         const void *extra_data) {
     uint8_t key_len;
     uint16_t value_len;
+    size_t copy_size;
     s_field_table_node *node;
 
     if ((key == NULL) || (value == NULL)) {
@@ -96,6 +123,23 @@ bool add_to_field_table(e_param_type type,
     memcpy(node->field.key, key, key_len);
     memcpy(node->field.value, value, value_len);
     node->field.extra_data = extra_data;
+    copy_size = owned_extra_data_size(type);
+    if ((copy_size != 0) && (extra_data != NULL)) {
+        // Snapshot the asset / contact: a later metadata update must not change what is shown
+        void *copy;
+        if (APP_MEM_CALLOC(&copy, copy_size) == false) {
+            delete_table_node(node);
+            return false;
+        }
+        memcpy(copy, extra_data, copy_size);
+#ifdef HAVE_ADDRESS_BOOK
+        if (type == PARAM_TYPE_ADDRESS_BOOK) {
+            ((s_ab_contact *) copy)->_list.next = NULL;
+        }
+#endif
+        node->field.extra_data = copy;
+        node->owns_extra_data = true;
+    }
 
     flist_push_back((flist_node_t **) &g_table, (flist_node_t *) node);
     return true;

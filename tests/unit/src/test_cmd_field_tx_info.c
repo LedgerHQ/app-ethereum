@@ -50,6 +50,33 @@ static e_tlv_apdu_ret g_field_tlv_from_apdu_ret = TLV_APDU_SUCCESS;
 // Used by tests that want to exercise the static handle_tlv_payload helpers.
 static bool g_field_tlv_invoke_handler = false;
 static bool g_field_tlv_handler_returned = false;
+// Live app allocations, counted through -Wl,--wrap on the app allocator.
+static int g_live_allocs = 0;
+static int g_live_allocs_before_handler = 0;
+static int g_live_allocs_after_handler = 0;
+bool __real_mem_utils_calloc(void **buffer,
+                             uint16_t size,
+                             bool permanent,
+                             const char *file,
+                             int line);
+void __real_mem_utils_free(void *ptr, const char *file, int line);
+bool __wrap_mem_utils_calloc(void **buffer,
+                             uint16_t size,
+                             bool permanent,
+                             const char *file,
+                             int line) {
+    bool ret = __real_mem_utils_calloc(buffer, size, permanent, file, line);
+    if (ret && (*buffer != NULL)) {
+        g_live_allocs++;
+    }
+    return ret;
+}
+void __wrap_mem_utils_free(void *ptr, const char *file, int line) {
+    if (ptr != NULL) {
+        g_live_allocs--;
+    }
+    __real_mem_utils_free(ptr, file, line);
+}
 static e_tlv_apdu_ret tlv_from_apdu_stub(bool first_chunk,
                                          uint8_t lc,
                                          const uint8_t *payload,
@@ -61,7 +88,9 @@ static e_tlv_apdu_ret tlv_from_apdu_stub(bool first_chunk,
     (void) cmock_num_calls;
     if (g_field_tlv_invoke_handler && handler != NULL) {
         buffer_t buf = {.ptr = NULL, .size = 0, .offset = 0};
+        g_live_allocs_before_handler = g_live_allocs;
         g_field_tlv_handler_returned = handler(&buf);
+        g_live_allocs_after_handler = g_live_allocs;
     }
     return g_field_tlv_from_apdu_ret;
 }
@@ -439,6 +468,17 @@ void test_tx_info_handler_set_info_failure_propagates(void) {
     TEST_ASSERT_FALSE(g_field_tlv_handler_returned);
 }
 
+void test_tx_info_handler_process_empty_failure_frees_tx_info(void) {
+    appState = APP_STATE_SIGNING_TX;
+    g_field_tlv_invoke_handler = true;
+    g_process_empty_txs_before_ret = false;
+
+    handle_tx_info(P1_FIRST_CHUNK, 0, 0, NULL);
+    TEST_ASSERT_FALSE(g_field_tlv_handler_returned);
+    // The not-yet-attached TX_INFO must not outlive the failed APDU.
+    TEST_ASSERT_EQUAL_INT(g_live_allocs_before_handler, g_live_allocs_after_handler);
+}
+
 // =============================================================================
 // Runner
 // =============================================================================
@@ -478,5 +518,6 @@ int main(void) {
     RUN_TEST(test_tx_info_handler_verify_failure);
     RUN_TEST(test_tx_info_handler_no_matching_ctx_rejected);
     RUN_TEST(test_tx_info_handler_set_info_failure_propagates);
+    RUN_TEST(test_tx_info_handler_process_empty_failure_frees_tx_info);
     return UNITY_END();
 }

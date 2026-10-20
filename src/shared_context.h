@@ -7,6 +7,7 @@
 #include "main_std_app.h"
 #include "eth_plugin_interface.h"
 #include "caller_app.h"
+#include "network.h"
 
 #define PLUGIN_ID_LENGTH 30
 
@@ -164,9 +165,6 @@ typedef enum {
 // EIP-2681
 #define NONCE_STRING_MAX_SIZE 20
 
-// EIP-2294
-#define NETWORK_STRING_MAX_SIZE 19
-
 typedef struct txStringProperties_s {
     char fromAddress[ADDRESS_LENGTH_HEX_STR];
     uint8_t fromAddressRaw[ADDRESS_LENGTH];
@@ -174,7 +172,7 @@ typedef struct txStringProperties_s {
     char fullAmount[MAX_TICKER_LEN + 1 + 78 + 1];  // 2^256 is 78 digits long
     char maxFee[50];
     char nonce[NONCE_STRING_MAX_SIZE + 1];
-    char network_name[NETWORK_STRING_MAX_SIZE + 1];
+    char network_name[MAX_NETWORK_LEN];
     char tx_hash[2 + (INT256_LENGTH * 2) + 1];
 } txStringProperties_t;
 
@@ -188,6 +186,9 @@ typedef union {
     txStringProperties_t common;
     strDataTmp_t tmp;
 } strings_t;
+
+// Maximum caller-provided app name length we accept.
+#define MAX_CALLER_NAME_LEN 64
 
 extern const caller_app_t *g_caller_app;
 extern const chain_config_t *g_chain_config;

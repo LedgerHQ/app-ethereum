@@ -340,6 +340,43 @@ void test_invalid_version_rejected(void) {
     TEST_ASSERT_EQUAL(g_ui_auth_calls, 0);
 }
 
+void test_clone_other_chain_rejected(void) {
+    static const uint8_t zero_delegate[ADDRESS_LENGTH] = {0};
+    static const uint64_t other_chains[] = {ETHEREUM_MAINNET_CHAINID, CHAIN_ID_ALL, 62};
+    uint8_t payload[80];
+    size_t len;
+
+    for (size_t i = 0; i < ARRAYLEN(other_chains); ++i) {
+        // Both an authorization and a revocation are bound to the clone's chain
+        for (int revocation = 0; revocation < 2; ++revocation) {
+            reset();
+            g_chainConfig.chain_id = 61;
+            len = build_tlv_payload(payload,
+                                    sizeof(payload),
+                                    0x01,
+                                    revocation ? zero_delegate : g_simple7702_account,
+                                    other_chains[i],
+                                    0x00);
+            uint16_t sw = handle_sign_eip7702_authorization(P1_FIRST_CHUNK, payload, (uint8_t) len);
+            TEST_ASSERT_EQUAL(SWO_INCORRECT_DATA, sw);
+            TEST_ASSERT_EQUAL(0, g_ui_auth_calls);
+            TEST_ASSERT_EQUAL(0, g_ui_revocation_calls);
+            TEST_ASSERT_EQUAL(APP_STATE_IDLE, appState);
+        }
+    }
+    g_chainConfig.chain_id = ETHEREUM_MAINNET_CHAINID;
+}
+
+void test_clone_own_chain_accepted(void) {
+    g_chainConfig.chain_id = 61;
+    uint8_t payload[80];
+    size_t len = build_tlv_payload(payload, sizeof(payload), 0x01, g_simple7702_account, 61, 0x00);
+    uint16_t sw = handle_sign_eip7702_authorization(P1_FIRST_CHUNK, payload, (uint8_t) len);
+    g_chainConfig.chain_id = ETHEREUM_MAINNET_CHAINID;
+    TEST_ASSERT_EQUAL(SWO_NO_RESPONSE, sw);
+    TEST_ASSERT_EQUAL(1, g_ui_auth_calls);
+}
+
 void test_chain_id_all_uses_wildcard_display(void) {
     // CHAIN_ID_ALL (= 0) lands on the "All" wildcard label rather
     // than calling get_network_as_string_from_chain_id.
@@ -421,6 +458,8 @@ int main(void) {
     RUN_TEST(test_eip7702_disabled_rejected);
     RUN_TEST(test_delegate_not_in_whitelist_rejected);
     RUN_TEST(test_invalid_version_rejected);
+    RUN_TEST(test_clone_other_chain_rejected);
+    RUN_TEST(test_clone_own_chain_accepted);
     RUN_TEST(test_chain_id_all_uses_wildcard_display);
     RUN_TEST(test_max_chain_id_fully_displayed);
     RUN_TEST(test_finalize_hash_failure_short_circuits_review);

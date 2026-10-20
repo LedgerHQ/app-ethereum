@@ -80,6 +80,14 @@ static bool handle_auth7702_tlv_internal(const buffer_t *buf) {
         return false;
     }
 
+    // A clone only authorizes delegations on its own chain
+    if ((g_chain_config->chain_id != ETHEREUM_MAINNET_CHAINID) &&
+        (auth7702->chainId != g_chain_config->chain_id)) {
+        PRINTF("Invalid chainID %llu expected %llu\n", auth7702->chainId, g_chain_config->chain_id);
+        g_7702_sw = SWO_INCORRECT_DATA;
+        return false;
+    }
+
     // Reject if not enabled
     if (!N_storage.eip7702_enable) {
         ui_error_no_7702();

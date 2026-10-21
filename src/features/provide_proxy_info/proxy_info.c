@@ -1,6 +1,5 @@
 #include "proxy_info.h"
 #include "utils.h"
-#include "challenge.h"
 #include "public_keys.h"
 #include "ui_utils.h"
 #include "app_mem_utils.h"
@@ -213,7 +212,6 @@ bool verify_proxy_info_struct(const s_proxy_info_ctx *context) {
     if (finalize_hash((cx_hash_t *) &context->struct_hash, hash, sizeof(hash)) != true) {
         return false;
     }
-    roll_challenge();
     if (check_signature_with_pubkey(hash,
                                     sizeof(hash),
                                     NULL,

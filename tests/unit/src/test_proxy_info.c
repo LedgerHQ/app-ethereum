@@ -72,11 +72,6 @@ static bool finalize_hash_stub(cx_hash_t *hash_ctx, uint8_t *out, size_t out_len
     return s_finalize_hash_ret;
 }
 
-static int g_roll_challenge_calls = 0;
-void roll_challenge(void) {
-    g_roll_challenge_calls++;
-}
-
 // =============================================================================
 // Fixture
 // =============================================================================
@@ -96,7 +91,6 @@ static void reset(void) {
     proxy_cleanup();
     s_sig_check_ret = true;
     s_finalize_hash_ret = true;
-    g_roll_challenge_calls = 0;
 }
 
 // =============================================================================
@@ -191,8 +185,6 @@ void test_happy_path_registers_descriptor(void) {
                            16);
     s_proxy_info_ctx ctx = {0};
     TEST_ASSERT_TRUE(run_parse_and_verify(tlv, len, &ctx));
-    // roll_challenge ran exactly once — anti-replay anchor.
-    TEST_ASSERT_EQUAL(g_roll_challenge_calls, 1);
     // Lookups now resolve: get_implem_contract returns the impl address
     // when queried with the matching (chain, proxy_addr, selector).
     uint64_t chain = 1;

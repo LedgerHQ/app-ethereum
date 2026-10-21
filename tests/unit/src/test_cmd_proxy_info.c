@@ -63,6 +63,11 @@ void proxy_cleanup(void) {
     g_cleanup_calls++;
 }
 
+static int g_roll_challenge_calls = 0;
+void roll_challenge(void) {
+    g_roll_challenge_calls++;
+}
+
 // =============================================================================
 // Local tlv_from_apdu stub
 // =============================================================================
@@ -98,6 +103,7 @@ static void reset(void) {
     s_tlv_lc = 0;
     s_tlv_ret = TLV_APDU_SUCCESS;
     g_cleanup_calls = 0;
+    g_roll_challenge_calls = 0;
 }
 
 // =============================================================================
@@ -167,6 +173,7 @@ void test_inner_callback_runs_payload_then_verify(void) {
     TEST_ASSERT_EQUAL(sw, SWO_SUCCESS);
     // proxy_cleanup is called from the callback prelude (before parser).
     TEST_ASSERT_EQUAL(g_cleanup_calls, 1);
+    TEST_ASSERT_EQUAL(1, g_roll_challenge_calls);
 }
 
 void test_inner_callback_short_circuits_on_payload_failure(void) {
@@ -179,6 +186,8 @@ void test_inner_callback_short_circuits_on_payload_failure(void) {
     uint16_t sw = handle_proxy_info(P1_FIRST_CHUNK, 0, 32, (uint8_t *) "");
     TEST_ASSERT_EQUAL(sw, SWO_INCORRECT_DATA);
     TEST_ASSERT_EQUAL(g_cleanup_calls, 2);  // once in callback, once on error
+    // The challenge is consumed even though the payload did not parse
+    TEST_ASSERT_EQUAL(1, g_roll_challenge_calls);
 }
 
 void test_inner_callback_rejects_when_verify_fails(void) {
@@ -189,6 +198,7 @@ void test_inner_callback_rejects_when_verify_fails(void) {
     uint16_t sw = handle_proxy_info(P1_FIRST_CHUNK, 0, 32, (uint8_t *) "");
     TEST_ASSERT_EQUAL(sw, SWO_INCORRECT_DATA);
     TEST_ASSERT_EQUAL(g_cleanup_calls, 2);
+    TEST_ASSERT_EQUAL(1, g_roll_challenge_calls);
 }
 
 void setUp(void) {

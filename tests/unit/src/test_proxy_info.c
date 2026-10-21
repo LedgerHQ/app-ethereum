@@ -205,6 +205,48 @@ void test_happy_path_registers_descriptor(void) {
     TEST_ASSERT_EQUAL_MEMORY(proxy, g_proxy_addr, ADDRESS_LENGTH);
 }
 
+// Remove one tag from a short-form TLV buffer and return the new length
+static size_t remove_tag(uint8_t *tlv, size_t len, uint8_t tag) {
+    size_t off = 0;
+
+    while (off + 2 <= len) {
+        size_t field_len = 2 + tlv[off + 1];
+        if (tlv[off] == tag) {
+            memmove(tlv + off, tlv + off + field_len, len - off - field_len);
+            return len - field_len;
+        }
+        off += field_len;
+    }
+    TEST_FAIL_MESSAGE("tag not found");
+    return len;
+}
+
+void test_missing_mandatory_tag_rejected(void) {
+    static const uint8_t mandatory[] = {0x01, 0x02, 0x12, 0x22, 0x23, 0x42, 0x43, 0x15};
+
+    for (size_t i = 0; i < sizeof(mandatory); ++i) {
+        uint8_t tlv[256];
+        size_t len =
+            build_tlv(tlv, sizeof(tlv), 0x26, 0x01, 1, g_proxy_addr, g_impl_addr, true, 0, 16);
+        s_proxy_info_ctx ctx = {0};
+        uint64_t chain = 1;
+
+        reset();
+        len = remove_tag(tlv, len, mandatory[i]);
+        TEST_ASSERT_FALSE_MESSAGE(run_parse_and_verify(tlv, len, &ctx), "tag accepted as optional");
+        TEST_ASSERT_NULL(get_implem_contract(&chain, g_proxy_addr, g_selector));
+    }
+}
+
+void test_missing_selector_accepted(void) {
+    uint8_t tlv[256];
+    size_t len =
+        build_tlv(tlv, sizeof(tlv), 0x26, 0x01, 1, g_proxy_addr, g_impl_addr, false, 0, 16);
+    s_proxy_info_ctx ctx = {0};
+
+    TEST_ASSERT_TRUE(run_parse_and_verify(tlv, len, &ctx));
+}
+
 void test_lookups_without_registered_descriptor_return_null(void) {
     // After proxy_cleanup (called in reset) g_proxy_info is NULL —
     // both lookups must short-circuit to NULL.
@@ -360,6 +402,8 @@ void tearDown(void) {
 int main(void) {
     UNITY_BEGIN();
     RUN_TEST(test_happy_path_registers_descriptor);
+    RUN_TEST(test_missing_mandatory_tag_rejected);
+    RUN_TEST(test_missing_selector_accepted);
     RUN_TEST(test_lookups_without_registered_descriptor_return_null);
     RUN_TEST(test_signature_check_failure_rejects);
     RUN_TEST(test_finalize_hash_failure_rejects);

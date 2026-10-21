@@ -197,6 +197,19 @@ bool handle_proxy_info_tlv_payload(const buffer_t *buf, s_proxy_info_ctx *contex
 bool verify_proxy_info_struct(const s_proxy_info_ctx *context) {
     uint8_t hash[INT256_LENGTH];
 
+    // Every tag but the selector is mandatory
+    if (!TLV_CHECK_RECEIVED_TAGS(context->received_tags,
+                                 TAG_STRUCT_TYPE,
+                                 TAG_STRUCT_VERSION,
+                                 TAG_CHALLENGE,
+                                 TAG_ADDRESS,
+                                 TAG_CHAIN_ID,
+                                 TAG_IMPLEM_ADDRESS,
+                                 TAG_DELEGATION_TYPE,
+                                 TAG_SIGNATURE)) {
+        PRINTF("Error: missing mandatory proxy info tag(s)\n");
+        return false;
+    }
     if (finalize_hash((cx_hash_t *) &context->struct_hash, hash, sizeof(hash)) != true) {
         return false;
     }

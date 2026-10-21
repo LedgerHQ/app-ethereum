@@ -10,9 +10,9 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#include "gtp_param_token_amount.h"
-#include "gtp_parsed_value.h"
-#include "gtp_value.h"
+#include "gcs_param_token_amount.h"
+#include "gcs_parsed_value.h"
+#include "gcs_value.h"
 #include "gtp_tx_info.h"
 #include "token_info.h"
 #include "network.h"

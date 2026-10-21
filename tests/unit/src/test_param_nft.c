@@ -1,7 +1,7 @@
 /**
  * @file test_param_nft.c
  * @brief Unit tests for the NFT parameter in
- *        src/features/generic_tx_parser/gtp_param_nft.c.
+ *        src/features/gcs/gcs_param_nft.c.
  *
  * NFT renders a "<collection_name> #<id>" field. The formatter draws
  * two parallel value collections — `collection` (addresses) and `id`
@@ -25,10 +25,10 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#include "gtp_param_nft.h"
-#include "gtp_parsed_value.h"
-#include "gtp_value.h"
-#include "gtp_field.h"
+#include "gcs_param_nft.h"
+#include "gcs_parsed_value.h"
+#include "gcs_value.h"
+#include "gcs_field.h"
 #include "gtp_tx_info.h"
 #include "nft_info.h"
 #include "shared_context.h"

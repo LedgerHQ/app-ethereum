@@ -24,7 +24,7 @@
 #include "cmd_field.h"
 #include "cmd_tx_info.h"
 #include "gtp_tx_info.h"
-#include "gtp_field.h"
+#include "gcs_field.h"
 #include "tx_ctx.h"
 #include "apdu_constants.h"
 #include "shared_context.h"

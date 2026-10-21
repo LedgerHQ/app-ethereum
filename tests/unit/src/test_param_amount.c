@@ -1,7 +1,7 @@
 /**
  * @file test_param_amount.c
  * @brief Unit tests for the AMOUNT parameter in
- *        src/features/generic_tx_parser/gtp_param_amount.c.
+ *        src/features/gcs/gcs_param_amount.c.
  *
  * Two layers are exercised:
  *   - handle_param_amount_struct() runs the per-parameter TLV parser. The
@@ -28,11 +28,11 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#include "gtp_param_amount.h"
-#include "gtp_parsed_value.h"
-#include "gtp_value.h"
+#include "gcs_param_amount.h"
+#include "gcs_parsed_value.h"
+#include "gcs_value.h"
 #include "gtp_tx_info.h"
-#include "gtp_field.h"
+#include "gcs_field.h"
 #include "shared_context.h"
 #include "network.h"
 #include "wraps.h"

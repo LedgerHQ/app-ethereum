@@ -160,7 +160,7 @@ __attribute__((weak)) uint64_t u64_from_BE(const uint8_t *in, uint8_t size) {
 }
 
 // =============================================================================
-// app/src/features/generic_tx_parser/gtp_field_table.c
+// app/src/features/gcs/gcs_field_table.c
 // =============================================================================
 
 __attribute__((weak)) bool add_to_field_table(int type,
@@ -325,7 +325,7 @@ __attribute__((weak)) const uint8_t *get_current_tx_amount(void) {
 }
 
 // =============================================================================
-// app/src/features/generic_tx_parser/gtp_value.c
+// app/src/features/gcs/gcs_value.c
 // =============================================================================
 
 struct s_value;

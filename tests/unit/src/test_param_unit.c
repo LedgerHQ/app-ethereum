@@ -1,7 +1,7 @@
 /**
  * @file test_param_unit.c
  * @brief Unit tests for the UNIT parameter in
- *        src/features/generic_tx_parser/gtp_param_unit.c.
+ *        src/features/gcs/gcs_param_unit.c.
  *
  * UNIT renders a numeric value with a unit suffix, e.g. "1000 USDC" or
  * "10.00 USDC", after rescaling the input by param->decimals. The
@@ -23,10 +23,10 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#include "gtp_param_unit.h"
-#include "gtp_parsed_value.h"
-#include "gtp_value.h"
-#include "gtp_field.h"
+#include "gcs_param_unit.h"
+#include "gcs_parsed_value.h"
+#include "gcs_value.h"
+#include "gcs_field.h"
 #include "shared_context.h"
 
 // =============================================================================

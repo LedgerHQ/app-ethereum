@@ -11,8 +11,8 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#include "gtp_field.h"
-#include "gtp_param_group.h"
+#include "gcs_field.h"
+#include "gcs_param_group.h"
 
 static bool g_format_field_ret = true;
 static bool g_handle_field_struct_ret = true;
@@ -26,7 +26,7 @@ bool format_field(s_field *field, uint8_t depth) {
     return (bool) g_format_field_ret;
 }
 
-// Stubs for gtp_field.c symbols. The TLV-driven tests below use
+// Stubs for gcs_field.c symbols. The TLV-driven tests below use
 // will_return() to flip each stub's outcome; the format-only tests
 // at the top of the file never reach them.
 static bool g_use_mock_handle_field = false;

@@ -1,11 +1,11 @@
 /**
  * @file test_field_table.c
  * @brief Unit tests for the GCS field table at
- *        src/features/generic_tx_parser/gtp_field_table.c.
+ *        src/features/gcs/gcs_field_table.c.
  *
  * The field table is the in-memory buffer of (type, key, value,
  * extra_data) entries the parser hands to the UI layer to render a
- * transaction. Every gtp_param_* formatter ends in a call to
+ * transaction. Every gcs_param_* formatter ends in a call to
  * add_to_field_table(), so this module sits squarely on the critical
  * path for what the user sees.
  *
@@ -32,10 +32,10 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#include "gtp_field_table.h"
+#include "gcs_field_table.h"
 #include "handle_contacts.h"
 #include "token_info.h"
-#include "gtp_field.h"
+#include "gcs_field.h"
 #include "shared_context.h"
 #include "tx_ctx.h"
 

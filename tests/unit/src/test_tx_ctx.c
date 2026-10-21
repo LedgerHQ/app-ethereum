@@ -35,7 +35,7 @@
 #include <stdbool.h>
 
 #include "tx_ctx.h"
-#include "gtp_field_table.h"
+#include "gcs_field_table.h"
 #include "trusted_name.h"
 #include "address_name_lookup.h"
 #include "shared_context.h"

@@ -10,9 +10,9 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#include "gtp_param_calldata.h"
-#include "gtp_parsed_value.h"
-#include "gtp_value.h"
+#include "gcs_param_calldata.h"
+#include "gcs_parsed_value.h"
+#include "gcs_value.h"
 #include "tx_ctx.h"
 #include "calldata.h"
 #include "shared_context.h"

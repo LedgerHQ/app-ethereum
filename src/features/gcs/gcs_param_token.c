@@ -1,0 +1,119 @@
+#include <string.h>
+#include "gcs_param_token.h"
+#include "shared_context.h"
+#include "utils.h"
+#include "token_info.h"
+#include "network.h"
+#include "gcs_field_table.h"
+#include "tx_ctx.h"
+#include "tlv_library.h"
+#include "tlv_utils.h"
+
+#define PARAM_TOKEN_STRUCT_VERSION 0x01
+
+#define PARAM_TOKEN_TAGS(X)                                  \
+    X(0x00, TAG_VERSION, handle_version, ENFORCE_UNIQUE_TAG) \
+    X(0x01, TAG_ADDRESS, handle_address, ENFORCE_UNIQUE_TAG) \
+    X(0x02, TAG_NATIVE_CURRENCY, handle_native_currency, ALLOW_MULTIPLE_TAG)
+
+static bool handle_version(const tlv_data_t *data, s_param_token_context *context) {
+    return tlv_get_uint8_range(data,
+                               &context->param->version,
+                               PARAM_TOKEN_STRUCT_VERSION,
+                               PARAM_TOKEN_STRUCT_VERSION);
+}
+
+static bool handle_address(const tlv_data_t *data, s_param_token_context *context) {
+    s_value_context ctx = {0};
+
+    ctx.value = &context->param->address;
+    explicit_bzero(ctx.value, sizeof(*ctx.value));
+    return handle_value_struct(&data->value, &ctx);
+}
+
+static bool handle_native_currency(const tlv_data_t *data, s_param_token_context *context) {
+    if (data->value.size > ADDRESS_LENGTH) {
+        return false;
+    }
+    if (context->param->native_addr_count == MAX_NATIVE_ADDRS) {
+        return false;
+    }
+    if (data->value.size > 0) {
+        if (data->value.ptr == NULL) {
+            return false;
+        }
+        memcpy(&context->param->native_addrs[context->param->native_addr_count]
+                                            [ADDRESS_LENGTH - data->value.size],
+               data->value.ptr,
+               data->value.size);
+    }
+    context->param->native_addr_count += 1;
+    return true;
+}
+
+DEFINE_TLV_PARSER(PARAM_TOKEN_TAGS, NULL, param_token_tlv_parser)
+
+bool handle_param_token_struct(const buffer_t *buf, s_param_token_context *context) {
+    TLV_reception_t received_tags;
+    if (!param_token_tlv_parser(buf, context, &received_tags)) {
+        return false;
+    }
+    // Enforce the sub-structure's mandatory tags: an empty or partial PARAM
+    // payload would otherwise parse fine and never appear in the review
+    if (!TLV_CHECK_RECEIVED_TAGS(received_tags, TAG_VERSION, TAG_ADDRESS)) {
+        PRINTF("Error: missing mandatory tag(s) in gcs_param_token\n");
+        return false;
+    }
+    return true;
+}
+
+static bool match_native(const uint8_t *addr, const s_param_token *param) {
+    for (int i = 0; i < param->native_addr_count; ++i) {
+        if (memcmp(addr, param->native_addrs[i], ADDRESS_LENGTH) == 0) {
+            return true;
+        }
+    }
+    return false;
+}
+
+__attribute__((noinline)) bool format_param_token(const s_param_token *param, const char *name) {
+    bool ret;
+    s_parsed_value_collection collec = {0};
+    uint8_t addr[ADDRESS_LENGTH];
+    uint64_t chain_id;
+
+    if (get_current_tx_info() == NULL) return false;
+    chain_id = get_current_tx_info()->chain_id;
+    if ((ret = value_get(&param->address, &collec))) {
+        for (int i = 0; i < collec.size; ++i) {
+            // Reset per-iteration so a previous match cannot leak into the
+            // current row when the new address resolves through a different
+            // branch (CWE-451). The native path explicitly carries no
+            // s_token_info; the ERC-20 path must repopulate it from scratch.
+            const s_token_info *token_info = NULL;
+            s_token_info dummy;
+            const char *ticker = NULL;
+
+            buf_shrink_expand(collec.value[i].ptr, collec.value[i].length, addr, sizeof(addr));
+            if (match_native(addr, param)) {
+                ticker = get_displayable_ticker(&chain_id, g_chain_config, true);
+            } else {
+                if ((token_info = get_matching_token_info_or_dummy(&chain_id, addr, &dummy)) ==
+                    NULL) {
+                    ret = false;
+                    break;
+                }
+                ticker = token_info->ticker;
+            }
+            if (ticker == NULL) {
+                ret = false;
+                break;
+            }
+            if (!(ret = add_to_field_table(PARAM_TYPE_TOKEN, name, ticker, token_info))) {
+                break;
+            }
+        }
+    }
+    value_cleanup(&param->address, &collec);
+    return ret;
+}

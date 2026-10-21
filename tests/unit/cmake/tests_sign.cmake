@@ -15,6 +15,7 @@ ledger_unit_tests_add_test(NAME test_eth_ustream_helpers
     ${COMMON_INCLUDE_DIRS}
     ${APP_DIR}/features/sign_tx
     ${APP_DIR}/features/generic_tx_parser
+    ${APP_DIR}/features/gcs
     ${APP_DIR}/features/provide_network_info
   COMPILE_DEFS
     ${COMMON_COMPILE_DEFS}
@@ -37,6 +38,7 @@ ledger_unit_tests_add_test(NAME test_eth_ustream_typed
     ${COMMON_INCLUDE_DIRS}
     ${APP_DIR}/features/sign_tx
     ${APP_DIR}/features/generic_tx_parser
+    ${APP_DIR}/features/gcs
     ${APP_DIR}/features/provide_network_info
   COMPILE_DEFS
     ${COMMON_COMPILE_DEFS}
@@ -77,6 +79,7 @@ ledger_unit_tests_add_test(NAME test_logic_sign_tx_fee
     ${APP_DIR}/features/sign_tx
     ${APP_DIR}/features/get_public_key
     ${APP_DIR}/features/generic_tx_parser
+    ${APP_DIR}/features/gcs
     ${APP_DIR}/features/provide_network_info
     ${APP_DIR}/features/provide_proxy_info
     ${APP_DIR}/plugins
@@ -104,6 +107,7 @@ ledger_unit_tests_add_test(NAME test_logic_sign_tx_finalize
     ${APP_DIR}/features/sign_tx
     ${APP_DIR}/features/get_public_key
     ${APP_DIR}/features/generic_tx_parser
+    ${APP_DIR}/features/gcs
     ${APP_DIR}/features/provide_network_info
     ${APP_DIR}/features/provide_proxy_info
     ${APP_DIR}/plugins
@@ -132,6 +136,7 @@ ledger_unit_tests_add_test(NAME test_cmd_sign_tx
     ${COMMON_INCLUDE_DIRS}
     ${APP_DIR}/features/sign_tx
     ${APP_DIR}/features/generic_tx_parser
+    ${APP_DIR}/features/gcs
     ${APP_DIR}/features/provide_network_info
     ${APP_DIR}/plugins
     ${SDK_DIR}/io_legacy/include

@@ -2,7 +2,7 @@
  * @file test_field_validation_stubs.c
  * @brief Linker-filler stubs for test_field_validation.
  *
- * gtp_field.c switch statements reference all handle_param_* and
+ * gcs_field.c switch statements reference all handle_param_* and
  * format_param_* functions; the linker requires these symbols even though
  * none are called during constraint-validation tests.
  *

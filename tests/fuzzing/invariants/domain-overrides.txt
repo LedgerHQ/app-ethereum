@@ -60,7 +60,7 @@ SIGNER_DESC.is_valid = values \x00
 # ── Signer descriptor data pointer (NULL to prevent SEGV on random pointer) ──
 SIGNER_DESC.data = values \x00\x00\x00\x00\x00\x00\x00\x00
 
-# ── Tx batch state (gates gtp_field_table.c PARAM_TYPE_INTENT branch) ──
+# ── Tx batch state (gates gcs_field_table.c PARAM_TYPE_INTENT branch) ──
 txContext.batch_nb_tx = values \x00 \x01 \x02 \x03
 txContext.current_batch_size = values \x00 \x01 \x02 \x03
 

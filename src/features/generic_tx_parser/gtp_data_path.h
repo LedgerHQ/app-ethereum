@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include <stddef.h>
 #include "buffer.h"
-#include "gtp_parsed_value.h"
+#include "gcs_parsed_value.h"
 #include "gtp_path_array.h"
 #include "gtp_path_slice.h"
 

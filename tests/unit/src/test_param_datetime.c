@@ -1,7 +1,7 @@
 /**
  * @file test_param_datetime.c
  * @brief Unit tests for the DATETIME parameter in
- *        src/features/generic_tx_parser/gtp_param_datetime.c.
+ *        src/features/gcs/gcs_param_datetime.c.
  *
  * The parameter has two render modes, picked at TLV time via TAG_TYPE:
  *   - DT_UNIX (0):       interprets the value as a uint64 timestamp and
@@ -21,10 +21,10 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#include "gtp_param_datetime.h"
-#include "gtp_parsed_value.h"
-#include "gtp_value.h"
-#include "gtp_field.h"
+#include "gcs_param_datetime.h"
+#include "gcs_parsed_value.h"
+#include "gcs_value.h"
+#include "gcs_field.h"
 #include "shared_context.h"
 
 // =============================================================================

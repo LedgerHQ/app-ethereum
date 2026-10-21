@@ -7,7 +7,7 @@
 #include "common_utils.h"  // ADDRESS_LENGTH, INT256_LENGTH
 #include "gtp_tx_info.h"
 #include "calldata.h"
-#include "gtp_field.h"
+#include "gcs_field.h"
 
 typedef struct {
     list_node_t _list;

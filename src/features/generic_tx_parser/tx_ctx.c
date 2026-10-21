@@ -1,7 +1,7 @@
 #include "tx_ctx.h"
 #include "app_mem_utils.h"
 #include "address_name_lookup.h"
-#include "gtp_field_table.h"
+#include "gcs_field_table.h"
 #include "proxy_info.h"
 #include "common_ui.h"       // ui_gcs_cleanup
 #include "shared_context.h"  // appState

@@ -35,6 +35,7 @@ typedef struct {
     char *scope;
     char *old_identifier;
     char *new_identifier;
+    char *network_display;
 } edit_identifier_ctx_t;
 
 typedef struct {

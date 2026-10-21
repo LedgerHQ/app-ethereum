@@ -23,8 +23,9 @@
 #include "enum_value.h"
 #include "proxy_info.h"
 
-#define TAG_MAX_LEN   43
-#define VALUE_MAX_LEN 100
+#define TAG_MAX_LEN 43
+// Fits 64 bytes in hex: "0x" + 128 digits + NUL
+#define VALUE_MAX_LEN 131
 
 static nbgl_contentValueExt_t *extension = NULL;
 static nbgl_contentValueExt_t *from_extension = NULL;

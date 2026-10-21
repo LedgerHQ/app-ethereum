@@ -228,7 +228,7 @@ def test_transfer_erc20_truncated_amount(backend: BackendInterface, truncated_by
     assert err.value.status == StatusWord.SWO_INCORRECT_DATA
 
 
-def test_transfer_erc20_extra_data_nonascii_truncated(
+def test_transfer_erc20_extra_data_nonascii_max(
     scenario_navigator: NavigateWithScenario,
 ):
     common_transfer(

@@ -229,8 +229,8 @@ void finalize_ui_edit_identifier(void) {
  * @brief Handle called to validate and store the Edit Address (Identifier) parameters.
  *
  * Validates the new identifier (must be a valid 20-byte Ethereum address),
- * then allocates and converts both identifiers to hex strings for use by
- * get_edit_identifier_tagValue().
+ * then allocates and converts both identifiers to hex strings and the chain ID
+ * to a network name for use by get_edit_identifier_tagValue().
  *
  * @param[in] params Contact name, previous identifier, and new identity data
  * @return true if the edit is acceptable, false to reject
@@ -316,6 +316,28 @@ bool handle_check_edit_identifier(const edit_identifier_t *params) {
         APP_MEM_FREE_AND_NULL((void **) &g_ctx.edit_identifier.new_identifier);
         return false;
     }
+
+    // Allocate and format network name
+    if (APP_MEM_PERMANENT((void **) &g_ctx.edit_identifier.network_display, MAX_NETWORK_LEN) ==
+        false) {
+        PRINTF("Failed to allocate network_display\n");
+        APP_MEM_FREE_AND_NULL((void **) &g_ctx.edit_identifier.contact_name);
+        APP_MEM_FREE_AND_NULL((void **) &g_ctx.edit_identifier.scope);
+        APP_MEM_FREE_AND_NULL((void **) &g_ctx.edit_identifier.old_identifier);
+        APP_MEM_FREE_AND_NULL((void **) &g_ctx.edit_identifier.new_identifier);
+        return false;
+    }
+    if (get_network_as_string_from_chain_id(g_ctx.edit_identifier.network_display,
+                                            MAX_NETWORK_LEN,
+                                            params->identity.chain_id) == false) {
+        PRINTF("Failed to get network name from chain ID\n");
+        APP_MEM_FREE_AND_NULL((void **) &g_ctx.edit_identifier.contact_name);
+        APP_MEM_FREE_AND_NULL((void **) &g_ctx.edit_identifier.scope);
+        APP_MEM_FREE_AND_NULL((void **) &g_ctx.edit_identifier.old_identifier);
+        APP_MEM_FREE_AND_NULL((void **) &g_ctx.edit_identifier.new_identifier);
+        APP_MEM_FREE_AND_NULL((void **) &g_ctx.edit_identifier.network_display);
+        return false;
+    }
     address_book_review_set_flow(AB_FLOW_EDIT_IDENTIFIER);
     return true;
 }
@@ -327,6 +349,7 @@ bool handle_check_edit_identifier(const edit_identifier_t *params) {
  * Pair 1: address name (contact scope) (unchanged)
  * Pair 2: old address (previous identifier - hex with "0x" prefix)
  * Pair 3: new address (new identifier - hex with "0x" prefix)
+ * Pair 4: network
  *
  * @param[in] pairIndex Index of the tag-value pair
  * @return Pointer to the pair, or NULL if index is invalid
@@ -354,6 +377,11 @@ nbgl_contentTagValue_t *get_edit_identifier_tagValue(uint8_t pairIndex) {
         case 3:
             g_ctx.current_pair.item = "New address";
             g_ctx.current_pair.value = g_ctx.edit_identifier.new_identifier;
+            break;
+
+        case 4:
+            g_ctx.current_pair.item = "Network";
+            g_ctx.current_pair.value = g_ctx.edit_identifier.network_display;
             break;
 
         default:

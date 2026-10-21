@@ -1,13 +1,14 @@
 /**
  * @file test_handle_identity.c
- * @brief Unit tests for the Register Identity review at
+ * @brief Unit tests for the Register Identity and Edit Identifier reviews at
  *        src/features/address_book/handle_identity.c.
  *
  * Behaviors covered:
  *   - get_register_identity_tagValue() allocates the address and network
  *     display buffers once, however many times NBGL refreshes the pairs,
  *   - address_book_review_cleanup() releases everything the review allocated,
- *   - a new review starts from an empty context, whatever a previous flow left.
+ *   - a new review starts from an empty context, whatever a previous flow left,
+ *   - get_edit_identifier_tagValue() shows both addresses and the network.
  */
 
 #include "unity.h"
@@ -170,6 +171,30 @@ void test_register_review_starts_from_empty_context(void) {
     TEST_ASSERT_EQUAL_INT(live, g_live_allocs);
 }
 
+void test_edit_identifier_review_shows_network(void) {
+    int live = g_live_allocs;
+    edit_identifier_t edit;
+    memset(&edit, 0, sizeof(edit));
+    edit.identity = g_identity;
+    memset(edit.old_identifier, 0x22, ADDRESS_LENGTH);
+    edit.old_identifier_len = ADDRESS_LENGTH;
+    TEST_ASSERT_TRUE(handle_check_edit_identifier(&edit));
+
+    nbgl_contentTagValue_t *pair = get_edit_identifier_tagValue(2);
+    TEST_ASSERT_EQUAL_STRING("Old address", pair->item);
+    TEST_ASSERT_EQUAL_STRING("0x2222222222222222222222222222222222222222", pair->value);
+    pair = get_edit_identifier_tagValue(3);
+    TEST_ASSERT_EQUAL_STRING("New address", pair->item);
+    TEST_ASSERT_EQUAL_STRING("0x1111111111111111111111111111111111111111", pair->value);
+    pair = get_edit_identifier_tagValue(4);
+    TEST_ASSERT_EQUAL_STRING("Network", pair->item);
+    TEST_ASSERT_EQUAL_STRING("Ethereum", pair->value);
+    TEST_ASSERT_NULL(get_edit_identifier_tagValue(5));
+
+    address_book_review_cleanup();
+    TEST_ASSERT_EQUAL_INT(live, g_live_allocs);
+}
+
 // =============================================================================
 // Runner
 // =============================================================================
@@ -186,5 +211,6 @@ int main(void) {
     UNITY_BEGIN();
     RUN_TEST(test_register_review_pairs_allocated_once);
     RUN_TEST(test_register_review_starts_from_empty_context);
+    RUN_TEST(test_edit_identifier_review_shows_network);
     return UNITY_END();
 }

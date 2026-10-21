@@ -28,6 +28,7 @@ void address_book_review_cleanup(void) {
             APP_MEM_FREE_AND_NULL((void **) &g_ab_ctx.identity.edit_identifier.scope);
             APP_MEM_FREE_AND_NULL((void **) &g_ab_ctx.identity.edit_identifier.old_identifier);
             APP_MEM_FREE_AND_NULL((void **) &g_ab_ctx.identity.edit_identifier.new_identifier);
+            APP_MEM_FREE_AND_NULL((void **) &g_ab_ctx.identity.edit_identifier.network_display);
             break;
 #if defined(HAVE_ADDRESS_BOOK_LEDGER_ACCOUNT)
         case AB_FLOW_LEDGER_ACCOUNT:

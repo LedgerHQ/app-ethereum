@@ -72,14 +72,6 @@ static bool finalize_hash_stub(cx_hash_t *hash_ctx, uint8_t *out, size_t out_len
     return s_finalize_hash_ret;
 }
 
-// chain_is_ethereum_compatible is read on the STRUCT_VERSION_1 lookup
-// path. Make it controllable so we can test both branches.
-static bool g_chain_compatible_ret = true;
-bool chain_is_ethereum_compatible(const uint64_t *chain_id) {
-    (void) chain_id;
-    return g_chain_compatible_ret;
-}
-
 // get_implem_contract is the proxy resolver. TN_TYPE_CONTRACT/TOKEN
 // lookups consult it to remap a proxy address to its implementation.
 static const uint8_t *g_implem_contract_ret = NULL;
@@ -143,7 +135,6 @@ static void reset(void) {
     trusted_name_cleanup();
     s_sig_check_ret = true;
     s_finalize_hash_ret = true;
-    g_chain_compatible_ret = true;
     g_implem_contract_ret = NULL;
     g_derive_ret = 0;
     memset(g_derived_addr, 0, sizeof(g_derived_addr));
@@ -636,7 +627,7 @@ void test_lookup_contract_consults_proxy_resolver(void) {
 
 // =============================================================================
 // STRUCT_VERSION_1 paths — the older legacy shape (no NAME_TYPE /
-// NAME_SOURCE TLVs, lookup uses chain_is_ethereum_compatible).
+// NAME_SOURCE / CHAIN_ID TLVs, only matched on Ethereum mainnet).
 // =============================================================================
 
 void test_v1_happy_path_registers(void) {
@@ -650,8 +641,8 @@ void test_v1_happy_path_registers(void) {
                        .sig_len = 16};
     size_t len = build_v2_account_tlv(tlv, sizeof(tlv), opts);
     TEST_ASSERT_TRUE(run_parse_and_verify(tlv, len));
-    // V1 lookup needs TN_TYPE_ACCOUNT in types[], TN_SOURCE_ENS in sources[] and an
-    // Ethereum-compatible chain.
+    // V1 lookup needs TN_TYPE_ACCOUNT in types[], TN_SOURCE_ENS in sources[] and
+    // Ethereum mainnet.
     e_name_type types[] = {TN_TYPE_ACCOUNT};
     e_name_source sources[] = {TN_SOURCE_ENS};
     uint64_t chain = 1;
@@ -684,7 +675,7 @@ void test_v1_lookup_without_ens_source_returns_null(void) {
     TEST_ASSERT_NULL(get_trusted_name(1, types, 1, sources, &chain, g_addr));
 }
 
-void test_v1_lookup_non_eth_compatible_chain_returns_null(void) {
+void test_v1_lookup_off_mainnet_returns_null(void) {
     uint8_t tlv[400];
     s_tlv_opts opts = {.struct_type = 0x03,
                        .struct_version = 0x01,
@@ -695,12 +686,13 @@ void test_v1_lookup_non_eth_compatible_chain_returns_null(void) {
                        .sig_len = 16};
     size_t len = build_v2_account_tlv(tlv, sizeof(tlv), opts);
     TEST_ASSERT_TRUE(run_parse_and_verify(tlv, len));
-    // Lookup on a non-ETH chain: chain_is_ethereum_compatible=false → NULL.
-    g_chain_compatible_ret = false;
+    // No signed chain ID: an ENS name is not used on any other chain, EVM or not
+    static const uint64_t other_chains[] = {5, 56, 137, 8453};
     e_name_type types[] = {TN_TYPE_ACCOUNT};
     e_name_source sources[] = {TN_SOURCE_ENS};
-    uint64_t chain = 137;
-    TEST_ASSERT_NULL(get_trusted_name(1, types, 1, sources, &chain, g_addr));
+    for (size_t i = 0; i < sizeof(other_chains) / sizeof(other_chains[0]); ++i) {
+        TEST_ASSERT_NULL(get_trusted_name(1, types, 1, sources, &other_chains[i], g_addr));
+    }
 }
 
 void test_v1_lookup_without_account_type_returns_null(void) {
@@ -968,7 +960,7 @@ int main(void) {
     RUN_TEST(test_lookup_chain_id_mismatch_returns_null);
     RUN_TEST(test_lookup_contract_consults_proxy_resolver);
     RUN_TEST(test_v1_happy_path_registers);
-    RUN_TEST(test_v1_lookup_non_eth_compatible_chain_returns_null);
+    RUN_TEST(test_v1_lookup_off_mainnet_returns_null);
     RUN_TEST(test_v1_lookup_without_ens_source_returns_null);
     RUN_TEST(test_v1_lookup_without_account_type_returns_null);
     RUN_TEST(test_v1_coin_type_mismatch_rejected);

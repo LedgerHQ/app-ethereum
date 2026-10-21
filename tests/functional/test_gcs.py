@@ -39,9 +39,10 @@ from client.utils import get_selector_from_data
 from constants import ABIS_FOLDER
 from dynamic_networks_cfg import get_network_config
 from fields_utils import RawValue, get_all_paths, get_all_tuple_array_paths, get_all_tuple_paths
+from ledgered.devices import DeviceType
 from ragger.error import ExceptionRAPDU
-from ragger.navigator import Navigator
-from ragger.navigator.navigation_scenario import NavigateWithScenario
+from ragger.navigator import Navigator, NavIns, NavInsID
+from ragger.navigator.navigation_scenario import NavigateWithScenario, NavigationScenarioData, UseCase
 from web3 import Web3
 
 
@@ -466,10 +467,7 @@ def test_gcs_1inch(scenario_navigator: NavigateWithScenario):
         scenario_navigator.review_approve()
 
 
-def test_gcs_proxy(scenario_navigator: NavigateWithScenario):
-    backend = scenario_navigator.backend
-    app_client = EthAppClient(backend)
-
+def gcs_proxy_provide(app_client: EthAppClient) -> None:
     new_owner = bytes.fromhex("2222222222222222222222222222222222222222")
 
     with open(f"{ABIS_FOLDER}/proxy_implem.abi.json", encoding="utf-8") as file:
@@ -567,8 +565,52 @@ def test_gcs_proxy(scenario_navigator: NavigateWithScenario):
     for field in fields:
         app_client.provide_transaction_field_desc(field.serialize())
 
+
+def test_gcs_proxy(scenario_navigator: NavigateWithScenario):
+    app_client = EthAppClient(scenario_navigator.backend)
+
+    gcs_proxy_provide(app_client)
+
     with app_client.sign(mode=SignMode.START_FLOW):
         scenario_navigator.review_approve()
+
+
+def test_gcs_proxy_contract_info(scenario_navigator: NavigateWithScenario):
+    backend = scenario_navigator.backend
+    app_client = EthAppClient(backend)
+
+    gcs_proxy_provide(app_client)
+
+    # Open the contract information list from "Interaction with", then come back
+    moves: list[NavIns | NavInsID] = []
+    if backend.device.is_nano:
+        moves += [NavInsID.RIGHT_CLICK, NavInsID.BOTH_CLICK]
+        moves += [NavInsID.RIGHT_CLICK] * 4 + [NavInsID.BOTH_CLICK]
+    else:
+        # "Interaction with" alias, then the "Smart contract" entry holding the address
+        info_positions = {
+            DeviceType.FLEX: ((428, 100), (428, 318)),
+            DeviceType.STAX: ((358, 107), (358, 300)),
+            DeviceType.APEX_P: ((270, 62), (270, 200)),
+        }
+        alias_pos, contract_pos = info_positions[backend.device.type]
+        moves += [NavInsID.SWIPE_CENTER_TO_LEFT]
+        moves += [NavIns(NavInsID.TOUCH, alias_pos), NavIns(NavInsID.TOUCH, contract_pos)]
+        moves += [NavInsID.LEFT_HEADER_TAP] * 2
+
+    with app_client.sign(mode=SignMode.START_FLOW):
+        scenario_navigator.navigator.navigate_and_compare(
+            scenario_navigator.screenshot_path,
+            scenario_navigator.test_name,
+            moves,
+        )
+        scenario = NavigationScenarioData(backend.device, backend, UseCase.TX_REVIEW, True)
+        scenario_navigator.navigator.navigate_until_text(
+            scenario.navigation,
+            scenario.validation,
+            scenario.pattern,
+            screen_change_before_first_instruction=False,
+        )
 
 
 @pytest.fixture(name="known_tokens", params=[True, False])

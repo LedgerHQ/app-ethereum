@@ -154,10 +154,10 @@ static bool prepare_infos(nbgl_contentInfoList_t *infos) {
     }
 
 #ifndef SCREEN_SIZE_WALLET
-    if (!getEthDisplayableAddress((uint8_t *) get_contract_addr(get_current_tx_info()),
-                                  tmp_buf,
-                                  tmp_buf_size,
-                                  g_chain_config->chain_id)) {
+    if ((get_current_tx_to() == NULL) || !getEthDisplayableAddress((uint8_t *) get_current_tx_to(),
+                                                                   tmp_buf,
+                                                                   tmp_buf_size,
+                                                                   g_chain_config->chain_id)) {
         return false;
     }
     if ((keys[count] = APP_MEM_STRDUP("Contract address")) == NULL) {
@@ -192,7 +192,8 @@ static bool prepare_infos(nbgl_contentInfoList_t *infos) {
         infos->infoExtensions = extensions;
         infos->withExtensions = true;
 
-        if (!getEthDisplayableAddress((uint8_t *) get_contract_addr(get_current_tx_info()),
+        if ((get_current_tx_to() == NULL) ||
+            !getEthDisplayableAddress((uint8_t *) get_current_tx_to(),
                                       tmp_buf,
                                       tmp_buf_size,
                                       g_chain_config->chain_id)) {

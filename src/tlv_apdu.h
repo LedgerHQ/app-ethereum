@@ -16,3 +16,6 @@ e_tlv_apdu_ret tlv_from_apdu(bool first_chunk,
                              uint8_t lc,
                              const uint8_t *payload,
                              f_tlv_payload_handler handler);
+
+// Drop an incomplete multi-chunk payload
+void tlv_apdu_reset(void);

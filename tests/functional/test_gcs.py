@@ -467,7 +467,7 @@ def test_gcs_1inch(scenario_navigator: NavigateWithScenario):
         scenario_navigator.review_approve()
 
 
-def gcs_proxy_provide(app_client: EthAppClient) -> None:
+def gcs_proxy_provide(app_client: EthAppClient, contract_name: str | None = "Delegation Manager") -> None:
     new_owner = bytes.fromhex("2222222222222222222222222222222222222222")
 
     with open(f"{ABIS_FOLDER}/proxy_implem.abi.json", encoding="utf-8") as file:
@@ -523,7 +523,7 @@ def gcs_proxy_provide(app_client: EthAppClient) -> None:
         creator_name="EigenLayer",
         creator_legal_name="Eigen Labs",
         creator_url="https://eigenlayer.xyz",
-        contract_name="Delegation Manager",
+        contract_name=contract_name,
         deploy_date=1711098731,
     )
 
@@ -575,23 +575,24 @@ def test_gcs_proxy(scenario_navigator: NavigateWithScenario):
         scenario_navigator.review_approve()
 
 
-def test_gcs_proxy_contract_info(scenario_navigator: NavigateWithScenario):
+def gcs_proxy_contract_info(scenario_navigator: NavigateWithScenario, contract_name: str | None) -> None:
     backend = scenario_navigator.backend
     app_client = EthAppClient(backend)
 
-    gcs_proxy_provide(app_client)
+    gcs_proxy_provide(app_client, contract_name)
 
     # Open the contract information list from "Interaction with", then come back
     moves: list[NavIns | NavInsID] = []
     if backend.device.is_nano:
+        info_count = 4 if contract_name is not None else 3
         moves += [NavInsID.RIGHT_CLICK, NavInsID.BOTH_CLICK]
-        moves += [NavInsID.RIGHT_CLICK] * 4 + [NavInsID.BOTH_CLICK]
+        moves += [NavInsID.RIGHT_CLICK] * info_count + [NavInsID.BOTH_CLICK]
     else:
         # "Interaction with" alias, then the "Smart contract" entry holding the address
         info_positions = {
-            DeviceType.FLEX: ((428, 100), (428, 318)),
-            DeviceType.STAX: ((358, 107), (358, 300)),
-            DeviceType.APEX_P: ((270, 62), (270, 200)),
+            DeviceType.FLEX: ((428, 100), (428, 318 if contract_name is not None else 350)),
+            DeviceType.STAX: ((358, 107), (358, 300 if contract_name is not None else 330)),
+            DeviceType.APEX_P: ((270, 62), (270, 200 if contract_name is not None else 220)),
         }
         alias_pos, contract_pos = info_positions[backend.device.type]
         moves += [NavInsID.SWIPE_CENTER_TO_LEFT]
@@ -611,6 +612,14 @@ def test_gcs_proxy_contract_info(scenario_navigator: NavigateWithScenario):
             scenario.pattern,
             screen_change_before_first_instruction=False,
         )
+
+
+def test_gcs_proxy_contract_info(scenario_navigator: NavigateWithScenario):
+    gcs_proxy_contract_info(scenario_navigator, "Delegation Manager")
+
+
+def test_gcs_proxy_contract_info_no_name(scenario_navigator: NavigateWithScenario):
+    gcs_proxy_contract_info(scenario_navigator, None)
 
 
 @pytest.fixture(name="known_tokens", params=[True, False])

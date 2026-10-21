@@ -152,6 +152,24 @@ static bool prepare_infos(nbgl_contentInfoList_t *infos) {
 #endif
         count += 1;
     }
+#ifdef SCREEN_SIZE_WALLET
+    else {
+        // No contract name: the address itself is the entry, with its QR code
+        if ((get_current_tx_to() == NULL) ||
+            !getEthDisplayableAddress((uint8_t *) get_current_tx_to(),
+                                      tmp_buf,
+                                      tmp_buf_size,
+                                      g_chain_config->chain_id)) {
+            return false;
+        }
+        if (((keys[count] = APP_MEM_STRDUP("Smart contract")) == NULL) ||
+            ((values[count] = APP_MEM_STRDUP(tmp_buf)) == NULL)) {
+            return false;
+        }
+        contract_idx = count;
+        count += 1;
+    }
+#endif
 
 #ifndef SCREEN_SIZE_WALLET
     if ((get_current_tx_to() == NULL) || !getEthDisplayableAddress((uint8_t *) get_current_tx_to(),

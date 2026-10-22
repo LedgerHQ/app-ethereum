@@ -575,10 +575,11 @@ def init_signature_context(sig_ctx, types, domain, filters):
         caddr = caddr[2:]
     sig_ctx["caddr"] = bytearray.fromhex(caddr)
     chainid = domain["chainId"]
-    sig_ctx["chainid"] = bytearray()
-    for i in range(8):
-        sig_ctx["chainid"].append(chainid & (0xFF << (i * 8)))
-    sig_ctx["chainid"].reverse()
+    if isinstance(chainid, str):
+        chainid = int(chainid, 0)
+    if not 0 <= chainid < 2**64:
+        raise ValueError(f"Chain ID out of range: {chainid}")
+    sig_ctx["chainid"] = bytearray(chainid.to_bytes(8, "big"))
 
     # Order type fields
     for type_name in types.keys():

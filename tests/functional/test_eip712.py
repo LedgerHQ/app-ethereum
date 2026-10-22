@@ -736,6 +736,42 @@ ADVANCED_DATA_SETS = [
         },
         "_unlimited",
     ),
+    DataSet(
+        {
+            "types": {
+                "EIP712Domain": [
+                    {"name": "name", "type": "string"},
+                    {"name": "version", "type": "string"},
+                    {"name": "chainId", "type": "uint256"},
+                    {"name": "verifyingContract", "type": "address"},
+                ],
+                "Root": [
+                    {"name": "deadline", "type": "uint256"},
+                ],
+            },
+            "primaryType": "Root",
+            "domain": {
+                "name": "test",
+                "version": "1",
+                "verifyingContract": "0x0000000000000000000000000000000000000000",
+                "chainId": 42161,
+            },
+            "message": {
+                "deadline": 1719756000,
+            },
+        },
+        {
+            "name": "Chain ID test",
+            "tokens": [],
+            "fields": {
+                "deadline": {
+                    "type": "datetime",
+                    "name": "Deadline",
+                },
+            },
+        },
+        "_big_chain_id",
+    ),
 ]
 
 

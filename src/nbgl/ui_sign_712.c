@@ -24,12 +24,12 @@ static void ui_typed_message_review_choice(bool confirm) {
 /**
  * @brief Trigger the EIP712 review flow
  *
- * @param filtering_mode the filtering mode to use
+ * @param blind whether the values are shown raw, which is blind signing
  * @param operationType the type of operation to review
  * @param choiceCallback the callback to call when the user makes a choice
  * @return whether the review could be started
  */
-static bool ui_712_start_review(e_eip712_filtering_mode filtering_mode,
+static bool ui_712_start_review(bool blind,
                                 nbgl_operationType_t operationType,
                                 nbgl_choiceCallback_t choiceCallback) {
 #ifdef HAVE_TRANSACTION_CHECKS
@@ -39,7 +39,7 @@ static bool ui_712_start_review(e_eip712_filtering_mode filtering_mode,
     const char *tx_check_str = ui_tx_simulation_finish_str();
     const char *title_suffix = " typed message?";
 #else
-    UNUSED(filtering_mode);
+    UNUSED(blind);
     const char *tx_check_str = "Sign";
     const char *title_suffix = " message";
 #endif
@@ -55,7 +55,7 @@ static bool ui_712_start_review(e_eip712_filtering_mode filtering_mode,
 
     // Use review with skip button in case of raw message
 #ifdef SCREEN_SIZE_WALLET
-    if (filtering_mode == EIP712_FILTERING_BASIC) {
+    if (blind) {
         operationType |= SKIPPABLE_OPERATION;
     } else
 #endif
@@ -96,7 +96,9 @@ bool ui_sign_712_v1(e_eip712_filtering_mode filtering_mode) {
         }
     }
 
-    return ui_712_start_review(filtering_mode, TYPE_MESSAGE, ui_typed_message_review_choice);
+    return ui_712_start_review(filtering_mode == EIP712_FILTERING_BASIC,
+                               TYPE_MESSAGE,
+                               ui_typed_message_review_choice);
 }
 
 /**
@@ -104,7 +106,7 @@ bool ui_sign_712_v1(e_eip712_filtering_mode filtering_mode) {
  * @return boolean indicating success or failure
  */
 bool ui_sign_712_v0(void) {
-    if (!ui_712_start(EIP712_FILTERING_BASIC)) {
+    if (!ui_712_prepare_blind_review()) {
         return false;
     }
 
@@ -119,7 +121,5 @@ bool ui_sign_712_v0(void) {
         return false;
     }
 
-    return ui_712_start_review(EIP712_FILTERING_BASIC,
-                               TYPE_TRANSACTION,
-                               ui_typed_message_review_choice);
+    return ui_712_start_review(true, TYPE_TRANSACTION, ui_typed_message_review_choice);
 }

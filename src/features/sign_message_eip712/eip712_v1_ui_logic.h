@@ -83,6 +83,7 @@ bool ui_712_filtering_broken(void);
 bool ui_712_pending_amount_joins(void);
 void ui_712_set_filtering_mode(e_eip712_filtering_mode mode);
 e_eip712_filtering_mode ui_712_get_filtering_mode(void);
+bool ui_712_prepare_review_v1(e_eip712_filtering_mode mode);
 void ui_712_set_filters_count(uint8_t count);
 uint8_t ui_712_remaining_filters(void);
 bool ui_712_message_info_received(void);

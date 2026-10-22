@@ -3,7 +3,7 @@
 #include "common_ui.h"
 #include "utils.h"
 #include "ui_utils.h"
-#include "eip712_v1_ui_logic.h"
+#include "common_712.h"
 #include "ui_nbgl.h"
 #include "cmd_get_tx_simulation.h"
 #include "app_mem_utils.h"
@@ -98,22 +98,30 @@ bool eip712_format_hash(uint8_t index) {
 }
 
 /**
- * Initialize EIP712 flow
+ * Prepare the review of a typed message: enter the signing state, with no warning
  *
- * @param filtering the filtering mode to use for the EIP712 flow
  * @return boolean indicating success or failure
  */
-bool ui_712_start(e_eip712_filtering_mode filtering) {
+bool ui_712_prepare_review(void) {
     if (appState != APP_STATE_IDLE && appState != APP_STATE_PREPARING_EIP712) {
         reset_app_context();
     }
     appState = APP_STATE_SIGNING_EIP712;
     memset(&strings, 0, sizeof(strings));
     memset(&warning, 0, sizeof(nbgl_warning_t));
-    if (filtering == EIP712_FILTERING_BASIC) {
-        // If the user has requested a filtered view, we will not show the warning
-        warning.predefinedSet |= SET_BIT(BLIND_SIGNING_WARN);
-        warning.predefinedSet |= SET_BIT(GATED_SIGNING_WARN);
+    return true;
+}
+
+/**
+ * Prepare the review of a typed message shown raw, which is blind signing
+ *
+ * @return boolean indicating success or failure
+ */
+bool ui_712_prepare_blind_review(void) {
+    if (!ui_712_prepare_review()) {
+        return false;
     }
+    warning.predefinedSet |= SET_BIT(BLIND_SIGNING_WARN);
+    warning.predefinedSet |= SET_BIT(GATED_SIGNING_WARN);
     return true;
 }

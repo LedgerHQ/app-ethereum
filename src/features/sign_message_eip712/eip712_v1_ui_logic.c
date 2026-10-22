@@ -230,7 +230,7 @@ bool ui_712_continue_or_finish(void) {
             ui_error_blind_signing();
             return false;
         }
-        if (!ui_712_start(ui_ctx->filtering_mode)) {
+        if (!ui_712_prepare_review_v1(ui_ctx->filtering_mode)) {
             return false;
         }
         io_seproxyhal_send_status(SWO_SUCCESS, 0, false, false);
@@ -1171,6 +1171,19 @@ e_eip712_filtering_mode ui_712_get_filtering_mode(void) {
         return EIP712_FILTERING_BASIC;
     }
     return ui_ctx->filtering_mode;
+}
+
+/**
+ * Prepare the review of a V1 message
+ *
+ * Without filters (basic mode) every value is shown raw, which is blind signing.
+ *
+ * @param[in] mode the filtering mode of the message
+ * @return boolean indicating success or failure
+ */
+bool ui_712_prepare_review_v1(e_eip712_filtering_mode mode) {
+    return (mode == EIP712_FILTERING_BASIC) ? ui_712_prepare_blind_review()
+                                            : ui_712_prepare_review();
 }
 
 /**

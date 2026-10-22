@@ -100,11 +100,14 @@ bool eip712_format_hash(uint8_t index) {
 /**
  * Prepare the review of a typed message: enter the signing state, with no warning
  *
- * @return boolean indicating success or failure
+ * Every flow gets here from its own start (idle) or from its preparation. The review is refused in
+ * any other state, which is another flow's: its data is not reset from here.
+ *
+ * @return whether the review can go on
  */
 bool ui_712_prepare_review(void) {
     if (appState != APP_STATE_IDLE && appState != APP_STATE_PREPARING_EIP712) {
-        reset_app_context();
+        return false;
     }
     appState = APP_STATE_SIGNING_EIP712;
     memset(&strings, 0, sizeof(strings));
@@ -115,7 +118,7 @@ bool ui_712_prepare_review(void) {
 /**
  * Prepare the review of a typed message shown raw, which is blind signing
  *
- * @return boolean indicating success or failure
+ * @return whether the review can go on
  */
 bool ui_712_prepare_blind_review(void) {
     if (!ui_712_prepare_review()) {

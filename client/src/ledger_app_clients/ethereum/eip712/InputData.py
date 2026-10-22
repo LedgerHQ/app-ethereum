@@ -148,17 +148,21 @@ def encode_uint(value: str, typesize: int) -> bytes:
     return encode_integer(value, typesize)
 
 
-def encode_hex_string(value: str, size: int) -> bytes:
-    assert value.startswith("0x")
-    value = value[2:]
-    if len(value) < (size * 2):
-        value = value.rjust(size * 2, "0")
-    assert len(value) == (size * 2)
-    return bytes.fromhex(value)
+def decode_hex_string(value: str) -> bytes:
+    if not value.startswith("0x"):
+        raise ValueError(f"Missing 0x prefix: {value}")
+    digits = value[2:]
+    # An odd number of digits gets a leading zero, as eth_account does
+    if len(digits) % 2:
+        digits = "0" + digits
+    return bytes.fromhex(digits)
 
 
 def encode_address(value: str, typesize: int) -> bytes:
-    return encode_hex_string(value, 20)
+    data = decode_hex_string(value)
+    if len(data) != 20:
+        raise ValueError(f"Address is not 20 bytes long: {value}")
+    return data
 
 
 def encode_bool(value: str, typesize: int) -> bytes:
@@ -170,14 +174,15 @@ def encode_string(value: str, typesize: int) -> bytes:
 
 
 def encode_bytes_fix(value: str, typesize: int) -> bytes:
-    return encode_hex_string(value, typesize)
+    data = decode_hex_string(value)
+    if len(data) > typesize:
+        raise ValueError(f"Value longer than bytes{typesize}: {value}")
+    # A shorter value is left-aligned, as in the ABI encoding
+    return data.ljust(typesize, b"\x00")
 
 
 def encode_bytes_dyn(value: str, typesize: int) -> bytes:
-    # length of the value string
-    # - the length of 0x (2)
-    # / by the length of one byte in a hex string (2)
-    return encode_hex_string(value, int((len(value) - 2) / 2))
+    return decode_hex_string(value)
 
 
 # set functions for each type

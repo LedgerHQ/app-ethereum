@@ -375,6 +375,44 @@ def test_eip712_string_embedded_nul(scenario_navigator: NavigateWithScenario, fi
     assert e.value.status == status
 
 
+def test_eip712_fixed_bytes_short_value(scenario_navigator: NavigateWithScenario):
+    """A bytesN value shorter than N bytes is right-padded, as in the ABI encoding."""
+    data = {
+        "domain": {
+            "chainId": 1,
+            "name": "Fixed bytes test",
+            "verifyingContract": "0xCcCCccccCCCCcCCCCCCcCcCccCcCCCcCcccccccC",
+            "version": "1",
+        },
+        "message": {"tag": "0x01"},
+        "primaryType": "Tagged",
+        "types": {
+            "EIP712Domain": [
+                {"name": "name", "type": "string"},
+                {"name": "version", "type": "string"},
+                {"name": "chainId", "type": "uint256"},
+                {"name": "verifyingContract", "type": "address"},
+            ],
+            "Tagged": [
+                {"name": "tag", "type": "bytes4"},
+            ],
+        },
+    }
+    settings_toggle(
+        scenario_navigator.backend.device,
+        scenario_navigator.navigator,
+        [SettingID.BLIND_SIGNING],
+    )
+    eip712_new_common(scenario_navigator, data, nb_warnings=1)
+
+
+@pytest.mark.parametrize("address", ["0x01", "0x" + "11" * 21], ids=["short", "long"])
+def test_eip712_address_wrong_length(address: str):
+    """The client refuses an address that is not 20 bytes long instead of padding it."""
+    with pytest.raises(ValueError):
+        InputData.encode_address(address, 20)
+
+
 @pytest.mark.parametrize("delta", [-1, 1], ids=["short", "long"])
 def test_eip712_fixed_bytes_wrong_length(scenario_navigator: NavigateWithScenario, monkeypatch: pytest.MonkeyPatch, delta: int):
     """A bytesN value must be exactly N bytes long."""

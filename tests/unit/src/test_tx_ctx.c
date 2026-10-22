@@ -114,6 +114,15 @@ bool add_to_field_table(e_param_type type, const char *key, const char *value, c
     return true;
 }
 
+bool add_address_to_field_table(e_param_type type,
+                                const char *key,
+                                const char *value,
+                                const void *extra,
+                                const uint8_t *addr) {
+    (void) addr;
+    return add_to_field_table(type, key, value, extra);
+}
+
 static int g_network_calls = 0;
 static uint64_t g_network_chain_id = 0;
 bool get_network_as_string_from_chain_id(char *out, size_t out_size, uint64_t chain_id) {

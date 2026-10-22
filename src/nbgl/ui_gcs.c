@@ -284,7 +284,8 @@ static const nbgl_contentValueExt_t *handle_extra_data_trusted_name(
             alias_type = INFO_LIST_ALIAS;
             break;
     }
-    if (!getEthDisplayableAddress(tname->addr,
+    // The transaction address, not the trusted name one which can be a proxy implementation
+    if (!getEthDisplayableAddress(field->has_addr ? field->addr : tname->addr,
                                   formatted_addr,
                                   sizeof(formatted_addr),
                                   g_chain_config->chain_id)) {

@@ -171,7 +171,7 @@ static bool process_empty_tx(const s_tx_ctx *tx_ctx) {
             param_type = PARAM_TYPE_RAW;
             break;
     }
-    if (!add_to_field_table(param_type, "To", buf, extra_data)) {
+    if (!add_address_to_field_table(param_type, "To", buf, extra_data, tx_ctx->to)) {
         return false;
     }
     // A call on another chain than the root one is told apart by its network

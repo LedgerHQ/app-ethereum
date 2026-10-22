@@ -622,6 +622,42 @@ def test_gcs_proxy_contract_info_no_name(scenario_navigator: NavigateWithScenari
     gcs_proxy_contract_info(scenario_navigator, None)
 
 
+def test_gcs_proxy_trusted_name_info(scenario_navigator: NavigateWithScenario):
+    backend = scenario_navigator.backend
+    app_client = EthAppClient(backend)
+
+    gcs_proxy_provide(app_client)
+
+    # Open the "New owner" trusted name details, then come back
+    moves: list[NavIns | NavInsID] = []
+    if backend.device.is_nano:
+        moves += [NavInsID.RIGHT_CLICK] * 3 + [NavInsID.BOTH_CLICK]
+        moves += [NavInsID.RIGHT_CLICK, NavInsID.BOTH_CLICK]
+    else:
+        new_owner_positions = {
+            DeviceType.FLEX: (428, 388),
+            DeviceType.STAX: (358, 364),
+            DeviceType.APEX_P: (270, 258),
+        }
+        moves += [NavInsID.SWIPE_CENTER_TO_LEFT]
+        moves += [NavIns(NavInsID.TOUCH, new_owner_positions[backend.device.type])]
+        moves += [NavInsID.LEFT_HEADER_TAP]
+
+    with app_client.sign(mode=SignMode.START_FLOW):
+        scenario_navigator.navigator.navigate_and_compare(
+            scenario_navigator.screenshot_path,
+            scenario_navigator.test_name,
+            moves,
+        )
+        scenario = NavigationScenarioData(backend.device, backend, UseCase.TX_REVIEW, True)
+        scenario_navigator.navigator.navigate_until_text(
+            scenario.navigation,
+            scenario.validation,
+            scenario.pattern,
+            screen_change_before_first_instruction=False,
+        )
+
+
 @pytest.fixture(name="known_tokens", params=[True, False])
 def known_tokens_fixture(request) -> bool:
     return request.param

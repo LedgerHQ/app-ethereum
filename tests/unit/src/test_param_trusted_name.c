@@ -73,6 +73,16 @@ bool add_to_field_table(e_param_type param_type, const char *name, const char *v
     return (bool) g_add_to_field_table_ret;
 }
 
+bool add_address_to_field_table(e_param_type param_type,
+                                const char *name,
+                                const char *value,
+                                const void *extra_data,
+                                const uint8_t *addr) {
+    (void) extra_data;
+    (void) addr;
+    return add_to_field_table(param_type, name, value);
+}
+
 /**
  * @brief Mock implementation of get_current_tx_chain_id
  */

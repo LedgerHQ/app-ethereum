@@ -301,7 +301,8 @@ bool format_param_trusted_name(const struct s_field *field) {
         }
 
         if (to_be_displayed) {
-            if (!(ret = add_to_field_table(param_type, field->name, buf, extra_data))) {
+            if (!(ret =
+                      add_address_to_field_table(param_type, field->name, buf, extra_data, addr))) {
                 break;
             }
         }

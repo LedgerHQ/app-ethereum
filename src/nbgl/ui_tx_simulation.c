@@ -7,68 +7,16 @@
 
 #ifdef HAVE_TRANSACTION_CHECKS
 
-#define HOW_TO_INFO_NB 3
-
-enum {
-    WARNING_CHOICE_TOKEN = FIRST_USER_TOKEN,
-    WARNING_BUTTON_TOKEN,
-    DISMISS_WARNING_TOKEN,
-};
-
 // Global flag to send Opt-In result
 static bool g_response_expected;
 
-/**
- * @brief Callback called when user press a button on the opt-in explain screen
- *
- * @param[in] token Id of the pressed widget (button)
- * @param[in] index Indicates the value of the pressed button
- */
-static void opt_in_explain_cb(int token, uint8_t index) {
-    UNUSED(token);
-    UNUSED(index);
-    ui_tx_simulation_opt_in(g_response_expected);
-}
+// "How it works" page, displayed from the opt-in screen
+static nbgl_genericDetails_t g_how_it_works;
 
-/**
- * @brief Display the "How it works" screen
- *
- */
-static void ui_tx_simulation_explain(void) {
-    nbgl_layout_t *layoutCtx = NULL;
-    nbgl_layoutDescription_t layoutDescription = {0};
-    nbgl_layoutLeftContent_t info = {0};
-    nbgl_layoutHeader_t headerDesc = {.type = HEADER_BACK_AND_TEXT,
-                                      .backAndText.tuneId = TUNE_TAP_CASUAL,
-                                      .backAndText.token = DISMISS_WARNING_TOKEN};
+#define HOW_IT_WORKS_NB 3
 
-    layoutDescription.withLeftBorder = true;
-    layoutDescription.onActionCallback = opt_in_explain_cb;
-    layoutCtx = nbgl_layoutGet(&layoutDescription);
-    const char *rowTexts[HOW_TO_INFO_NB] = {
-        "Transaction is checked for threats before signing.",
-        "The result is displayed: Critical threat, potential risk or no threat.",
-        "Scan the QR Code on your Ledger device for details on any threat or risk.",
-    };
-    const nbgl_icon_details_t *rowIcons[HOW_TO_INFO_NB] = {
-        &PRIVACY_ICON,
-        &WARNING_ICON,
-        &QRCODE_ICON,
-    };
-
-    // add header
-    nbgl_layoutAddHeader(layoutCtx, &headerDesc);
-
-    // add title
-    info.title = "How it works";
-    info.nbRows = HOW_TO_INFO_NB;
-    info.rowTexts = rowTexts;
-    info.rowIcons = rowIcons;
-    nbgl_layoutAddLeftContent(layoutCtx, &info);
-
-    nbgl_layoutDraw(layoutCtx);
-    nbgl_refresh();
-}
+static const char *g_how_it_works_texts[HOW_IT_WORKS_NB];
+static const nbgl_icon_details_t *g_how_it_works_icons[HOW_IT_WORKS_NB];
 
 /**
  * @brief Finalise the opt-in process with status
@@ -85,38 +33,26 @@ static void finalise_opt_in(bool confirm, nbgl_callback_t callback) {
 }
 
 /**
- * @brief Callback called when user press a button on the opt-in screen
+ * @brief Callback called when user makes a choice on the opt-in screen
  *
- * @param[in] token Id of the pressed widget (button)
- * @param[in] index Indicates the value of the pressed button
+ * @param[in] confirm Indicates if the user enables the setting
  */
-static void opt_in_action_cb(int token, uint8_t index) {
+static void opt_in_choice_cb(bool confirm) {
     bool opt_in = true;
-    bool confirm = true;
 
-    switch (token) {
-        case WARNING_CHOICE_TOKEN:
-            // Set the opt-in flag
-            nvm_write((void *) &N_storage.tx_check_opt_in, (void *) &opt_in, sizeof(opt_in));
-            confirm = (index == 0 ? true : false);
-            if (confirm != N_storage.tx_check_enable) {
-                // Set the Transaction Check flag
-                nvm_write((void *) &N_storage.tx_check_enable, (void *) &confirm, sizeof(confirm));
-            }
-            if (g_response_expected) {
-                // just respond the current state and return to idle screen
-                G_io_tx_buffer[0] = N_storage.tx_check_enable;
-                io_seproxyhal_send_status(SWO_SUCCESS, 1, false, false);
-                finalise_opt_in(confirm, ui_idle);
-            } else {
-                finalise_opt_in(confirm, ui_settings);
-            }
-            break;
-        case WARNING_BUTTON_TOKEN:
-            ui_tx_simulation_explain();
-            break;
-        default:
-            break;
+    // Set the opt-in flag
+    nvm_write((void *) &N_storage.tx_check_opt_in, (void *) &opt_in, sizeof(opt_in));
+    if (confirm != N_storage.tx_check_enable) {
+        // Set the Transaction Check flag
+        nvm_write((void *) &N_storage.tx_check_enable, (void *) &confirm, sizeof(confirm));
+    }
+    if (g_response_expected) {
+        // just respond the current state and return to idle screen
+        G_io_tx_buffer[0] = N_storage.tx_check_enable;
+        io_seproxyhal_send_status(SWO_SUCCESS, 1, false, false);
+        finalise_opt_in(confirm, ui_idle);
+    } else {
+        finalise_opt_in(confirm, ui_settings);
     }
 }
 
@@ -126,47 +62,33 @@ static void opt_in_action_cb(int token, uint8_t index) {
  * @param[in] response_expected indicates if a RAPDU is expected
  */
 void ui_tx_simulation_opt_in(bool response_expected) {
-    nbgl_layout_t *layoutCtx = NULL;
-    nbgl_layoutDescription_t layoutDescription = {0};
-    nbgl_contentCenter_t info = {0};
-    nbgl_layoutChoiceButtons_t buttonsInfo = {.topText = "Yes, enable",
-                                              .bottomText = "Maybe later",
-                                              .token = WARNING_CHOICE_TOKEN,
-                                              .style = ROUNDED_AND_FOOTER_STYLE,
-                                              .tuneId = TUNE_TAP_CASUAL};
-
-    nbgl_layoutHeader_t headerDesc = {.type = HEADER_EXTENDED_BACK,
-                                      .separationLine = false,
-                                      .extendedBack.actionIcon = &QUESTION_CIRCLE_ICON,
-                                      .extendedBack.backToken = NBGL_INVALID_TOKEN,
-                                      .extendedBack.tuneId = TUNE_TAP_CASUAL,
-                                      .extendedBack.text = NULL,
-                                      .extendedBack.actionToken = WARNING_BUTTON_TOKEN};
-
     g_response_expected = response_expected;
-    layoutDescription.withLeftBorder = true;
-    layoutDescription.onActionCallback = opt_in_action_cb;
-    layoutCtx = nbgl_layoutGet(&layoutDescription);
 
-    // add header
-    nbgl_layoutAddHeader(layoutCtx, &headerDesc);
+    g_how_it_works_texts[0] = "Transaction is checked for threats before signing.";
+    g_how_it_works_texts[1] =
+        "The result is displayed: Critical threat, potential risk or no threat.";
+    g_how_it_works_texts[2] =
+        "Scan the QR Code on your Ledger device for details on any threat or risk.";
+    g_how_it_works_icons[0] = &PRIVACY_ICON;
+    g_how_it_works_icons[1] = &WARNING_ICON;
+    g_how_it_works_icons[2] = &QRCODE_ICON;
 
-    // add main content
-    info.title = "Enable\nTransaction Check?";
-    info.description =
-        "Get real-time warnings about risky Ethereum transactions. "
-        "Powered by service providers.";
-    info.subText = "By enabling, you accept T&Cs: ledger.com/tx-check";
-    nbgl_layoutAddContentCenter(layoutCtx, &info);
+    explicit_bzero(&g_how_it_works, sizeof(g_how_it_works));
+    g_how_it_works.type = LEFT_CONTENT_WARNING;
+    g_how_it_works.leftContent.title = "How it works";
+    g_how_it_works.leftContent.nbRows = HOW_IT_WORKS_NB;
+    g_how_it_works.leftContent.rowTexts = g_how_it_works_texts;
+    g_how_it_works.leftContent.rowIcons = g_how_it_works_icons;
 
-    // add button and footer on bottom
-    nbgl_layoutAddChoiceButtons(layoutCtx, &buttonsInfo);
-
-#ifdef HAVE_PIEZO_SOUND
-    io_seproxyhal_play_tune(TUNE_LOOK_AT_ME);
-#endif  // HAVE_PIEZO_SOUND
-    nbgl_layoutDraw(layoutCtx);
-    nbgl_refresh();
+    nbgl_useCaseAdvancedChoiceWithDetails(NULL,
+                                          &QUESTION_CIRCLE_ICON,
+                                          "Enable\nTransaction Check?",
+                                          "Real-time warnings powered\nby 3rd service providers.",
+                                          "By enabling, you accept T&Cs: ledger.com/tx-check",
+                                          "Yes, enable",
+                                          "Maybe later",
+                                          &g_how_it_works,
+                                          opt_in_choice_cb);
 }
 
 #endif  // HAVE_TRANSACTION_CHECKS

@@ -118,9 +118,10 @@ void cleanup_field(s_field *field) {
     (void) field;
     g_cleanup_field_calls++;
 }
+static bool g_fields_hash_ctx_none = false;
 cx_hash_t *get_current_operation_fields_hash_ctx(void) {
     static cx_sha3_t dummy;
-    return (cx_hash_t *) &dummy;
+    return g_fields_hash_ctx_none ? NULL : (cx_hash_t *) &dummy;
 }
 cx_err_t cx_hash_no_throw(cx_hash_t *hash,
                           uint32_t mode,
@@ -228,6 +229,7 @@ static void reset(void) {
     g_verify_field_struct_ret = true;
     g_format_field_ret = true;
     g_cx_hash_ret = CX_OK;
+    g_fields_hash_ctx_none = false;
     g_validate_instruction_hash_budget = 0;
     g_operation_ctx_is_root_ret = true;
     g_process_empty_calls_after_ret = true;
@@ -251,6 +253,14 @@ static void reset(void) {
 // =============================================================================
 // handle_tx_field — appState guard
 // =============================================================================
+
+// A transaction is described with P2 00, a typed message with P2 02 to another command
+void test_field_p2_rejected(void) {
+    appState = APP_STATE_SIGNING_TX;
+    TEST_ASSERT_EQUAL(handle_tx_field(P1_FIRST_CHUNK, 1, 0, NULL), SWO_INCORRECT_P1_P2);
+    TEST_ASSERT_EQUAL(handle_tx_field(P1_FIRST_CHUNK, P2_EIP712_V2_IMPLEM, 0, NULL),
+                      SWO_INCORRECT_P1_P2);
+}
 
 void test_field_wrong_appstate_rejected(void) {
     appState = APP_STATE_IDLE;  // not SIGNING_TX / SIGNING_EIP712
@@ -382,6 +392,19 @@ void test_field_handler_handle_field_struct_failure(void) {
     handle_tx_field(P1_FIRST_CHUNK, 0, 0, NULL);
     TEST_ASSERT_FALSE(g_field_tlv_handler_returned);
     // cleanup_field must be called to release any half-built state
+    TEST_ASSERT_EQUAL(g_cleanup_field_calls, 1);
+}
+
+// The descriptors have to be attested by something to be accepted
+void test_field_handler_without_a_fields_hash_refused(void) {
+    static const s_operation_info dummy = {0};
+    s_tx_info_ret = &dummy;
+    appState = APP_STATE_SIGNING_TX;
+    g_field_tlv_invoke_handler = true;
+    g_fields_hash_ctx_none = true;
+
+    handle_tx_field(P1_FIRST_CHUNK, 0, 0, NULL);
+    TEST_ASSERT_FALSE(g_field_tlv_handler_returned);
     TEST_ASSERT_EQUAL(g_cleanup_field_calls, 1);
 }
 
@@ -656,6 +679,7 @@ void tearDown(void) {
 
 int main(void) {
     UNITY_BEGIN();
+    RUN_TEST(test_field_p2_rejected);
     RUN_TEST(test_field_wrong_appstate_rejected);
     RUN_TEST(test_field_signing_message_state_rejected);
     RUN_TEST(test_field_no_tx_info_triggers_cleanup);
@@ -670,6 +694,7 @@ int main(void) {
     RUN_TEST(test_tx_info_eip712_signing_allowed);
     RUN_TEST(test_field_handler_happy_path);
     RUN_TEST(test_field_handler_handle_field_struct_failure);
+    RUN_TEST(test_field_handler_without_a_fields_hash_refused);
     RUN_TEST(test_field_handler_hash_failure);
     RUN_TEST(test_field_handler_verify_failure);
     RUN_TEST(test_field_handler_format_failure);

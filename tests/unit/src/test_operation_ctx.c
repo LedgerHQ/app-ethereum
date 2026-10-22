@@ -796,6 +796,58 @@ void test_cleanup_forgets_the_message(void) {
 // The descriptors of a message, and the ones its info announces
 // =============================================================================
 
+void test_descriptors_are_pending_when_the_info_announces_some(void) {
+    TEST_ASSERT_TRUE(
+        operation_ctx_init_message(make_message_info(true), g_self_addr, NULL, &(uint64_t) {1}));
+    TEST_ASSERT_TRUE(operation_ctx_message_has_pending_fields());
+}
+
+void test_no_descriptors_are_pending_when_the_info_announces_none(void) {
+    TEST_ASSERT_TRUE(
+        operation_ctx_init_message(make_message_info(false), g_self_addr, NULL, &(uint64_t) {1}));
+    TEST_ASSERT_FALSE(operation_ctx_message_has_pending_fields());
+    TEST_ASSERT_FALSE(operation_ctx_message_fields_match());
+}
+
+void test_no_descriptors_are_pending_without_a_message(void) {
+    TEST_ASSERT_FALSE(operation_ctx_message_has_pending_fields());
+    TEST_ASSERT_FALSE(operation_ctx_message_fields_match());
+}
+
+// the announcement is the hash over every descriptor, in the order they came
+void test_descriptors_match_when_the_digest_is_the_announced_one(void) {
+    s_operation_info *info = make_message_info(true);
+
+    memset(info->fields_hash, 0x5A, sizeof(info->fields_hash));
+    TEST_ASSERT_TRUE(operation_ctx_init_message(info, g_self_addr, NULL, &(uint64_t) {1}));
+    memset(g_finalize_hash_out, 0x5A, sizeof(g_finalize_hash_out));
+    TEST_ASSERT_TRUE(operation_ctx_message_fields_match());
+}
+
+void test_descriptors_do_not_match_another_digest(void) {
+    s_operation_info *info = make_message_info(true);
+
+    memset(info->fields_hash, 0x5A, sizeof(info->fields_hash));
+    TEST_ASSERT_TRUE(operation_ctx_init_message(info, g_self_addr, NULL, &(uint64_t) {1}));
+    memset(g_finalize_hash_out, 0x5A, sizeof(g_finalize_hash_out));
+    // the last byte is enough
+    g_finalize_hash_out[INT256_LENGTH - 1] ^= 0x01;
+    TEST_ASSERT_FALSE(operation_ctx_message_fields_match());
+    g_finalize_hash_out[INT256_LENGTH - 1] ^= 0x01;
+    g_finalize_hash_out[0] ^= 0x01;
+    TEST_ASSERT_FALSE(operation_ctx_message_fields_match());
+}
+
+void test_descriptors_do_not_match_when_the_hash_cannot_be_finalized(void) {
+    s_operation_info *info = make_message_info(true);
+
+    memset(info->fields_hash, 0x5A, sizeof(info->fields_hash));
+    TEST_ASSERT_TRUE(operation_ctx_init_message(info, g_self_addr, NULL, &(uint64_t) {1}));
+    memset(g_finalize_hash_out, 0x5A, sizeof(g_finalize_hash_out));
+    g_finalize_hash_ret = false;
+    TEST_ASSERT_FALSE(operation_ctx_message_fields_match());
+}
+
 // =============================================================================
 // Describing a call
 // =============================================================================
@@ -850,5 +902,11 @@ int main(void) {
     RUN_TEST(test_a_message_cannot_come_after_a_message);
     RUN_TEST(test_set_info_is_refused_when_no_call_is_being_described);
     RUN_TEST(test_cleanup_forgets_the_message);
+    RUN_TEST(test_descriptors_are_pending_when_the_info_announces_some);
+    RUN_TEST(test_no_descriptors_are_pending_when_the_info_announces_none);
+    RUN_TEST(test_no_descriptors_are_pending_without_a_message);
+    RUN_TEST(test_descriptors_match_when_the_digest_is_the_announced_one);
+    RUN_TEST(test_descriptors_do_not_match_another_digest);
+    RUN_TEST(test_descriptors_do_not_match_when_the_hash_cannot_be_finalized);
     return UNITY_END();
 }

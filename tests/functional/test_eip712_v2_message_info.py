@@ -153,6 +153,23 @@ def test_eip712_v2_message_info_is_optional(scenario_navigator: NavigateWithScen
     check_signed(scenario_navigator, app_client, data)
 
 
+def test_eip712_v2_message_info_announcing_descriptors_is_kept(scenario_navigator: NavigateWithScenario):
+    """A message info announcing descriptors is accepted, and signing needs them to have come."""
+    app_client = EthAppClient(scenario_navigator.backend)
+    data = message(1)
+
+    json_to_tlv.process_data(app_client, data, BIP32_PATH)
+    response = app_client.eip712_v2_send_message_info(info_for(data, fields_hash=SOME_FIELDS_HASH).serialize())
+    assert response.status == StatusWord.SWO_SUCCESS
+
+    def sign():
+        with app_client.eip712_v2_sign():
+            pass
+
+    expect_status(StatusWord.SWO_INCORRECT_DATA, sign)
+    assert_recovers(app_client)
+
+
 def test_eip712_v2_message_info_multiple_chunks(scenario_navigator: NavigateWithScenario):
     """A struct longer than one APDU, with every text at its length limit, is received in chunks."""
     enable_blind_signing(scenario_navigator)

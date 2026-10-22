@@ -30,6 +30,13 @@ static s_parsed_value_collection g_vg[6];
 
 static bool g_operation_ctx_init_ret = true;
 
+// whether the operation described is a typed message
+static bool g_message = false;
+static const s_operation_info s_message_info = {.context = OPERATION_INFO_CTX_EIP712};
+const s_operation_info *get_current_operation_info(void) {
+    return g_message ? &s_message_info : NULL;
+}
+
 bool value_get(const s_value *value, s_parsed_value_collection *collection) {
     (void) value;
     TEST_ASSERT_LESS_THAN_INT((int) ARRAYLEN(g_vg), g_vg_call);
@@ -273,6 +280,7 @@ static void reset(void) {
     g_calldata_init_ok = false;
     g_calldata_append_ok = true;
     g_calldata_delete_calls = 0;
+    g_message = false;
 }
 
 // Sample 8-byte nested calldata: 4-byte selector + 4 arg bytes.
@@ -455,6 +463,18 @@ void test_nested_calldata_with_all_optional_fields(void) {
     TEST_ASSERT_TRUE(format_param_calldata(&param, "Destination"));
 }
 
+// The calls nested in a typed message are not handled: refused before any value is read
+void test_calldata_of_a_typed_message_refused(void) {
+    s_param_calldata param;
+
+    memset(&param, 0, sizeof(param));
+    param.version = 1;
+    g_message = true;
+    TEST_ASSERT_FALSE(format_param_calldata(&param, "Destination"));
+    TEST_ASSERT_EQUAL(0, g_vg_call);
+    TEST_ASSERT_EQUAL(0, txContext.batch_nb_tx);
+}
+
 // ===========================================================================
 // Test runner
 // ===========================================================================
@@ -467,6 +487,7 @@ void tearDown(void) {
 
 int main(void) {
     UNITY_BEGIN();
+    RUN_TEST(test_calldata_of_a_typed_message_refused);
     RUN_TEST(test_calldata_broadcast_ok);
     RUN_TEST(test_calldata_size_mismatch_rejected);
     RUN_TEST(test_handle_calldata_struct_version_other_than_one_refused);

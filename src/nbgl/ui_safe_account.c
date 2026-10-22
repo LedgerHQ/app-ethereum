@@ -9,8 +9,8 @@
 #include "ui_utils.h"
 #include "app_mem_utils.h"
 
-#define MAX_PAIRS   2
-#define TAG_MAX_LEN 10
+#define MAX_PAIRS 2
+#define TAG_SIZE  11
 
 // Structure to manage dynamic string arrays
 typedef struct {
@@ -90,7 +90,7 @@ static bool _prepare_memory(void) {
     }
 
     // Allocate buffer for actual tag strings
-    totalSize = SAFE_DESC->signers_count * (TAG_MAX_LEN + 1);
+    totalSize = SAFE_DESC->signers_count * TAG_SIZE;
     if (APP_MEM_CALLOC((void **) &signersInfo->tags.buffer, totalSize) == false) {
         return false;
     }
@@ -129,9 +129,9 @@ static void _prepare_strings(void) {
     // Populate tag strings
     ptr = signersInfo->tags.buffer;
     for (i = 0; i < SAFE_DESC->signers_count; i++) {
-        snprintf(ptr, TAG_MAX_LEN, "Signer %d", i + 1);
+        snprintf(ptr, TAG_SIZE, "Signer %d", i + 1);
         signersInfo->tags.pointers[i] = ptr;
-        ptr += TAG_MAX_LEN + 1;
+        ptr += TAG_SIZE;
     }
 
     // Populate value strings

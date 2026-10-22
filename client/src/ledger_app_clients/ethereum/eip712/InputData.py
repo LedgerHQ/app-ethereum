@@ -4,6 +4,7 @@ import hashlib
 import json
 import re
 import struct
+import threading
 from collections.abc import Callable
 from typing import Any
 
@@ -18,6 +19,8 @@ filtering_tokens: list[dict] = []
 filtering_calldatas: list[dict] = []
 current_path: list[str] = []
 sig_ctx: dict[str, Any] = {}
+# Serializes the calls using the state above
+state_lock = threading.RLock()
 
 
 # From a string typename, extract the type and all the array depth
@@ -597,6 +600,11 @@ def init_signature_context(sig_ctx, types, domain, filters):
 
 
 def process_data(aclient: EthAppClient, data_json: dict, filters: dict | None = None) -> None:
+    with state_lock:
+        process_data_locked(aclient, data_json, filters)
+
+
+def process_data_locked(aclient: EthAppClient, data_json: dict, filters: dict | None = None) -> None:
     global app_client
     global current_path
     global filtering_paths

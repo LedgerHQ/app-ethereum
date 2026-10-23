@@ -199,6 +199,42 @@ void test_reset_from_handler_keeps_payload_alive(void) {
 }
 
 // =============================================================================
+// tlv_apdu_new_command
+// =============================================================================
+
+#define INS_STREAM 0x22
+#define INS_OTHER  0x20
+
+void test_new_command_with_same_ins_keeps_payload(void) {
+    tlv_apdu_new_command(INS_STREAM);
+    uint8_t first[] = {0x00, 0x05, 0xAA, 0xBB};
+    TEST_ASSERT_EQUAL(tlv_from_apdu(true, sizeof(first), first, &fake_handler), TLV_APDU_PENDING);
+
+    tlv_apdu_new_command(INS_STREAM);
+    uint8_t second[] = {0xCC, 0xDD, 0xEE};
+    TEST_ASSERT_EQUAL(tlv_from_apdu(false, sizeof(second), second, &fake_handler),
+                      TLV_APDU_SUCCESS);
+    TEST_ASSERT_EQUAL(1, g_handler_calls);
+}
+
+void test_new_command_with_other_ins_drops_payload(void) {
+    tlv_apdu_new_command(INS_STREAM);
+    uint8_t first[] = {0x00, 0x05, 0xAA, 0xBB};
+    TEST_ASSERT_EQUAL(tlv_from_apdu(true, sizeof(first), first, &fake_handler), TLV_APDU_PENDING);
+
+    // Another command in between frees the incomplete payload...
+    tlv_apdu_new_command(INS_OTHER);
+    tlv_apdu_new_command(INS_STREAM);
+    uint8_t second[] = {0xCC, 0xDD, 0xEE};
+    TEST_ASSERT_EQUAL(tlv_from_apdu(false, sizeof(second), second, &fake_handler), TLV_APDU_ERROR);
+    TEST_ASSERT_EQUAL(0, g_handler_calls);
+    // ...and a new payload is accepted at the first attempt
+    uint8_t bytes[] = {0x00, 0x03, 0xAA, 0xBB, 0xCC};
+    TEST_ASSERT_EQUAL(tlv_from_apdu(true, sizeof(bytes), bytes, &fake_handler), TLV_APDU_SUCCESS);
+    TEST_ASSERT_EQUAL(1, g_handler_calls);
+}
+
+// =============================================================================
 // Runner
 // =============================================================================
 
@@ -222,5 +258,7 @@ int main(void) {
     RUN_TEST(test_handler_failure_propagates_as_error);
     RUN_TEST(test_reset_drops_incomplete_payload);
     RUN_TEST(test_reset_from_handler_keeps_payload_alive);
+    RUN_TEST(test_new_command_with_same_ins_keeps_payload);
+    RUN_TEST(test_new_command_with_other_ins_drops_payload);
     return UNITY_END();
 }

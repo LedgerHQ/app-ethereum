@@ -23,6 +23,7 @@
 #include "cmd_safe_account.h"
 #include "cmd_get_gating.h"
 #include "network_info.h"
+#include "network_icon.h"
 #include "main_std_app.h"  // app_exit()
 
 #ifdef HAVE_ADDRESS_BOOK
@@ -95,6 +96,7 @@ void reset_app_context_ex(bool scrub_strings) {
     proxy_cleanup();
     clear_gating();
     tlv_apdu_reset();
+    abort_icon_reception();
     if (scrub_strings) {
         explicit_bzero((uint8_t *) &strings, sizeof(strings));
     }

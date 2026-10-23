@@ -10,7 +10,10 @@ static struct {
     uint16_t pos;
     f_tlv_payload_handler handler_ptr;
     bool in_handler;
+    uint8_t ins;  // command that started the payload
 } g_tlv;
+
+static uint8_t g_command_ins;
 
 static void reset_state(void) {
     APP_MEM_FREE(g_tlv.payload);
@@ -22,6 +25,15 @@ void tlv_apdu_reset(void) {
     if (!g_tlv.in_handler) {
         reset_state();
     }
+}
+
+void tlv_apdu_new_command(uint8_t ins) {
+    // An incomplete payload only continues with the command that started it
+    if ((g_tlv.payload != NULL) && (g_tlv.ins != ins)) {
+        PRINTF("Dropping the incomplete TLV payload of INS 0x%02x\n", g_tlv.ins);
+        reset_state();
+    }
+    g_command_ins = ins;
 }
 
 e_tlv_apdu_ret tlv_from_apdu(bool first_chunk,
@@ -57,6 +69,7 @@ e_tlv_apdu_ret tlv_from_apdu(bool first_chunk,
             }
         }
         g_tlv.handler_ptr = handler;
+        g_tlv.ins = g_command_ins;
     } else {
         if (handler != g_tlv.handler_ptr) {
             PRINTF("Error: given handler does not match cached one!\n");

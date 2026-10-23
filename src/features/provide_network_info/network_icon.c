@@ -277,10 +277,19 @@ uint16_t handle_network_icon_chunks(uint8_t p1, const buffer_t *buf) {
 }
 
 /**
+ * @brief Abort an icon reception in progress, keeping the expected hash.
+ *
+ */
+void abort_icon_reception(void) {
+    APP_MEM_FREE_AND_NULL((void **) &g_icon_bitmap);
+    explicit_bzero(&g_icon_payload, sizeof(g_icon_payload));
+}
+
+/**
  * @brief Clear the Icon memory.
  *
  */
 void clear_icon(void) {
-    APP_MEM_FREE_AND_NULL((void **) &g_icon_bitmap);
+    abort_icon_reception();
     APP_MEM_FREE_AND_NULL((void **) &g_network_icon_hash);
 }

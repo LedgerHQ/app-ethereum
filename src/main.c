@@ -48,6 +48,7 @@
 #include "cmd_get_tx_simulation.h"
 #include "cmd_get_gating.h"
 #include "cmd_proxy_info.h"
+#include "tlv_apdu.h"
 #include "commands_7702.h"
 #include "sign_message.h"
 #include "ui_utils.h"
@@ -127,6 +128,7 @@ void app_main(void) {
                            cmd.lc,
                            cmd.lc,
                            cmd.data);
+                    tlv_apdu_new_command(cmd.ins);
                     sw = handleApdu(&cmd, &tx);
                 }
             }

@@ -390,6 +390,26 @@ void test_two_chunks_complete_icon(void) {
 // clear_icon
 // =============================================================================
 
+void test_abort_reception_frees_pending_bitmap_keeps_hash(void) {
+    buffer_t partial = {.ptr = s_icon_buf, .size = 8 + 4, .offset = 0};
+    int live = g_live_allocs;
+
+    TEST_ASSERT_EQUAL(handle_network_icon_chunks(P1_FIRST_CHUNK, &partial), SWO_SUCCESS);
+    TEST_ASSERT_EQUAL_INT(live + 1, g_live_allocs);
+
+    abort_icon_reception();
+    TEST_ASSERT_EQUAL_INT(live, g_live_allocs);
+    TEST_ASSERT_NOT_NULL(g_network_icon_hash);
+
+    // The aborted reception cannot be continued, but the icon can be sent again
+    buffer_t rest = {.ptr = s_icon_buf + 8 + 4, .size = ICON_TOTAL_BYTES - 8 - 4, .offset = 0};
+    TEST_ASSERT_EQUAL(handle_network_icon_chunks(P1_FOLLOWING_CHUNK, &rest), SWO_INCORRECT_DATA);
+    g_cx_sha256_hash_iovec_out = g_network_icon_hash;
+    buffer_t full = {.ptr = s_icon_buf, .size = ICON_TOTAL_BYTES, .offset = 0};
+    TEST_ASSERT_EQUAL(handle_network_icon_chunks(P1_FIRST_CHUNK, &full), SWO_SUCCESS);
+    TEST_ASSERT_NOT_NULL(s_net.icon.bitmap);
+}
+
 void test_clear_icon_frees_both_globals(void) {
     // setUp seeds g_network_icon_hash with a heap buffer: confirm
     // clear_icon() nulls it out (mocks/mem_utils_free_and_null is the
@@ -427,6 +447,7 @@ int main(void) {
     RUN_TEST(test_repeated_first_chunk_does_not_leak);
     RUN_TEST(test_full_reception_hash_ok_transfers_ownership);
     RUN_TEST(test_two_chunks_complete_icon);
+    RUN_TEST(test_abort_reception_frees_pending_bitmap_keeps_hash);
     RUN_TEST(test_clear_icon_frees_both_globals);
     return UNITY_END();
 }

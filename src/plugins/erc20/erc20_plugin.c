@@ -315,16 +315,15 @@ void erc20_plugin_call(eth_plugin_msg_t message, void *parameters) {
                         memmove(msg->msg, context->extra_data, context->extra_data_len);
                         msg->msg[context->extra_data_len] = '\0';
                     } else {
-                        char hex_buf[2 + (sizeof(context->extra_data) * 2) + 1];
+                        char hex_buf[HEX_0X_STRING_SIZE(sizeof(context->extra_data))];
 
                         // display as hex
                         PRINTF("Display as Hex string\n");
 
-                        memmove(hex_buf, "0x", 2);
-                        if (format_hex((const uint8_t *) context->extra_data,
-                                       context->extra_data_len,
-                                       &hex_buf[2],
-                                       sizeof(hex_buf) - 2) < 0) {
+                        if (bytes_to_hex_0x(hex_buf,
+                                            sizeof(hex_buf),
+                                            context->extra_data,
+                                            context->extra_data_len) < 0) {
                             msg->result = ETH_PLUGIN_RESULT_ERROR;
                             break;
                         }

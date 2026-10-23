@@ -154,11 +154,10 @@ static void eip7002_plugin_query_contract_ui(ethQueryContractUI_t *param) {
                 return;
             }
             strlcpy(param->title, "Validator", param->titleLength);
-            memcpy(param->msg, "0x", 2);
-            if (format_hex(context->validator_pubkey,
-                           sizeof(context->validator_pubkey),
-                           &param->msg[2],
-                           param->msgLength - 2) < 0) {
+            if (bytes_to_hex_0x(param->msg,
+                                param->msgLength,
+                                context->validator_pubkey,
+                                sizeof(context->validator_pubkey)) < 0) {
                 param->result = ETH_PLUGIN_RESULT_ERROR;
                 return;
             }

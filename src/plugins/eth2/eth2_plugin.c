@@ -426,16 +426,10 @@ void eth2_plugin_call(eth_plugin_msg_t message, void *parameters) {
                 } break;
                 case 1: {  // Deposit pubkey screen
                     strlcpy(msg->title, "Validator", msg->titleLength);
-                    if (msg->msgLength < 3) {
-                        msg->result = ETH_PLUGIN_RESULT_ERROR;
-                        break;
-                    }
-                    msg->msg[0] = '0';
-                    msg->msg[1] = 'x';
-                    if (bytes_to_lowercase_hex(&msg->msg[2],
-                                               msg->msgLength - 2,
-                                               context->deposit_address,
-                                               sizeof(context->deposit_address)) != 0) {
+                    if (bytes_to_lowercase_hex_0x(msg->msg,
+                                                  msg->msgLength,
+                                                  context->deposit_address,
+                                                  sizeof(context->deposit_address)) != 0) {
                         msg->result = ETH_PLUGIN_RESULT_ERROR;
                         break;
                     }

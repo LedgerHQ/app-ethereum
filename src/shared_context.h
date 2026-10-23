@@ -1,5 +1,6 @@
 #pragma once
 
+#include "os_utils.h"
 #include "bip32_utils.h"
 #include "eth_ustream.h"
 #include "chain_config.h"
@@ -18,9 +19,9 @@
 #define MAX_PLUGIN_UI_ITEMS (UINT8_MAX - 4)
 
 // Address length
-#define ADDRESS_LENGTH_HEX     (ADDRESS_LENGTH * 2)      // 2 hex chars per byte
-#define ADDRESS_LENGTH_STR     (ADDRESS_LENGTH_HEX + 1)  // + '\0'
-#define ADDRESS_LENGTH_HEX_STR (ADDRESS_LENGTH_STR + 2)  // with '0x' prefix
+#define ADDRESS_LENGTH_HEX     HEX_STRING_LEN(ADDRESS_LENGTH)
+#define ADDRESS_LENGTH_STR     HEX_STRING_SIZE(ADDRESS_LENGTH)
+#define ADDRESS_LENGTH_HEX_STR HEX_0X_STRING_SIZE(ADDRESS_LENGTH)
 
 // Cryptographic key and signature sizes
 #define PRIVATE_KEY_LENGTH 64  // Private key material buffer size

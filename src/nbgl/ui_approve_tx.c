@@ -283,12 +283,10 @@ static bool setTagValuePairs(bool displayNetwork, bool fromPlugin) {
         // Display the Transaction hash
         // ----------------------------
         if ((N_storage.displayHash) || (tmpContent.txContent.dataPresent)) {
-            // Copy the "0x" prefix
-            strlcpy(strings.common.tx_hash, "0x", 3);
-            if (bytes_to_lowercase_hex(strings.common.tx_hash + 2,
-                                       sizeof(strings.common.tx_hash) - 2,
-                                       (const uint8_t *) tmpCtx.transactionContext.hash,
-                                       INT256_LENGTH) >= 0) {
+            if (bytes_to_lowercase_hex_0x(strings.common.tx_hash,
+                                          sizeof(strings.common.tx_hash),
+                                          (const uint8_t *) tmpCtx.transactionContext.hash,
+                                          INT256_LENGTH) >= 0) {
 #ifdef SCREEN_SIZE_WALLET
                 g_pairs[nbPairs].item = "Transaction hash";
 #else

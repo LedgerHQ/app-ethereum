@@ -5,8 +5,7 @@
 #include "ui_utils.h"
 #include "shared_context.h"
 
-#define ETH2_ADDRESS_STR \
-    (BLS12381_G1_COMPRESSED_PUBKEY_LENGTH * 2 + 3)  // '0x' + 48 bytes * 2 hex chars + '\0'
+#define ETH2_ADDRESS_STR HEX_0X_STRING_SIZE(BLS12381_G1_COMPRESSED_PUBKEY_LENGTH)
 
 static void reviewChoice(bool confirm) {
     if (confirm) {

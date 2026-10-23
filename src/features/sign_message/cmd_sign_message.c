@@ -161,7 +161,7 @@ static uint16_t final_process(void) {
     }
 
     // Display buffer length
-    buffer_length = signMsgCtx->msg_length;
+    buffer_length = signMsgCtx->msg_length + 1;
 
     // Determine if the buffer is Ascii or hex
     for (i = 0; i < signMsgCtx->msg_length; i++) {
@@ -169,14 +169,12 @@ static uint16_t final_process(void) {
             !isspace((unsigned char) signMsgCtx->received_buffer[i])) {
             // Hexadecimal message
             is_hex = true;
-            buffer_length *= 2;  // To convert hex byte to char
-            buffer_length += 2;  // for "0x"
+            buffer_length = HEX_0X_STRING_SIZE(signMsgCtx->msg_length);
             break;
         }
     }
     signMsgCtx->is_hex = is_hex;
     // Allocate the buffer for the display
-    buffer_length++;  // for the NULL byte
     if (APP_MEM_CALLOC((void **) &(signMsgCtx->display_buffer), buffer_length) == false) {
         PRINTF("Error: Not enough memory!\n");
         error = SWO_INSUFFICIENT_MEMORY;
@@ -184,13 +182,11 @@ static uint16_t final_process(void) {
     }
 
     if (is_hex) {
-        // Copy the "0x" prefix
-        memcpy(signMsgCtx->display_buffer, "0x", 2);
         // Convert the message to ascii
-        if (bytes_to_lowercase_hex(signMsgCtx->display_buffer + 2,
-                                   buffer_length - 2,
-                                   (const uint8_t *) signMsgCtx->received_buffer,
-                                   signMsgCtx->msg_length) < 0) {
+        if (bytes_to_lowercase_hex_0x(signMsgCtx->display_buffer,
+                                      buffer_length,
+                                      (const uint8_t *) signMsgCtx->received_buffer,
+                                      signMsgCtx->msg_length) < 0) {
             // SHould never happen, buffer is large enough
             PRINTF("Error: Not enough memory!\n");
             error = SWO_INSUFFICIENT_MEMORY;

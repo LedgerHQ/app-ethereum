@@ -148,12 +148,10 @@ nbgl_contentTagValue_t *get_register_identity_tagValue(uint8_t pairIndex) {
                 PRINTF("Failed to allocate identifier display buffer\n");
                 return NULL;
             }
-            g_ctx.register_identity.identifier_display[0] = '0';
-            g_ctx.register_identity.identifier_display[1] = 'x';
-            if (bytes_to_lowercase_hex(g_ctx.register_identity.identifier_display + 2,
-                                       ADDRESS_LENGTH_HEX_STR - 2,
-                                       g_ctx.register_identity.identity->identifier,
-                                       g_ctx.register_identity.identity->identifier_len) < 0) {
+            if (bytes_to_lowercase_hex_0x(g_ctx.register_identity.identifier_display,
+                                          ADDRESS_LENGTH_HEX_STR,
+                                          g_ctx.register_identity.identity->identifier,
+                                          g_ctx.register_identity.identity->identifier_len) < 0) {
                 PRINTF("Failed to format identifier\n");
                 APP_MEM_FREE_AND_NULL((void **) &g_ctx.register_identity.identifier_display);
                 return NULL;
@@ -281,12 +279,10 @@ bool handle_check_edit_identifier(const edit_identifier_t *params) {
         APP_MEM_FREE_AND_NULL((void **) &g_ctx.edit_identifier.scope);
         return false;
     }
-    g_ctx.edit_identifier.old_identifier[0] = '0';
-    g_ctx.edit_identifier.old_identifier[1] = 'x';
-    if (bytes_to_lowercase_hex(g_ctx.edit_identifier.old_identifier + 2,
-                               ADDRESS_LENGTH_HEX_STR - 2,
-                               params->old_identifier,
-                               params->old_identifier_len) < 0) {
+    if (bytes_to_lowercase_hex_0x(g_ctx.edit_identifier.old_identifier,
+                                  ADDRESS_LENGTH_HEX_STR,
+                                  params->old_identifier,
+                                  params->old_identifier_len) < 0) {
         PRINTF("Failed to format previous identifier\n");
         APP_MEM_FREE_AND_NULL((void **) &g_ctx.edit_identifier.contact_name);
         APP_MEM_FREE_AND_NULL((void **) &g_ctx.edit_identifier.scope);
@@ -303,12 +299,10 @@ bool handle_check_edit_identifier(const edit_identifier_t *params) {
         APP_MEM_FREE_AND_NULL((void **) &g_ctx.edit_identifier.old_identifier);
         return false;
     }
-    g_ctx.edit_identifier.new_identifier[0] = '0';
-    g_ctx.edit_identifier.new_identifier[1] = 'x';
-    if (bytes_to_lowercase_hex(g_ctx.edit_identifier.new_identifier + 2,
-                               ADDRESS_LENGTH_HEX_STR - 2,
-                               params->identity.identifier,
-                               params->identity.identifier_len) < 0) {
+    if (bytes_to_lowercase_hex_0x(g_ctx.edit_identifier.new_identifier,
+                                  ADDRESS_LENGTH_HEX_STR,
+                                  params->identity.identifier,
+                                  params->identity.identifier_len) < 0) {
         PRINTF("Failed to format new identifier\n");
         APP_MEM_FREE_AND_NULL((void **) &g_ctx.edit_identifier.contact_name);
         APP_MEM_FREE_AND_NULL((void **) &g_ctx.edit_identifier.scope);

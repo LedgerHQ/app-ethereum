@@ -116,11 +116,10 @@ void ui_191_start(const char *message, bool is_hex) {
     // uninitialized g_pairs[1] and the device would render garbage.
     bool show_hash = false;
     if (N_storage.displayHash) {
-        strlcpy(strings.common.tx_hash, "0x", 3);
-        if (bytes_to_lowercase_hex(strings.common.tx_hash + 2,
-                                   sizeof(strings.common.tx_hash) - 2,
-                                   tmpCtx.messageSigningContext.hash,
-                                   INT256_LENGTH) >= 0) {
+        if (bytes_to_lowercase_hex_0x(strings.common.tx_hash,
+                                      sizeof(strings.common.tx_hash),
+                                      tmpCtx.messageSigningContext.hash,
+                                      INT256_LENGTH) >= 0) {
             show_hash = true;
         }
     }

@@ -152,23 +152,21 @@ static void eip7251_plugin_query_contract_ui(ethQueryContractUI_t *param) {
     }
     switch (screen) {
         case S_SOURCE:
-            memcpy(param->msg, "0x", 2);
             strlcpy(param->title, show_target ? "From validator" : "Validator", param->titleLength);
-            if (format_hex(context->source_pubkey,
-                           sizeof(context->source_pubkey),
-                           &param->msg[2],
-                           param->msgLength - 2) < 0) {
+            if (bytes_to_hex_0x(param->msg,
+                                param->msgLength,
+                                context->source_pubkey,
+                                sizeof(context->source_pubkey)) < 0) {
                 param->result = ETH_PLUGIN_RESULT_ERROR;
                 return;
             }
             break;
         case S_TARGET:
-            memcpy(param->msg, "0x", 2);
             strlcpy(param->title, "To validator", param->titleLength);
-            if (format_hex(context->target_pubkey,
-                           sizeof(context->target_pubkey),
-                           &param->msg[2],
-                           param->msgLength - 2) < 0) {
+            if (bytes_to_hex_0x(param->msg,
+                                param->msgLength,
+                                context->target_pubkey,
+                                sizeof(context->target_pubkey)) < 0) {
                 param->result = ETH_PLUGIN_RESULT_ERROR;
                 return;
             }

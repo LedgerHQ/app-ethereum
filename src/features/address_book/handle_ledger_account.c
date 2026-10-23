@@ -76,7 +76,6 @@ void finalize_ui_ledger_account(void) {
  * @return true if the account is valid, false to reject
  */
 bool handle_check_register_ledger_account(ledger_account_t *params) {
-    cx_ecfp_public_key_t publicKey = {0};
     PRINTF("Inside handle_check_register_ledger_account\n");
     if (params == NULL) {
         PRINTF("params is NULL\n");
@@ -101,13 +100,10 @@ bool handle_check_register_ledger_account(ledger_account_t *params) {
         PRINTF("Failed to allocate address display buffer\n");
         return false;
     }
-    g_ctx.register_account.address_display[0] = '0';
-    g_ctx.register_account.address_display[1] = 'x';
-    if (get_public_key_string((bip32_path_t *) &params->bip32_path,
-                              publicKey.W,
-                              g_ctx.register_account.address_display + 2,
-                              NULL,
-                              params->chain_id) != CX_OK) {
+    if (!get_displayable_address((const bip32_path_t *) &params->bip32_path,
+                                 g_ctx.register_account.address_display,
+                                 ADDRESS_LENGTH_HEX_STR,
+                                 params->chain_id)) {
         PRINTF("Failed to get public key\n");
         APP_MEM_FREE_AND_NULL((void **) &g_ctx.register_account.address_display);
         return false;

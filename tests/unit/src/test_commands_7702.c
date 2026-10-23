@@ -16,7 +16,7 @@
  *
  * Coverage drives both halves end-to-end through real tlv_apdu.c +
  * real auth_7702.c + real rlp_encode.c + real whitelist_7702.c. The
- * SDK crypto primitives, get_public_key_string, and the UI hooks are
+ * SDK crypto primitives, get_displayable_address, and the UI hooks are
  * stubbed.
  *
  * The appState lock is the load-bearing defense: without it a hostile
@@ -120,17 +120,14 @@ bool mem_utils_calloc(void **buffer, uint16_t size, bool permanent, const char *
     return true;
 }
 
-uint32_t get_public_key_string(bip32_path_t *bip32,
-                               uint8_t *publicKey,
-                               char *address,
-                               uint8_t *chainCode,
-                               uint64_t chainId) {
+bool get_displayable_address(const bip32_path_t *bip32,
+                             char *out,
+                             size_t out_size,
+                             uint64_t chain_id) {
     (void) bip32;
-    (void) publicKey;
-    (void) chainCode;
-    (void) chainId;
-    if (address != NULL) address[0] = '\0';
-    return CX_OK;
+    (void) chain_id;
+    if ((out != NULL) && (out_size > 0)) out[0] = '\0';
+    return true;
 }
 
 // No known network name: the chain ID is written in decimal

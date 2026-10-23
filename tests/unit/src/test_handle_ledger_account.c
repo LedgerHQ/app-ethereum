@@ -65,17 +65,15 @@ const nbgl_icon_details_t *get_network_icon_from_chain_id(const uint64_t *chain_
     (void) chain_id;
     return NULL;
 }
-uint16_t get_public_key_string(bip32_path_t *bip32,
-                               uint8_t *pubKey,
-                               char *address,
-                               uint8_t *chainCode,
-                               uint64_t chainId) {
+bool get_displayable_address(const bip32_path_t *bip32,
+                             char *out,
+                             size_t out_size,
+                             uint64_t chain_id) {
     (void) bip32;
-    (void) pubKey;
-    (void) address;
-    (void) chainCode;
-    (void) chainId;
-    return 0;
+    (void) out;
+    (void) out_size;
+    (void) chain_id;
+    return true;
 }
 void nbgl_useCaseAdvancedChoiceWithDetails(const struct nbgl_icon_details_s *icon,
                                            const struct nbgl_icon_details_s *topRightIcon,

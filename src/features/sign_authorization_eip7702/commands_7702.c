@@ -68,7 +68,6 @@ static bool handle_auth7702_tlv_internal(const buffer_t *buf) {
     uint8_t rlpTmp[40];
     uint8_t hashSize;
     uint16_t sw;
-    cx_ecfp_public_key_t publicKey;
     const char *delegateName;
 
     // Default internal error triggered by CX_CHECK
@@ -142,13 +141,10 @@ static bool handle_auth7702_tlv_internal(const buffer_t *buf) {
     }
     // Prepare information to be displayed
     // * Address to be delegated
-    strings.common.fromAddress[0] = '0';
-    strings.common.fromAddress[1] = 'x';
-    if (get_public_key_string(&tmpCtx.authSigningContext7702.bip32,
-                              publicKey.W,
-                              strings.common.fromAddress + 2,
-                              NULL,
-                              auth7702->chainId) != CX_OK) {
+    if (!get_displayable_address(&tmpCtx.authSigningContext7702.bip32,
+                                 strings.common.fromAddress,
+                                 sizeof(strings.common.fromAddress),
+                                 auth7702->chainId)) {
         return false;
     }
     // * Delegate

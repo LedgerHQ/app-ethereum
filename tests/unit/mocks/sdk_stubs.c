@@ -60,6 +60,37 @@ int bytes_to_lowercase_hex(char *out, size_t outl, const void *value, size_t len
     return 0;
 }
 
+static int bytes_to_hex_0x_digits(char *out,
+                                  size_t outl,
+                                  const void *value,
+                                  size_t len,
+                                  const char *hex) {
+    const uint8_t *bytes = (const uint8_t *) value;
+
+    if (outl < 2 + 2 * len + 1) {
+        if (outl > 0) {
+            *out = '\0';
+        }
+        return -1;
+    }
+    *out++ = '0';
+    *out++ = 'x';
+    for (size_t i = 0; i < len; i++) {
+        *out++ = hex[(bytes[i] >> 4) & 0xf];
+        *out++ = hex[bytes[i] & 0xf];
+    }
+    *out = '\0';
+    return 0;
+}
+
+int bytes_to_hex_0x(char *out, size_t outl, const void *value, size_t len) {
+    return bytes_to_hex_0x_digits(out, outl, value, len, "0123456789ABCDEF");
+}
+
+int bytes_to_lowercase_hex_0x(char *out, size_t outl, const void *value, size_t len) {
+    return bytes_to_hex_0x_digits(out, outl, value, len, "0123456789abcdef");
+}
+
 bool is_printable_string(const char *str, size_t len) {
     if (len == 0) {
         return true;

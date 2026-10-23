@@ -142,7 +142,7 @@ static bool _prepare_memory(void) {
     }
 
     // Allocate buffer for actual value strings
-    totalSize = SAFE_DESC->signers_count * (ADDRESS_LENGTH_HEX_STR + 1);
+    totalSize = SAFE_DESC->signers_count * ADDRESS_LENGTH_HEX_STR;
     if (APP_MEM_CALLOC((void **) &signersInfo->values.buffer, totalSize) == false) {
         return false;
     }
@@ -192,7 +192,7 @@ static void _prepare_strings(void) {
                            SIGNER_DESC.data[i].address,
                            ADDRESS_LENGTH);
         signersInfo->values.pointers[i] = ptr;
-        ptr += ADDRESS_LENGTH_HEX_STR + 1;
+        ptr += ADDRESS_LENGTH_HEX_STR;
     }
 }
 

@@ -74,14 +74,22 @@ bool __wrap_amountToString(const uint8_t *amount,
 // Helpers
 // =============================================================================
 
-static void run_init(eip7251_context_t *ctx, const uint8_t *selector) {
+static eth_plugin_result_t run_init_with_size(eip7251_context_t *ctx,
+                                              const uint8_t *selector,
+                                              size_t data_size) {
     txContent_t tx = {0};
     ethPluginInitContract_t msg = {0};
     msg.pluginContext = (uint8_t *) ctx;
     msg.pluginContextLength = sizeof(*ctx);
     msg.selector = selector;
     msg.txContent = &tx;
+    msg.dataSize = data_size;
     eip7251_plugin_call(ETH_PLUGIN_INIT_CONTRACT, &msg);
+    return msg.result;
+}
+
+static void run_init(eip7251_context_t *ctx, const uint8_t *selector) {
+    run_init_with_size(ctx, selector, CONSOLIDATION_REQUEST_SIZE);
 }
 
 // =============================================================================
@@ -95,6 +103,19 @@ void test_init_copies_selector(void) {
     run_init(&ctx, selector);
     TEST_ASSERT_EQUAL(ctx.received, CALLDATA_SELECTOR_SIZE);
     TEST_ASSERT_EQUAL(ctx.consolidation_request[0], 0xDE);
+}
+
+void test_init_wrong_data_size_rejected(void) {
+    static const uint8_t selector[CALLDATA_SELECTOR_SIZE] = {0xDE, 0xAD, 0xBE, 0xEF};
+    eip7251_context_t ctx;
+
+    TEST_ASSERT_EQUAL(ETH_PLUGIN_RESULT_ERROR,
+                      run_init_with_size(&ctx, selector, CONSOLIDATION_REQUEST_SIZE - 1));
+    TEST_ASSERT_EQUAL(ETH_PLUGIN_RESULT_ERROR,
+                      run_init_with_size(&ctx, selector, CONSOLIDATION_REQUEST_SIZE + 1));
+    TEST_ASSERT_EQUAL(ETH_PLUGIN_RESULT_ERROR, run_init_with_size(&ctx, selector, 0));
+    TEST_ASSERT_EQUAL(ETH_PLUGIN_RESULT_OK,
+                      run_init_with_size(&ctx, selector, CONSOLIDATION_REQUEST_SIZE));
 }
 
 void test_parameter_overflow_rejected(void) {
@@ -408,6 +429,7 @@ void tearDown(void) {
 int main(void) {
     UNITY_BEGIN();
     RUN_TEST(test_init_copies_selector);
+    RUN_TEST(test_init_wrong_data_size_rejected);
     RUN_TEST(test_parameter_overflow_rejected);
     RUN_TEST(test_parameter_success_copies_into_context);
     RUN_TEST(test_dispatcher_null_param_silent);

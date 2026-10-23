@@ -231,6 +231,43 @@ void test_first_chunk_total_size_overflow_rejected(void) {
     TEST_ASSERT_EQUAL(handle_network_icon_chunks(P1_FIRST_CHUNK, &buf), SWO_INCORRECT_DATA);
 }
 
+// Send only the 8-byte header of an icon with the given format byte and payload size
+static uint16_t send_header(uint8_t format, uint32_t pay) {
+    write_header(s_icon_buf, EXPECTED_PX, EXPECTED_PX, 0, pay);
+    s_icon_buf[4] = format;
+    buffer_t buf = {.ptr = s_icon_buf, .size = 8, .offset = 0};
+    return handle_network_icon_chunks(P1_FIRST_CHUNK, &buf);
+}
+
+void test_first_chunk_payload_bounded_by_raw_bitmap(void) {
+    // BPP format code in the high nibble, and the matching bits per pixel
+    static const uint8_t formats[][2] = {{0x00, 1}, {0x10, 2}, {0x20, 4}};
+
+    for (size_t i = 0; i < sizeof(formats) / sizeof(formats[0]); ++i) {
+        uint32_t raw = ((uint32_t) EXPECTED_PX * EXPECTED_PX * formats[i][1] + 7) / 8;
+
+        reset();
+        TEST_ASSERT_EQUAL(SWO_SUCCESS, send_header(formats[i][0], raw));
+        reset();
+        // Any compression is accepted up to the raw size
+        TEST_ASSERT_EQUAL(SWO_SUCCESS, send_header(formats[i][0] | 0x02, raw));
+        reset();
+        int live = g_live_allocs;
+        TEST_ASSERT_EQUAL(SWO_INCORRECT_DATA, send_header(formats[i][0], raw + 1));
+        TEST_ASSERT_EQUAL(live, g_live_allocs);
+    }
+}
+
+void test_first_chunk_unknown_format_rejected(void) {
+    int live = g_live_allocs;
+
+    // Unknown BPP format, unknown compression, empty payload
+    TEST_ASSERT_EQUAL(SWO_INCORRECT_DATA, send_header(0x30, 1));
+    TEST_ASSERT_EQUAL(SWO_INCORRECT_DATA, send_header(0x03, 1));
+    TEST_ASSERT_EQUAL(SWO_INCORRECT_DATA, send_header(0x00, 0));
+    TEST_ASSERT_EQUAL(live, g_live_allocs);
+}
+
 void test_first_chunk_alloc_failure_returns_insufficient_memory(void) {
     buffer_t buf = {.ptr = s_icon_buf, .size = ICON_TOTAL_BYTES, .offset = 0};
     g_mem_utils_calloc_ret = false;
@@ -379,6 +416,8 @@ int main(void) {
     RUN_TEST(test_first_chunk_too_short_rejected);
     RUN_TEST(test_first_chunk_wrong_dimensions_rejected);
     RUN_TEST(test_first_chunk_total_size_overflow_rejected);
+    RUN_TEST(test_first_chunk_payload_bounded_by_raw_bitmap);
+    RUN_TEST(test_first_chunk_unknown_format_rejected);
     RUN_TEST(test_first_chunk_alloc_failure_returns_insufficient_memory);
     RUN_TEST(test_invalid_p1_rejected);
     RUN_TEST(test_following_chunk_before_first_rejected);

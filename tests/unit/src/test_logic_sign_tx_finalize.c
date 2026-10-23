@@ -86,9 +86,16 @@ cx_err_t cx_hash_no_throw(cx_hash_t *hash,
 static int g_plugin_call_finalize_ret = ETH_PLUGIN_RESULT_FALLBACK;
 static int g_plugin_call_provide_info_ret = ETH_PLUGIN_RESULT_SUCCESSFUL;
 static int g_plugin_call_calls = 0;
+static int g_provide_parameter_calls = 0;
+static uint8_t g_provide_parameter_last_size = 0;
+static uint32_t g_provide_parameter_last_offset = 0;
 int eth_plugin_call(int method, void *params) {
-    (void) params;
     g_plugin_call_calls++;
+    if (method == ETH_PLUGIN_PROVIDE_PARAMETER) {
+        g_provide_parameter_calls++;
+        g_provide_parameter_last_size = ((ethPluginProvideParameter_t *) params)->parameter_size;
+        g_provide_parameter_last_offset = ((ethPluginProvideParameter_t *) params)->parameterOffset;
+    }
     if (method == ETH_PLUGIN_FINALIZE) {
         return g_plugin_call_finalize_ret;
     }
@@ -96,6 +103,16 @@ int eth_plugin_call(int method, void *params) {
         return g_plugin_call_provide_info_ret;
     }
     return ETH_PLUGIN_RESULT_FALLBACK;
+}
+
+void eth_plugin_prepare_provide_parameter(ethPluginProvideParameter_t *provide_parameter,
+                                          uint8_t *parameter,
+                                          uint32_t parameter_offset,
+                                          uint8_t parameter_size) {
+    memset(provide_parameter, 0, sizeof(*provide_parameter));
+    provide_parameter->parameter = parameter;
+    provide_parameter->parameterOffset = parameter_offset;
+    provide_parameter->parameter_size = parameter_size;
 }
 
 static int g_send_status_calls = 0;
@@ -185,7 +202,9 @@ static uint8_t g_copy_tx_data_fill = 0xAA;
 static const uint8_t *g_copy_tx_data_pattern = NULL;
 static size_t g_copy_tx_data_pattern_len = 0;
 bool copy_tx_data(txContext_t *context, uint8_t *out, uint32_t length) {
-    (void) context;
+    if (g_copy_tx_data_ret && context->processingField) {
+        context->currentFieldPos += length;
+    }
     if (g_copy_tx_data_ret && out != NULL) {
         if (g_copy_tx_data_pattern && g_copy_tx_data_pattern_len > 0) {
             size_t n = length < g_copy_tx_data_pattern_len ? length : g_copy_tx_data_pattern_len;
@@ -293,6 +312,9 @@ static void reset(void) {
     g_plugin_call_finalize_ret = ETH_PLUGIN_RESULT_FALLBACK;
     g_plugin_call_provide_info_ret = ETH_PLUGIN_RESULT_SUCCESSFUL;
     g_plugin_call_calls = 0;
+    g_provide_parameter_calls = 0;
+    g_provide_parameter_last_size = 0;
+    g_provide_parameter_last_offset = 0;
     g_send_status_calls = 0;
     g_send_status_last_sw = 0;
     g_touch_tx_ok_calls = 0;
@@ -683,6 +705,7 @@ static void cp_setup_first_chunk(void) {
     s_ctx.currentFieldPos = 0;
     s_ctx.commandLength = 8;
     s_ctx.store_calldata = false;
+    s_ctx.processingField = true;
     // context->content is dereferenced on the first `dataPresent = true`
     // -- point it at the app-globals tmpContent so the test process
     // doesn't segfault.
@@ -845,6 +868,54 @@ void test_cp_continuation_plugin_partial_block_returns_handled(void) {
     TEST_ASSERT_EQUAL(dataContext.tokenContext.fieldOffset, 10);
 }
 
+// Feed one parameter of `param_size` bytes in two chunks split after `first_part`
+// bytes, and return the parameter_size announced to the plugin.
+static uint8_t cp_provide_split_parameter(uint32_t param_size, uint32_t first_part) {
+    cp_setup_first_chunk();
+    s_ctx.currentFieldPos = 4;
+    s_ctx.currentFieldLength = 4 + param_size;
+    dataContext.tokenContext.pluginStatus = ETH_PLUGIN_RESULT_SUCCESSFUL;
+    dataContext.tokenContext.fieldIndex = 0;
+    dataContext.tokenContext.fieldOffset = 0;
+
+    s_ctx.commandLength = first_part;
+    TEST_ASSERT_EQUAL(CUSTOM_HANDLED, custom_processor(&s_ctx));
+    TEST_ASSERT_EQUAL(0, g_provide_parameter_calls);
+    s_ctx.commandLength = param_size - first_part;
+    TEST_ASSERT_EQUAL(CUSTOM_HANDLED, custom_processor(&s_ctx));
+    TEST_ASSERT_EQUAL(1, g_provide_parameter_calls);
+    return g_provide_parameter_last_size;
+}
+
+void test_cp_split_parameter_announces_reassembled_size(void) {
+    // A full word, whatever the split point
+    TEST_ASSERT_EQUAL(CALLDATA_CHUNK_SIZE, cp_provide_split_parameter(CALLDATA_CHUNK_SIZE, 1));
+    g_provide_parameter_calls = 0;
+    TEST_ASSERT_EQUAL(CALLDATA_CHUNK_SIZE, cp_provide_split_parameter(CALLDATA_CHUNK_SIZE, 10));
+    g_provide_parameter_calls = 0;
+    TEST_ASSERT_EQUAL(CALLDATA_CHUNK_SIZE, cp_provide_split_parameter(CALLDATA_CHUNK_SIZE, 31));
+    g_provide_parameter_calls = 0;
+    // A trailing parameter shorter than a word
+    TEST_ASSERT_EQUAL(24, cp_provide_split_parameter(24, 7));
+}
+
+void test_cp_parameter_offset_follows_parser_position(void) {
+    // Word 65536 of the parameters: a 16-bit word counter would wrap it back to offset 4
+    const uint32_t param_start = CALLDATA_SELECTOR_SIZE + (UINT16_MAX + 1u) * CALLDATA_CHUNK_SIZE;
+
+    cp_setup_first_chunk();
+    s_ctx.currentFieldPos = param_start;
+    s_ctx.currentFieldLength = param_start + CALLDATA_CHUNK_SIZE;
+    s_ctx.commandLength = CALLDATA_CHUNK_SIZE;
+    dataContext.tokenContext.pluginStatus = ETH_PLUGIN_RESULT_SUCCESSFUL;
+    dataContext.tokenContext.fieldIndex = 0;
+    dataContext.tokenContext.fieldOffset = 0;
+
+    TEST_ASSERT_EQUAL(CUSTOM_HANDLED, custom_processor(&s_ctx));
+    TEST_ASSERT_EQUAL(1, g_provide_parameter_calls);
+    TEST_ASSERT_EQUAL_UINT32(param_start, g_provide_parameter_last_offset);
+}
+
 void test_cp_continuation_copy_failure_returns_fault(void) {
     cp_setup_first_chunk();
     s_ctx.currentFieldPos = 4;
@@ -959,6 +1030,8 @@ int main(void) {
     RUN_TEST(test_cp_continuation_no_plugin_no_details_returns_not_handled);
     RUN_TEST(test_cp_continuation_plugin_provide_param_success_returns_handled);
     RUN_TEST(test_cp_continuation_plugin_partial_block_returns_handled);
+    RUN_TEST(test_cp_split_parameter_announces_reassembled_size);
+    RUN_TEST(test_cp_parameter_offset_follows_parser_position);
     RUN_TEST(test_cp_continuation_copy_failure_returns_fault);
     RUN_TEST(test_cp_continuation_zero_param_segments_use_short_form);
     RUN_TEST(test_cp_continuation_contract_details_shows_parameter);

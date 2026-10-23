@@ -53,6 +53,11 @@ void handle_init_contract_1155(ethPluginInitContract_t *msg) {
 void handle_finalize_1155(ethPluginFinalize_t *msg) {
     erc1155_context_t *context = (erc1155_context_t *) msg->pluginContext;
 
+    if (context->next_param != NONE) {
+        PRINTF("Missing parameters\n");
+        msg->result = ETH_PLUGIN_RESULT_ERROR;
+        return;
+    }
     msg->tokenLookup1 = msg->txContent->destination;
     msg->tokenLookup2 = NULL;
     switch (context->selectorIndex) {

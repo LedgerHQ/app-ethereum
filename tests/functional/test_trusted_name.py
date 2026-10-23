@@ -170,6 +170,7 @@ def test_trusted_name_v1_non_mainnet(scenario_navigator: NavigateWithScenario, t
         if name and ticker:
             app_client.provide_network_info(DynamicNetwork(name, ticker, chain_id, icon))
 
+    # A v1 name has no signed chain ID: it is ignored off mainnet and the address is displayed
     app_client.provide_trusted_name(TrustedName(1, ADDR, NAME, challenge=challenge, coin_type=CoinType.ETH))
 
     with app_client.sign(BIP32_PATH, tx_params):

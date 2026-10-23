@@ -285,6 +285,32 @@ void test_finalize_valid_returns_three_screens(void) {
     TEST_ASSERT_EQUAL(msg.uiType, ETH_UI_TYPE_GENERIC);
 }
 
+void test_finalize_root_mismatch_rejected(void) {
+    // Same context as the valid case, but the root carried by the calldata does not
+    // commit to the stored fields
+    eth2_deposit_parameters_t ctx = {.valid = 1, .received_words = 0x1FFF};
+    ctx.deposit_data_root[0] = 0x01;
+    txContent_t tx = {0};
+    ethPluginFinalize_t msg = {0};
+    msg.pluginContext = (uint8_t *) &ctx;
+    msg.txContent = &tx;
+    eth2_plugin_call(ETH_PLUGIN_FINALIZE, &msg);
+    TEST_ASSERT_EQUAL(msg.result, ETH_PLUGIN_RESULT_ERROR);
+    TEST_ASSERT_EQUAL(ctx.valid, 0);
+}
+
+void test_finalize_incomplete_calldata_rejected(void) {
+    // Every word but the last one received
+    eth2_deposit_parameters_t ctx = {.valid = 1, .received_words = 0x0FFF};
+    txContent_t tx = {0};
+    ethPluginFinalize_t msg = {0};
+    msg.pluginContext = (uint8_t *) &ctx;
+    msg.txContent = &tx;
+    eth2_plugin_call(ETH_PLUGIN_FINALIZE, &msg);
+    TEST_ASSERT_EQUAL(msg.result, ETH_PLUGIN_RESULT_ERROR);
+    TEST_ASSERT_EQUAL(ctx.valid, 0);
+}
+
 void test_finalize_invalid_returns_error(void) {
     eth2_deposit_parameters_t ctx = {.valid = 0};
     txContent_t tx = {0};
@@ -531,6 +557,8 @@ int main(void) {
     RUN_TEST(test_init_captures_withdrawal_index);
     RUN_TEST(test_withdrawal_index_changed_after_init_ignored);
     RUN_TEST(test_finalize_valid_returns_three_screens);
+    RUN_TEST(test_finalize_root_mismatch_rejected);
+    RUN_TEST(test_finalize_incomplete_calldata_rejected);
     RUN_TEST(test_finalize_invalid_returns_error);
     RUN_TEST(test_finalize_non_mainnet_rejected);
     RUN_TEST(test_query_contract_id_eth2_deposit);

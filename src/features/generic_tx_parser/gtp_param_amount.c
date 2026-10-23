@@ -60,6 +60,11 @@ bool format_param_amount(const s_param_amount *param, const char *name) {
         chain_id = get_current_tx_info()->chain_id;
         ticker = get_displayable_ticker(&chain_id, g_chain_config, true);
         for (int i = 0; i < collec.size; ++i) {
+            if ((collec.value[i].length == 0) || (collec.value[i].length > INT256_LENGTH)) {
+                PRINTF("Error: invalid amount length (%u)\n", collec.value[i].length);
+                ret = false;
+                break;
+            }
             if (!(ret = amountToString(collec.value[i].ptr,
                                        collec.value[i].length,
                                        WEI_TO_ETHER,

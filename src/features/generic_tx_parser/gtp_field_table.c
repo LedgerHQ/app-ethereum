@@ -145,6 +145,27 @@ bool add_to_field_table(e_param_type type,
     return true;
 }
 
+bool add_address_to_field_table(e_param_type type,
+                                const char *key,
+                                const char *value,
+                                const void *extra_data,
+                                const uint8_t *addr) {
+    flist_node_t *node;
+
+    if (!add_to_field_table(type, key, value, extra_data)) {
+        return false;
+    }
+    // EIP-712 values are not kept in the table
+    if (appState == APP_STATE_SIGNING_EIP712) {
+        return true;
+    }
+    for (node = (flist_node_t *) g_table; node->next != NULL; node = node->next) {
+    }
+    memcpy(((s_field_table_node *) node)->field.addr, addr, ADDRESS_LENGTH);
+    ((s_field_table_node *) node)->field.has_addr = true;
+    return true;
+}
+
 bool set_intent_field(const char *value) {
     e_param_type type = PARAM_TYPE_INTENT;
 

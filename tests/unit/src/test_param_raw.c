@@ -717,6 +717,80 @@ void test_raw_bool_if_not_in_no_match(void) {
     free(constraint);
 }
 
+/**
+ * @brief Format a 32-byte BOOL word, optionally hidden by IF_NOT_IN(false).
+ */
+static bool format_raw_bool_word(const uint8_t word[CALLDATA_CHUNK_SIZE], bool if_not_in_false) {
+    static uint8_t false_value = 0;
+    s_field_constraint constraint = {.size = 1, .value = &false_value};
+    s_param_raw param = {.version = 1,
+                         .value = {.type_family = TF_BOOL,
+                                   .source = SOURCE_CONSTANT,
+                                   .constant = {.size = CALLDATA_CHUNK_SIZE}}};
+    memcpy(param.value.constant.buf, word, CALLDATA_CHUNK_SIZE);
+
+    s_field field = {
+        .param_type = PARAM_TYPE_RAW,
+        .visibility = if_not_in_false ? PARAM_VISIBILITY_IF_NOT_IN : PARAM_VISIBILITY_ALWAYS,
+        .constraints = if_not_in_false ? &constraint : NULL,
+        .param_raw = param,
+        .name = "Flag"};
+    g_add_to_field_table_ret = true;
+    return format_param_raw(&field);
+}
+
+/**
+ * @brief Canonical 32-byte BOOL words are displayed as is.
+ */
+void test_raw_bool_canonical_word_accepted(void) {
+    uint8_t word[CALLDATA_CHUNK_SIZE] = {0};
+
+    TEST_ASSERT_TRUE(format_raw_bool_word(word, false));
+    TEST_ASSERT_EQUAL_STRING("false", g_last_field_value);
+    word[CALLDATA_CHUNK_SIZE - 1] = 1;
+    TEST_ASSERT_TRUE(format_raw_bool_word(word, false));
+    TEST_ASSERT_EQUAL_STRING("true", g_last_field_value);
+}
+
+/**
+ * @brief Non-canonical BOOL words are rejected, even when IF_NOT_IN(false) would hide them.
+ */
+void test_raw_bool_non_canonical_word_rejected(void) {
+    uint8_t word[CALLDATA_CHUNK_SIZE];
+
+    for (int i = 0; i < 2; ++i) {
+        bool if_not_in_false = (i == 1);
+
+        // ...0100: last byte is zero, a higher byte is not
+        memset(word, 0, sizeof(word));
+        word[CALLDATA_CHUNK_SIZE - 2] = 1;
+        TEST_ASSERT_FALSE(format_raw_bool_word(word, if_not_in_false));
+        // ...0101
+        word[CALLDATA_CHUNK_SIZE - 1] = 1;
+        TEST_ASSERT_FALSE(format_raw_bool_word(word, if_not_in_false));
+        // ...02
+        memset(word, 0, sizeof(word));
+        word[CALLDATA_CHUNK_SIZE - 1] = 2;
+        TEST_ASSERT_FALSE(format_raw_bool_word(word, if_not_in_false));
+    }
+}
+
+/**
+ * @brief An empty BOOL value is rejected instead of being displayed as false.
+ */
+void test_raw_bool_empty_rejected(void) {
+    s_param_raw param = {
+        .version = 1,
+        .value = {.type_family = TF_BOOL, .source = SOURCE_CONSTANT, .constant = {.size = 0}}};
+    s_field field = {.param_type = PARAM_TYPE_RAW,
+                     .visibility = PARAM_VISIBILITY_ALWAYS,
+                     .constraints = NULL,
+                     .param_raw = param,
+                     .name = "Flag"};
+
+    TEST_ASSERT_FALSE(format_param_raw(&field));
+}
+
 // =============================================================================
 // Test cases - TF_BYTES
 // =============================================================================
@@ -1348,6 +1422,9 @@ int main(void) {
     RUN_TEST(test_raw_bool_must_be_invalid);
     RUN_TEST(test_raw_bool_if_not_in_match);
     RUN_TEST(test_raw_bool_if_not_in_no_match);
+    RUN_TEST(test_raw_bool_canonical_word_accepted);
+    RUN_TEST(test_raw_bool_non_canonical_word_rejected);
+    RUN_TEST(test_raw_bool_empty_rejected);
     RUN_TEST(test_raw_bytes_always);
     RUN_TEST(test_raw_bytes_must_be_valid);
     RUN_TEST(test_raw_bytes_must_be_invalid);

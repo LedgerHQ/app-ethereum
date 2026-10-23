@@ -183,6 +183,7 @@ void test_approve_param_walk(void) {
     msg.pluginContext = (uint8_t *) &ctx;
     uint8_t param[PARAMETER_LENGTH];
     msg.parameter = param;
+    msg.parameter_size = PARAMETER_LENGTH;
 
     // 1st parameter: operator address.
     make_abi_address(param, 0xAA);
@@ -209,6 +210,7 @@ void test_transfer_param_walk_strict(void) {
     msg.pluginContext = (uint8_t *) &ctx;
     uint8_t param[PARAMETER_LENGTH];
     msg.parameter = param;
+    msg.parameter_size = PARAMETER_LENGTH;
 
     // FROM (consumed, not stored)
     make_abi_address(param, 0xBB);
@@ -237,6 +239,7 @@ void test_safe_transfer_data_tolerates_extra_params(void) {
     msg.pluginContext = (uint8_t *) &ctx;
     uint8_t param[PARAMETER_LENGTH];
     msg.parameter = param;
+    msg.parameter_size = PARAMETER_LENGTH;
 
     make_abi_address(param, 0xAA);
     erc721_plugin_call(ETH_PLUGIN_PROVIDE_PARAMETER, &msg);  // FROM
@@ -264,12 +267,51 @@ void test_safe_transfer_data_tolerates_extra_params(void) {
     TEST_ASSERT_EQUAL(msg.result, ETH_PLUGIN_RESULT_SUCCESSFUL);
 }
 
+// Walk safeTransferFrom(from, to, id, bytes) with the given payload offset, and
+// return the plugin result on the word that follows the head.
+static int walk_safe_transfer_data_offset(uint8_t declared_offset) {
+    erc721_context_t ctx = {.selectorIndex = SAFE_TRANSFER_DATA, .next_param = FROM};
+    ethPluginProvideParameter_t msg = {0};
+    uint8_t param[PARAMETER_LENGTH] = {0};
+    msg.pluginContext = (uint8_t *) &ctx;
+    msg.parameter = param;
+    msg.parameter_size = PARAMETER_LENGTH;
+
+    for (int i = 0; i < 3; ++i) {  // FROM, TO, TOKEN_ID
+        msg.parameterOffset = SELECTOR_SIZE + i * PARAMETER_LENGTH;
+        erc721_plugin_call(ETH_PLUGIN_PROVIDE_PARAMETER, &msg);
+    }
+    param[PARAMETER_LENGTH - 1] = declared_offset;
+    msg.parameterOffset = SELECTOR_SIZE + 3 * PARAMETER_LENGTH;
+    erc721_plugin_call(ETH_PLUGIN_PROVIDE_PARAMETER, &msg);  // DATA_OFFSET
+    TEST_ASSERT_EQUAL(DATA_LENGTH, ctx.next_param);
+
+    param[PARAMETER_LENGTH - 1] = 9;
+    msg.parameterOffset = SELECTOR_SIZE + 4 * PARAMETER_LENGTH;
+    msg.result = ETH_PLUGIN_RESULT_SUCCESSFUL;
+    erc721_plugin_call(ETH_PLUGIN_PROVIDE_PARAMETER, &msg);
+    return msg.result;
+}
+
+void test_safe_transfer_data_non_canonical_offset_rejected(void) {
+    // Canonical: the payload follows the 4 head words
+    TEST_ASSERT_NOT_EQUAL(ETH_PLUGIN_RESULT_ERROR,
+                          walk_safe_transfer_data_offset(4 * PARAMETER_LENGTH));
+    // Backward offset aliasing the token id, which hid the payload screen
+    TEST_ASSERT_EQUAL(ETH_PLUGIN_RESULT_ERROR,
+                      walk_safe_transfer_data_offset(2 * PARAMETER_LENGTH));
+    // Forward offset leaving unchecked words between head and payload
+    TEST_ASSERT_EQUAL(ETH_PLUGIN_RESULT_ERROR,
+                      walk_safe_transfer_data_offset(5 * PARAMETER_LENGTH));
+}
+
 void test_approval_for_all_walks_two_params(void) {
     erc721_context_t ctx = {.selectorIndex = SET_APPROVAL_FOR_ALL, .next_param = OPERATOR};
     ethPluginProvideParameter_t msg = {0};
     msg.pluginContext = (uint8_t *) &ctx;
     uint8_t param[PARAMETER_LENGTH];
     msg.parameter = param;
+    msg.parameter_size = PARAMETER_LENGTH;
 
     // OPERATOR.
     make_abi_address(param, 0xDD);
@@ -289,6 +331,41 @@ void test_approval_for_all_walks_two_params(void) {
     TEST_ASSERT_EQUAL(msg.result, ETH_PLUGIN_RESULT_ERROR);
 }
 
+// Feed `approved` to setApprovalForAll and return the plugin result.
+static int provide_approved(erc721_context_t *ctx, const uint8_t *word, uint8_t size) {
+    ethPluginProvideParameter_t msg = {0};
+    *ctx = (erc721_context_t) {.selectorIndex = SET_APPROVAL_FOR_ALL, .next_param = APPROVED};
+    msg.pluginContext = (uint8_t *) ctx;
+    msg.parameter = word;
+    msg.parameter_size = size;
+    msg.result = ETH_PLUGIN_RESULT_OK;
+    erc721_plugin_call(ETH_PLUGIN_PROVIDE_PARAMETER, &msg);
+    return msg.result;
+}
+
+void test_approval_for_all_non_canonical_bool_rejected(void) {
+    erc721_context_t ctx;
+    uint8_t word[PARAMETER_LENGTH] = {0};
+
+    word[PARAMETER_LENGTH - 1] = 0;
+    TEST_ASSERT_NOT_EQUAL(ETH_PLUGIN_RESULT_ERROR, provide_approved(&ctx, word, PARAMETER_LENGTH));
+    TEST_ASSERT_FALSE(ctx.approved);
+    // Value other than 0 or 1
+    word[PARAMETER_LENGTH - 1] = 2;
+    TEST_ASSERT_EQUAL(ETH_PLUGIN_RESULT_ERROR, provide_approved(&ctx, word, PARAMETER_LENGTH));
+    // Non-zero padding with a zero last byte, which used to read as "Revoke"
+    memset(word, 0, sizeof(word));
+    word[0] = 1;
+    TEST_ASSERT_EQUAL(ETH_PLUGIN_RESULT_ERROR, provide_approved(&ctx, word, PARAMETER_LENGTH));
+    memset(word, 0, sizeof(word));
+    word[PARAMETER_LENGTH - 2] = 1;
+    TEST_ASSERT_EQUAL(ETH_PLUGIN_RESULT_ERROR, provide_approved(&ctx, word, PARAMETER_LENGTH));
+    // Truncated word
+    memset(word, 0, sizeof(word));
+    word[PARAMETER_LENGTH - 1] = 1;
+    TEST_ASSERT_EQUAL(ETH_PLUGIN_RESULT_ERROR, provide_approved(&ctx, word, PARAMETER_LENGTH - 1));
+}
+
 void test_unknown_selector_index_rejects(void) {
     erc721_context_t ctx = {.selectorIndex = 0x7F};
     ethPluginProvideParameter_t msg = {0};
@@ -304,7 +381,7 @@ void test_unknown_selector_index_rejects(void) {
 // =============================================================================
 
 void test_finalize_transfer_five_screens(void) {
-    erc721_context_t ctx = {.selectorIndex = TRANSFER};
+    erc721_context_t ctx = {.selectorIndex = TRANSFER, .next_param = NONE};
     txContent_t tx = {0};
     ethPluginFinalize_t msg = {0};
     msg.pluginContext = (uint8_t *) &ctx;
@@ -315,8 +392,46 @@ void test_finalize_transfer_five_screens(void) {
     TEST_ASSERT_EQUAL(msg.uiType, ETH_UI_TYPE_GENERIC);
 }
 
+void test_finalize_with_missing_parameters_rejected(void) {
+    static const uint8_t pending[] =
+        {FROM, TO, TOKEN_ID, DATA_OFFSET, DATA_LENGTH, OPERATOR, APPROVED};
+    txContent_t tx = {0};
+
+    for (size_t i = 0; i < sizeof(pending); ++i) {
+        erc721_context_t ctx = {.selectorIndex = TRANSFER, .next_param = pending[i]};
+        ethPluginFinalize_t msg = {0};
+        msg.pluginContext = (uint8_t *) &ctx;
+        msg.txContent = &tx;
+        erc721_plugin_call(ETH_PLUGIN_FINALIZE, &msg);
+        TEST_ASSERT_EQUAL(ETH_PLUGIN_RESULT_ERROR, msg.result);
+    }
+}
+
+void test_truncated_head_word_rejected(void) {
+    erc721_context_t ctx = {.selectorIndex = TRANSFER, .next_param = TOKEN_ID};
+    uint8_t param[PARAMETER_LENGTH] = {0};
+    ethPluginProvideParameter_t msg = {0};
+    msg.pluginContext = (uint8_t *) &ctx;
+    msg.parameter = param;
+    msg.parameter_size = PARAMETER_LENGTH - 1;
+    erc721_plugin_call(ETH_PLUGIN_PROVIDE_PARAMETER, &msg);
+    TEST_ASSERT_EQUAL(ETH_PLUGIN_RESULT_ERROR, msg.result);
+    TEST_ASSERT_EQUAL(TOKEN_ID, ctx.next_param);
+}
+
+void test_short_trailing_payload_word_tolerated(void) {
+    erc721_context_t ctx = {.selectorIndex = SAFE_TRANSFER_DATA, .next_param = NONE};
+    uint8_t param[PARAMETER_LENGTH] = {0};
+    ethPluginProvideParameter_t msg = {0};
+    msg.pluginContext = (uint8_t *) &ctx;
+    msg.parameter = param;
+    msg.parameter_size = 5;
+    erc721_plugin_call(ETH_PLUGIN_PROVIDE_PARAMETER, &msg);
+    TEST_ASSERT_NOT_EQUAL(ETH_PLUGIN_RESULT_ERROR, msg.result);
+}
+
 void test_finalize_set_approval_three_screens(void) {
-    erc721_context_t ctx = {.selectorIndex = SET_APPROVAL_FOR_ALL};
+    erc721_context_t ctx = {.selectorIndex = SET_APPROVAL_FOR_ALL, .next_param = NONE};
     txContent_t tx = {0};
     ethPluginFinalize_t msg = {0};
     msg.pluginContext = (uint8_t *) &ctx;
@@ -327,7 +442,7 @@ void test_finalize_set_approval_three_screens(void) {
 }
 
 void test_finalize_transfer_with_eth_value_adds_screen(void) {
-    erc721_context_t ctx = {.selectorIndex = TRANSFER};
+    erc721_context_t ctx = {.selectorIndex = TRANSFER, .next_param = NONE};
     txContent_t tx = {0};
     tx.value.value[0] = 0x01;  // non-zero ETH
     tx.value.length = 1;
@@ -340,7 +455,7 @@ void test_finalize_transfer_with_eth_value_adds_screen(void) {
 }
 
 void test_finalize_set_approval_with_eth_rejected(void) {
-    erc721_context_t ctx = {.selectorIndex = SET_APPROVAL_FOR_ALL};
+    erc721_context_t ctx = {.selectorIndex = SET_APPROVAL_FOR_ALL, .next_param = NONE};
     txContent_t tx = {0};
     tx.value.value[0] = 0x01;
     tx.value.length = 1;
@@ -667,9 +782,14 @@ int main(void) {
     RUN_TEST(test_approve_param_walk);
     RUN_TEST(test_transfer_param_walk_strict);
     RUN_TEST(test_safe_transfer_data_tolerates_extra_params);
+    RUN_TEST(test_safe_transfer_data_non_canonical_offset_rejected);
     RUN_TEST(test_approval_for_all_walks_two_params);
+    RUN_TEST(test_approval_for_all_non_canonical_bool_rejected);
     RUN_TEST(test_unknown_selector_index_rejects);
     RUN_TEST(test_finalize_transfer_five_screens);
+    RUN_TEST(test_finalize_with_missing_parameters_rejected);
+    RUN_TEST(test_truncated_head_word_rejected);
+    RUN_TEST(test_short_trailing_payload_word_tolerated);
     RUN_TEST(test_finalize_set_approval_three_screens);
     RUN_TEST(test_finalize_transfer_with_eth_value_adds_screen);
     RUN_TEST(test_finalize_set_approval_with_eth_rejected);

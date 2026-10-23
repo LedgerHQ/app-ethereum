@@ -25,6 +25,17 @@ static bool get_word_u32(const uint8_t *parameter, uint32_t *out) {
     return true;
 }
 
+// ABI bool words are 31 zero bytes followed by 0 or 1; reject any other encoding
+static bool get_word_bool(const ethPluginProvideParameter_t *msg, bool *out) {
+    if ((msg->parameter_size != PARAMETER_LENGTH) ||
+        (allzeroes(msg->parameter, PARAMETER_LENGTH - 1) != 1) ||
+        (msg->parameter[PARAMETER_LENGTH - 1] > 1)) {
+        return false;
+    }
+    *out = (msg->parameter[PARAMETER_LENGTH - 1] == 1);
+    return true;
+}
+
 // Read a dynamic-array offset and rebase it past the selector; rejects overflow
 static bool get_dynamic_offset(const uint8_t *parameter, uint32_t *out) {
     uint32_t offset;
@@ -45,10 +56,7 @@ static void handle_data_offset(ethPluginProvideParameter_t *msg, erc1155_context
 
 // Returns true once the payload length word has been read
 static bool handle_data_length(ethPluginProvideParameter_t *msg, erc1155_context_t *context) {
-    if (msg->parameterOffset < context->data_offset) {
-        // not there yet
-        return false;
-    }
+    // Canonical encoding: the payload starts right after what precedes it
     if ((msg->parameterOffset != context->data_offset) ||
         !get_word_u32(msg->parameter, &context->data_length)) {
         PRINTF("Receiver data length not where it was declared!\n");
@@ -134,10 +142,7 @@ static void handle_batch_transfer(ethPluginProvideParameter_t *msg, erc1155_cont
             context->next_param = TOKEN_IDS_LENGTH;
             break;
         case TOKEN_IDS_LENGTH:
-            if (msg->parameterOffset < context->ids_offset) {
-                // not there yet
-                break;
-            }
+            // Canonical encoding: the ids array starts right after the head
             if (msg->parameterOffset != context->ids_offset) {
                 msg->result = ETH_PLUGIN_RESULT_ERROR;
                 break;
@@ -167,10 +172,7 @@ static void handle_batch_transfer(ethPluginProvideParameter_t *msg, erc1155_cont
             context->array_index++;
             break;
         case VALUE_LENGTH:
-            if (msg->parameterOffset < context->values_offset) {
-                // not there yet
-                break;
-            }
+            // Canonical encoding: the values array starts right after the ids array
             if (msg->parameterOffset != context->values_offset) {
                 msg->result = ETH_PLUGIN_RESULT_ERROR;
                 break;
@@ -238,7 +240,10 @@ static void handle_approval_for_all(ethPluginProvideParameter_t *msg, erc1155_co
             copy_address(context->address, msg->parameter, sizeof(context->address));
             break;
         case APPROVED:
-            context->approved = msg->parameter[PARAMETER_LENGTH - 1];
+            if (!get_word_bool(msg, &context->approved)) {
+                msg->result = ETH_PLUGIN_RESULT_ERROR;
+                break;
+            }
             context->next_param = NONE;
             break;
         default:
@@ -256,6 +261,12 @@ void handle_provide_parameter_1155(ethPluginProvideParameter_t *msg) {
            PARAMETER_LENGTH,
            msg->parameter);
 
+    // Every expected parameter is a full ABI word; only trailing payload bytes may be shorter
+    if ((context->next_param != NONE) && (msg->parameter_size != PARAMETER_LENGTH)) {
+        PRINTF("Truncated parameter\n");
+        msg->result = ETH_PLUGIN_RESULT_ERROR;
+        return;
+    }
     msg->result = ETH_PLUGIN_RESULT_SUCCESSFUL;
 
     switch (context->selectorIndex) {

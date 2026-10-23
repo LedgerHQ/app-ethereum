@@ -122,12 +122,12 @@ part of the ERC-20 standard and is not processed by the smart contract.
 
 **Expected Result:** `INVALID_DATA` error
 
-#### `test_transfer_erc20_extra_data_nonascii_truncated`
+#### `test_transfer_erc20_extra_data_nonascii_max`
 
 **What It Tests:**
 
-- Transfer with long non-ASCII extra data (64 bytes)
-- App handles truncation properly
+- Transfer with the longest non-ASCII extra data (64 bytes)
+- App displays it in full, without truncation
 
 #### `test_approve_erc20_extra_data`
 
@@ -156,7 +156,7 @@ part of the ERC-20 standard and is not processed by the smart contract.
 | `test_transfer_erc20_extra_data`                    | Transfer with ASCII extra data       |
 | `test_transfer_erc20_extra_data_nonascii`           | Transfer with binary extra data      |
 | `test_transfer_erc20_extra_data_toolong`            | Reject overly long extra data        |
-| `test_transfer_erc20_extra_data_nonascii_truncated` | Handle truncated binary data         |
+| `test_transfer_erc20_extra_data_nonascii_max`       | Display the longest binary data      |
 | `test_approve_erc20_extra_data`                     | Approve with ASCII extra data        |
 | `test_approve_erc20_extra_data_nonascii`            | Approve with binary extra data       |
 

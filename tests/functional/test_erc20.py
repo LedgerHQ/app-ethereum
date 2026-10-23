@@ -199,7 +199,36 @@ def test_transfer_erc20_extra_data_toolong(scenario_navigator: NavigateWithScena
     )
 
 
-def test_transfer_erc20_extra_data_nonascii_truncated(
+@pytest.mark.parametrize("truncated_bytes", [1, 31])
+def test_transfer_erc20_truncated_amount(backend: BackendInterface, truncated_bytes: int):
+    """A transfer whose amount word is shorter than 32 bytes must be refused, not zero-padded."""
+    app_client = EthAppClient(backend)
+
+    with open(f"{ABIS_FOLDER}/erc20.json", encoding="utf-8") as file:
+        contract = Web3().eth.contract(abi=json.load(file), address=None)
+    data = contract.encode_abi(
+        "transfer",
+        [bytes.fromhex("d8dA6BF26964aF9D7eEd9e03E53415D37aA96045"), 10 * pow(10, TOKEN_DECIMALS)],
+    )
+    tx_params = {
+        "chainId": TOKEN_CHAIN_ID,
+        "nonce": 1337,
+        "maxPriorityFeePerGas": Web3.to_wei(0, "gwei"),
+        "maxFeePerGas": Web3.to_wei(2.55, "gwei"),
+        "gas": 94548,
+        "to": TOKEN_ADDR,
+        "value": 0,
+        "data": data[: -2 * truncated_bytes],
+    }
+    app_client.provide_token_metadata(TOKEN_TICKER, TOKEN_ADDR, TOKEN_DECIMALS, TOKEN_CHAIN_ID)
+
+    with pytest.raises(ExceptionRAPDU) as err:
+        with app_client.sign(BIP32_PATH, tx_params):
+            pass
+    assert err.value.status == StatusWord.SWO_INCORRECT_DATA
+
+
+def test_transfer_erc20_extra_data_nonascii_max(
     scenario_navigator: NavigateWithScenario,
 ):
     common_transfer(

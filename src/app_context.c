@@ -13,6 +13,7 @@
 #include "enum_value.h"
 #include "map_entry.h"
 #include "proxy_info.h"
+#include "tlv_apdu.h"
 #ifdef HAVE_TRANSACTION_CHECKS
 #include "cmd_get_tx_simulation.h"  // clear_tx_simulation
 #endif
@@ -93,6 +94,7 @@ void reset_app_context_ex(bool scrub_strings) {
 #endif
     proxy_cleanup();
     clear_gating();
+    tlv_apdu_reset();
     if (scrub_strings) {
         explicit_bzero((uint8_t *) &strings, sizeof(strings));
     }

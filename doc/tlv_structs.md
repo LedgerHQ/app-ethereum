@@ -83,7 +83,7 @@ structs, which attests of the authenticity, order and completeness of all FIELD 
 > - `VISIBLE` defaults to `ALWAYS` (0x00) if not present
 > - `VISIBLE` can be present only once and should be served before any `CONSTRAINT`
 > - `CONSTRAINT` is only present when `VISIBLE` is `MUST_BE` or `IF_NOT_IN`
-> - `CONSTRAINT` tag can appear multiple times for multiple allowed/excluded values (OR semantics). The limit is 5 constraints.
+> - `CONSTRAINT` tag can appear multiple times for multiple allowed/excluded values (OR semantics). There is no fixed limit; the number of constraints is bounded by the FIELD payload size.
 > - `SEPARATOR` is optional and only meaningful for array-typed fields;
 >   `{index}` in the string is replaced with the 1-based element index at display time
 >   (e.g. `"Token {index}"` → `"Token 1"`, `"Token 2"`, ...)

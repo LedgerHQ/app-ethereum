@@ -1,8 +1,11 @@
 # Large test file containing multiple test cases for EIP-712 signing
+import contextlib
 import fnmatch
 import hashlib
 import json
 import os
+import threading
+import time
 from collections.abc import Callable
 from ctypes import c_uint64
 from pathlib import Path
@@ -375,6 +378,100 @@ def test_eip712_string_embedded_nul(scenario_navigator: NavigateWithScenario, fi
     assert e.value.status == status
 
 
+def test_eip712_fixed_bytes_short_value(scenario_navigator: NavigateWithScenario):
+    """A bytesN value shorter than N bytes is right-padded, as in the ABI encoding."""
+    data = {
+        "domain": {
+            "chainId": 1,
+            "name": "Fixed bytes test",
+            "verifyingContract": "0xCcCCccccCCCCcCCCCCCcCcCccCcCCCcCcccccccC",
+            "version": "1",
+        },
+        "message": {"tag": "0x01"},
+        "primaryType": "Tagged",
+        "types": {
+            "EIP712Domain": [
+                {"name": "name", "type": "string"},
+                {"name": "version", "type": "string"},
+                {"name": "chainId", "type": "uint256"},
+                {"name": "verifyingContract", "type": "address"},
+            ],
+            "Tagged": [
+                {"name": "tag", "type": "bytes4"},
+            ],
+        },
+    }
+    settings_toggle(
+        scenario_navigator.backend.device,
+        scenario_navigator.navigator,
+        [SettingID.BLIND_SIGNING],
+    )
+    eip712_new_common(scenario_navigator, data, nb_warnings=1)
+
+
+@pytest.mark.parametrize("address", ["0x01", "0x" + "11" * 21], ids=["short", "long"])
+def test_eip712_address_wrong_length(address: str):
+    """The client refuses an address that is not 20 bytes long instead of padding it."""
+    with pytest.raises(ValueError):
+        InputData.encode_address(address, 20)
+
+
+class RecordingClient:
+    """Fake client recording every command it is given, slow enough to interleave threads."""
+
+    class Response:
+        status = StatusWord.SWO_SUCCESS
+        data = b""
+
+    def __init__(self) -> None:
+        self.calls: list[tuple[str, tuple]] = []
+
+    def response(self) -> "RecordingClient.Response":
+        return self.Response()
+
+    def __getattr__(self, name: str) -> Callable:
+        def command(*args, **kwargs):
+            time.sleep(0.001)
+            self.calls.append((name, args))
+            return contextlib.nullcontext(self.Response())
+
+        return command
+
+
+def test_eip712_process_data_concurrent_calls():
+    """Concurrent process_data() calls must not mix their messages."""
+
+    def message(name: str) -> dict:
+        return {
+            "domain": {"chainId": 1, "name": name},
+            "message": {"owner": name},
+            "primaryType": "Owned",
+            "types": {
+                "EIP712Domain": [
+                    {"name": "name", "type": "string"},
+                    {"name": "chainId", "type": "uint256"},
+                ],
+                "Owned": [{"name": "owner", "type": "string"}],
+            },
+        }
+
+    expected = {}
+    for name in ("alice", "bob"):
+        client = RecordingClient()
+        InputData.process_data(client, message(name))  # type: ignore[arg-type]
+        expected[name] = client.calls
+
+    clients = {name: RecordingClient() for name in expected}
+    threads = [threading.Thread(target=InputData.process_data, args=(clients[name], message(name))) for name in clients]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join()
+
+    for name, client in clients.items():
+        assert client.calls == expected[name], f"{name} received commands of another message"
+
+
 @pytest.mark.parametrize("delta", [-1, 1], ids=["short", "long"])
 def test_eip712_fixed_bytes_wrong_length(scenario_navigator: NavigateWithScenario, monkeypatch: pytest.MonkeyPatch, delta: int):
     """A bytesN value must be exactly N bytes long."""
@@ -735,6 +832,42 @@ ADVANCED_DATA_SETS = [
             },
         },
         "_unlimited",
+    ),
+    DataSet(
+        {
+            "types": {
+                "EIP712Domain": [
+                    {"name": "name", "type": "string"},
+                    {"name": "version", "type": "string"},
+                    {"name": "chainId", "type": "uint256"},
+                    {"name": "verifyingContract", "type": "address"},
+                ],
+                "Root": [
+                    {"name": "deadline", "type": "uint256"},
+                ],
+            },
+            "primaryType": "Root",
+            "domain": {
+                "name": "test",
+                "version": "1",
+                "verifyingContract": "0x0000000000000000000000000000000000000000",
+                "chainId": 42161,
+            },
+            "message": {
+                "deadline": 1719756000,
+            },
+        },
+        {
+            "name": "Chain ID test",
+            "tokens": [],
+            "fields": {
+                "deadline": {
+                    "type": "datetime",
+                    "name": "Deadline",
+                },
+            },
+        },
+        "_big_chain_id",
     ),
 ]
 

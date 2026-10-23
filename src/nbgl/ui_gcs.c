@@ -83,23 +83,48 @@ static void free_pair(const nbgl_contentTagValueList_t *pair_list, int idx) {
 }
 
 #ifdef SCREEN_SIZE_WALLET
-#define MAX_INFO_COUNT 3
+#define MAX_INFO_COUNT      3
+#define INFO_CONTRACT_OWNER "Smart contract owner"
+#define INFO_CONTRACT       "Smart contract"
 #else
-#define MAX_INFO_COUNT 4
+#define MAX_INFO_COUNT      4
+#define INFO_CONTRACT_OWNER "Contract owner"
+#define INFO_CONTRACT       "Contract"
 #endif
 
+static bool add_info(const char **keys,
+                     const char **values,
+                     uint8_t *count,
+                     const char *key,
+                     const char *value) {
+    if (((keys[*count] = APP_MEM_STRDUP(key)) == NULL) ||
+        ((values[*count] = APP_MEM_STRDUP(value)) == NULL)) {
+        return false;
+    }
+    *count += 1;
+    return true;
+}
+
 static bool prepare_infos(nbgl_contentInfoList_t *infos) {
+    const s_tx_info *tx_info = get_current_tx_info();
     char *tmp_buf = strings.tmp.tmp;
     size_t tmp_buf_size = sizeof(strings.tmp.tmp);
-    size_t off;
+    char addr_str[2 + ADDRESS_LENGTH_HEX + 1];
     uint8_t count = 0;
     const char **keys;
     const char **values;
     const char *value;
 #ifdef SCREEN_SIZE_WALLET
     nbgl_contentValueExt_t *extensions;
-    int contract_idx = -1;
+    uint8_t contract_idx;
 #endif
+
+    if ((get_current_tx_to() == NULL) || !getEthDisplayableAddress(get_current_tx_to(),
+                                                                   addr_str,
+                                                                   sizeof(addr_str),
+                                                                   g_chain_config->chain_id)) {
+        return false;
+    }
 
     infos->nbInfos = MAX_INFO_COUNT;
     if (APP_MEM_CALLOC((void **) &keys, sizeof(*keys) * MAX_INFO_COUNT) == false) return false;
@@ -108,117 +133,69 @@ static bool prepare_infos(nbgl_contentInfoList_t *infos) {
     if (APP_MEM_CALLOC((void **) &values, sizeof(*values) * MAX_INFO_COUNT) == false) return false;
     infos->infoContents = values;
 
-    if ((value = get_creator_legal_name(get_current_tx_info())) != NULL) {
-        snprintf(tmp_buf,
-                 tmp_buf_size,
+    if ((value = get_creator_legal_name(tx_info)) != NULL) {
+        const char *url = get_creator_url(tx_info);
+
+        if (url != NULL) {
+            snprintf(tmp_buf, tmp_buf_size, "%s\n%s", value, url);
+            value = tmp_buf;
+        }
+        if (!add_info(keys, values, &count, INFO_CONTRACT_OWNER, value)) {
+            return false;
+        }
+    }
+
 #ifdef SCREEN_SIZE_WALLET
-                 "Smart contract owner"
+    // The contract entry carries the address QR code, and shows the address when unnamed
+    contract_idx = count;
+    value = get_contract_name(tx_info);
+    if (!add_info(keys, values, &count, INFO_CONTRACT, (value != NULL) ? value : addr_str)) {
+        return false;
+    }
 #else
-                 "Contract owner"
-#endif
-        );
-        if ((keys[count] = APP_MEM_STRDUP(tmp_buf)) == NULL) {
+    if ((value = get_contract_name(tx_info)) != NULL) {
+        if (!add_info(keys, values, &count, INFO_CONTRACT, value)) {
             return false;
         }
-        snprintf(tmp_buf, tmp_buf_size, "%s", value);
-        if ((value = get_creator_url(get_current_tx_info())) != NULL) {
-            off = strlen(tmp_buf);
-            snprintf(tmp_buf + off, tmp_buf_size - off, "\n%s", value);
-        }
-        if ((values[count] = APP_MEM_STRDUP(tmp_buf)) == NULL) {
-            return false;
-        }
-        count += 1;
     }
-
-    if ((value = get_contract_name(get_current_tx_info())) != NULL) {
-        snprintf(tmp_buf,
-                 tmp_buf_size,
-#ifdef SCREEN_SIZE_WALLET
-                 "Smart contract"
-#else
-                 "Contract"
-#endif
-        );
-        if ((keys[count] = APP_MEM_STRDUP(tmp_buf)) == NULL) {
-            return false;
-        }
-        snprintf(tmp_buf, tmp_buf_size, "%s", value);
-        if ((values[count] = APP_MEM_STRDUP(tmp_buf)) == NULL) {
-            return false;
-        }
-#ifdef SCREEN_SIZE_WALLET
-        contract_idx = count;
-#endif
-        count += 1;
-    }
-
-#ifndef SCREEN_SIZE_WALLET
-    if (!getEthDisplayableAddress((uint8_t *) get_contract_addr(get_current_tx_info()),
-                                  tmp_buf,
-                                  tmp_buf_size,
-                                  g_chain_config->chain_id)) {
+    if (!add_info(keys, values, &count, "Contract address", addr_str)) {
         return false;
     }
-    if ((keys[count] = APP_MEM_STRDUP("Contract address")) == NULL) {
-        return false;
-    }
-    if ((values[count] = APP_MEM_STRDUP(tmp_buf)) == NULL) {
-        return false;
-    }
-    count += 1;
 #endif
 
-    if ((value = get_deploy_date(get_current_tx_info())) != NULL) {
-        snprintf(tmp_buf, tmp_buf_size, "Deployed on");
-        if ((keys[count] = APP_MEM_STRDUP(tmp_buf)) == NULL) {
+    if ((value = get_deploy_date(tx_info)) != NULL) {
+        if (!add_info(keys, values, &count, "Deployed on", value)) {
             return false;
         }
-        snprintf(tmp_buf, tmp_buf_size, "%s", value);
-        if ((values[count] = APP_MEM_STRDUP(tmp_buf)) == NULL) {
-            return false;
-        }
-        count += 1;
     }
 
 #ifdef SCREEN_SIZE_WALLET
-    if (contract_idx != -1) {
-        if (APP_MEM_CALLOC((void **) &extensions, sizeof(*extensions) * count) == false) {
-            return false;
-        }
-        // The extension array is only `count` long: nbInfos must match before any
-        // fallible operation, otherwise an error-path cleanup would index past it
-        infos->nbInfos = count;
-        infos->infoExtensions = extensions;
-        infos->withExtensions = true;
-
-        if (!getEthDisplayableAddress((uint8_t *) get_contract_addr(get_current_tx_info()),
-                                      tmp_buf,
-                                      tmp_buf_size,
-                                      g_chain_config->chain_id)) {
-            return false;
-        }
-        if ((extensions[contract_idx].title = APP_MEM_STRDUP(tmp_buf)) == NULL) {
-            return false;
-        }
-        // Etherscan only for mainnet
-        if (get_tx_chain_id() == ETHEREUM_MAINNET_CHAINID) {
-            if ((extensions[contract_idx].explanation =
-                     APP_MEM_STRDUP("Scan to view on Etherscan")) == NULL) {
-                return false;
-            }
-            snprintf(tmp_buf,
-                     tmp_buf_size,
-                     "https://etherscan.io/address/%s",
-                     extensions[contract_idx].title);
-        } else {
-            snprintf(tmp_buf, tmp_buf_size, "%s", extensions[contract_idx].title);
-        }
-        if ((extensions[contract_idx].fullValue = APP_MEM_STRDUP(tmp_buf)) == NULL) {
-            return false;
-        }
-        extensions[contract_idx].aliasType = QR_CODE_ALIAS;
+    if (APP_MEM_CALLOC((void **) &extensions, sizeof(*extensions) * count) == false) {
+        return false;
     }
+    // The extension array is only `count` long: nbInfos must match before any
+    // fallible operation, otherwise an error-path cleanup would index past it
+    infos->nbInfos = count;
+    infos->infoExtensions = extensions;
+    infos->withExtensions = true;
+
+    if ((extensions[contract_idx].title = APP_MEM_STRDUP(addr_str)) == NULL) {
+        return false;
+    }
+    // Etherscan only for mainnet
+    value = addr_str;
+    if (get_tx_chain_id() == ETHEREUM_MAINNET_CHAINID) {
+        if ((extensions[contract_idx].explanation = APP_MEM_STRDUP("Scan to view on Etherscan")) ==
+            NULL) {
+            return false;
+        }
+        snprintf(tmp_buf, tmp_buf_size, "https://etherscan.io/address/%s", addr_str);
+        value = tmp_buf;
+    }
+    if ((extensions[contract_idx].fullValue = APP_MEM_STRDUP(value)) == NULL) {
+        return false;
+    }
+    extensions[contract_idx].aliasType = QR_CODE_ALIAS;
 #endif
 
     infos->nbInfos = count;
@@ -307,7 +284,8 @@ static const nbgl_contentValueExt_t *handle_extra_data_trusted_name(
             alias_type = INFO_LIST_ALIAS;
             break;
     }
-    if (!getEthDisplayableAddress(tname->addr,
+    // The transaction address, not the trusted name one which can be a proxy implementation
+    if (!getEthDisplayableAddress(field->has_addr ? field->addr : tname->addr,
                                   formatted_addr,
                                   sizeof(formatted_addr),
                                   g_chain_config->chain_id)) {

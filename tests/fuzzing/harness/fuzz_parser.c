@@ -153,8 +153,8 @@ static void run_calldata(fuzz_cursor_t *cur) {
 
 /* The GTP and enum handlers each take one complete TLV payload. */
 static void run_tlv_step(uint8_t parser, fuzz_cursor_t *cur) {
-    uint8_t len;
-    const uint8_t *payload = fuzz_take_slice(cur, &len);
+    size_t len;
+    const uint8_t *payload = fuzz_take_slice16(cur, &len);
     buffer_t buf = {.ptr = (uint8_t *) payload, .size = len, .offset = 0};
 
     switch (parser) {

@@ -71,3 +71,22 @@ static inline const uint8_t *fuzz_take_slice(fuzz_cursor_t *cur, uint8_t *len_ou
     cur->left -= len;
     return slice;
 }
+
+/** Same as fuzz_take_slice(), with a two-byte big-endian length. */
+static inline const uint8_t *fuzz_take_slice16(fuzz_cursor_t *cur, size_t *len_out) {
+    size_t len = (size_t) fuzz_take_u8(cur) << 8;
+
+    len |= fuzz_take_u8(cur);
+    if (len > cur->left) {
+        len = cur->left;
+    }
+    *len_out = len;
+    if (len == 0) {
+        return NULL;
+    }
+
+    const uint8_t *slice = cur->ptr;
+    cur->ptr += len;
+    cur->left -= len;
+    return slice;
+}

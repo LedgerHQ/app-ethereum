@@ -125,6 +125,9 @@ tokens = [
 # ── fuzz_parser: stateful parsers at their own entry points ─────────────────
 [[targets]]
 fuzzer = "fuzz_parser"
+# A step carries one reassembled descriptor, which can span several APDUs, and the
+# generated structured seeds are 516 bytes.
+tail_budget = 1024
 key_files = [
     "src/features/generic_tx_parser/gtp_tx_info.c",
     "src/features/generic_tx_parser/gtp_field.c",

@@ -181,6 +181,9 @@ void fuzz_app_dispatch(void *cmd_v) {
     uint8_t additional_screens = 0;
 
     fuzz_build_tx_content(&tmpContent.txContent, &g_hdr);
+    // get_tx_chain_id() reads the chain ID through these, as after an RLP parse.
+    txContext.txType = EIP1559;
+    txContext.content = &tmpContent.txContent;
 
     pick_or_draw(address,
                  sizeof(address),

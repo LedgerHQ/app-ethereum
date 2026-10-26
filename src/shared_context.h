@@ -208,7 +208,12 @@ extern txContext_t txContext;
 extern tmpContent_t tmpContent;
 extern dataContext_t dataContext;
 extern strings_t strings;
+#ifdef FUZZING
+// Writable in the fuzz build so the fuzzer samples every user setting.
+extern internalStorage_t N_storage_real;
+#else
 extern const internalStorage_t N_storage_real;
+#endif
 
 typedef enum swap_mode_e {
     SWAP_MODE_STANDARD,

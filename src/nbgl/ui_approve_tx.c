@@ -410,7 +410,7 @@ static bool ux_init(bool fromPlugin, uint8_t title_len, uint8_t finish_len) {
     }
     return true;
 error:
-    io_seproxyhal_send_status(SWO_INSUFFICIENT_MEMORY, 0, true, true);
+    // The caller replies with the error
     _cleanup();
     return false;
 }

@@ -296,3 +296,29 @@ def test_blind_sign_not_enabled_error(
         assert e.status == StatusWord.SWO_INCORRECT_DATA
     else:
         raise AssertionError("An exception should have been raised")
+
+
+def test_sign_parameter_finalize_error(backend: BackendInterface, navigator: Navigator):
+    """A finalization error after the last data screen is returned to the host."""
+    app_client = EthAppClient(backend)
+    device = backend.device
+
+    settings_toggle(device, navigator, [SettingID.BLIND_SIGNING, SettingID.DEBUG_DATA])
+
+    tx_params = common_tx_params(0.0)
+    # 21 digits do not fit the nonce display buffer
+    tx_params["nonce"] = 10**20
+    data_len = len(bytes.fromhex(tx_params["data"][2:]))
+    params = (data_len - 4) // 32
+    try:
+        with app_client.sign(BIP32_PATH, tx_params):
+            if device.is_nano:
+                # (verify | selector or parameter) * flows
+                moves = ([NavInsID.RIGHT_CLICK] * 2 + [NavInsID.BOTH_CLICK]) * (1 + params)
+            else:
+                moves = ([NavInsID.SWIPE_CENTER_TO_LEFT] * 2 + [NavInsID.USE_CASE_REVIEW_CONFIRM]) * (1 + params)
+            navigator.navigate(moves, screen_change_after_last_instruction=False)
+    except ExceptionRAPDU as e:
+        assert e.status == StatusWord.SWO_INCORRECT_DATA
+    else:
+        raise AssertionError("An exception should have been raised")

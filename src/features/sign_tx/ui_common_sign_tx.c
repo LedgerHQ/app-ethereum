@@ -83,6 +83,9 @@ unsigned int io_seproxyhal_touch_data_ok(void) {
     uint16_t sw = handle_parsing_status(pstatus);
     if ((pstatus != USTREAM_SUSPENDED) && (pstatus != USTREAM_FINISHED)) {
         err = io_seproxyhal_send_status(sw, 0, sw != SWO_SUCCESS, true);
+    } else if ((pstatus == USTREAM_FINISHED) && (sw != SWO_SUCCESS) && (sw != SWO_NO_RESPONSE)) {
+        // Finalization failed without replying
+        err = io_seproxyhal_send_status(sw, 0, true, true);
     }
     return err;
 }

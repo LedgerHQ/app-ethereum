@@ -23,6 +23,7 @@ extern cx_sha3_t *g_tx_hash_ctx;
 customStatus_e custom_processor(txContext_t *context);
 uint16_t finalize_parsing(const txContext_t *context);
 uint16_t ux_approve_tx(bool fromPlugin);
+void ui_approve_tx_cleanup(void);
 
 uint16_t handle_parsing_status(parserStatus_e status);
 

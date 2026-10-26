@@ -40,10 +40,14 @@ static plugin_buffers_t *plugin_buffers = NULL;
 /**
  * Cleanup allocated memory
  */
-static void _cleanup(void) {
+void ui_approve_tx_cleanup(void) {
     APP_MEM_FREE_AND_NULL((void **) &plugin_buffers);
     APP_MEM_FREE_AND_NULL((void **) &extension);
     APP_MEM_FREE_AND_NULL((void **) &from_extension);
+}
+
+static void _cleanup(void) {
+    ui_approve_tx_cleanup();
     ui_all_cleanup();
     proxy_cleanup();
 #ifdef HAVE_TRANSACTION_CHECKS
@@ -375,6 +379,9 @@ static bool ux_init(bool fromPlugin, uint8_t title_len, uint8_t finish_len) {
     uint16_t buf_size = 0;
     size_t nbPairs = 0;
     bool displayNetwork = false;
+
+    // Release what a review aborted by the host left allocated
+    ui_approve_tx_cleanup();
 
     chain_id = get_tx_chain_id();
     if (g_chain_config->chain_id == ETHEREUM_MAINNET_CHAINID &&

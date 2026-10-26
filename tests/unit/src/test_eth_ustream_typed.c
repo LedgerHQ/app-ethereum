@@ -272,6 +272,120 @@ void test_eip7702_happy_path(void) {
 // Tests — failure paths inside the typed dispatchers
 // =============================================================================
 
+static parserStatus_e parse_eip1559_variant(uint8_t list_header, bool trailing_byte) {
+    static cx_sha3_t sha3;
+    static txContent_t content;
+    static txContext_t ctx;
+    uint8_t tx[sizeof(g_eip1559_tx) + 1];
+
+    memcpy(tx, g_eip1559_tx, sizeof(g_eip1559_tx));
+    tx[0] = list_header;
+    tx[sizeof(g_eip1559_tx)] = 0x80;
+    memset(&content, 0, sizeof(content));
+    TEST_ASSERT_TRUE(init_tx(&ctx, &sha3, &content, /*store_calldata=*/false));
+    ctx.txType = EIP1559;
+    return process_tx(&ctx, tx, sizeof(g_eip1559_tx) + (trailing_byte ? 1 : 0));
+}
+
+void test_trailing_byte_after_outer_list_rejected(void) {
+    TEST_ASSERT_EQUAL(parse_eip1559_variant(0xDF, true), USTREAM_FAULT);
+}
+
+void test_outer_list_longer_than_fields_rejected(void) {
+    TEST_ASSERT_EQUAL(parse_eip1559_variant(0xE0, false), USTREAM_FAULT);
+}
+
+void test_outer_list_shorter_than_fields_rejected(void) {
+    TEST_ASSERT_EQUAL(parse_eip1559_variant(0xDE, false), USTREAM_FAULT);
+}
+
+static parserStatus_e parse_tx(uint8_t tx_type, const uint8_t *tx, size_t length) {
+    static cx_sha3_t sha3;
+    static txContent_t content;
+    static txContext_t ctx;
+
+    memset(&content, 0, sizeof(content));
+    TEST_ASSERT_TRUE(init_tx(&ctx, &sha3, &content, /*store_calldata=*/false));
+    ctx.txType = tx_type;
+    return process_tx(&ctx, tx, length);
+}
+
+void test_field_crossing_outer_list_rejected_immediately(void) {
+    // A 2-byte outer list followed by more fields: the third field is rejected in this
+    // first chunk, before the transaction is complete
+    static const uint8_t chunk[] = {0xC2, 0x01, 0x80, 0x80};
+    TEST_ASSERT_EQUAL(parse_tx(EIP1559, chunk, sizeof(chunk)), USTREAM_FAULT);
+}
+
+void test_integer_single_zero_byte_rejected(void) {
+    uint8_t tx[sizeof(g_eip1559_tx)];
+
+    // nonce = 0x00 instead of the empty string
+    memcpy(tx, g_eip1559_tx, sizeof(tx));
+    tx[2] = 0x00;
+    TEST_ASSERT_EQUAL(parse_tx(EIP1559, tx, sizeof(tx)), USTREAM_FAULT);
+
+    // max_priority_fee_per_gas = 0x00, discarded but still an integer
+    memcpy(tx, g_eip1559_tx, sizeof(tx));
+    tx[3] = 0x00;
+    TEST_ASSERT_EQUAL(parse_tx(EIP1559, tx, sizeof(tx)), USTREAM_FAULT);
+}
+
+void test_integer_leading_zero_rejected(void) {
+    // gasLimit = 0x00 0x52 0x08
+    static const uint8_t tx[] = {
+        0xE0,                    // list, 32 bytes
+        0x01, 0x80, 0x80, 0x80,  // chainID, nonce, priority, fee
+        0x83, 0x00, 0x52, 0x08,  // gasLimit
+        0x94, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA,
+        0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA,  // to
+        0x80, 0x80, 0xC0,                                            // value, data, access_list
+    };
+    TEST_ASSERT_EQUAL(parse_tx(EIP1559, tx, sizeof(tx)), USTREAM_FAULT);
+}
+
+void test_single_byte_as_short_string_rejected(void) {
+    uint8_t tx[sizeof(g_eip1559_nonzero_value)];
+
+    // value = 0x81 0x05: 0x05 must be encoded as itself
+    memcpy(tx, g_eip1559_nonzero_value, sizeof(tx));
+    tx[30] = 0x05;
+    TEST_ASSERT_EQUAL(parse_tx(EIP1559, tx, sizeof(tx)), USTREAM_FAULT);
+}
+
+// Legacy EIP-155 signing payload: nonce, gasPrice, gasLimit, to, value, data, chainID, R, S.
+// Inner = 1+1+3+21+1+1+1+1+1 = 31 bytes; header = 0xDF.
+static const uint8_t g_legacy_eip155_tx[] = {
+    0xDF,              // list, 31 bytes
+    0x80,              // nonce
+    0x80,              // gasPrice
+    0x82, 0x52, 0x08,  // gasLimit
+    0x94, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA,
+    0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA,  // to
+    0x80,                                                        // value
+    0x80,                                                        // data
+    0x01,                                                        // chainID
+    0x80,                                                        // R
+    0x80,                                                        // S
+};
+
+void test_legacy_empty_r_s_accepted(void) {
+    TEST_ASSERT_EQUAL(parse_tx(LEGACY, g_legacy_eip155_tx, sizeof(g_legacy_eip155_tx)),
+                      USTREAM_FINISHED);
+}
+
+void test_legacy_non_empty_r_s_rejected(void) {
+    uint8_t tx[sizeof(g_legacy_eip155_tx)];
+
+    memcpy(tx, g_legacy_eip155_tx, sizeof(tx));
+    tx[sizeof(tx) - 2] = 0x01;  // R
+    TEST_ASSERT_EQUAL(parse_tx(LEGACY, tx, sizeof(tx)), USTREAM_FAULT);
+
+    memcpy(tx, g_legacy_eip155_tx, sizeof(tx));
+    tx[sizeof(tx) - 1] = 0x00;  // S
+    TEST_ASSERT_EQUAL(parse_tx(LEGACY, tx, sizeof(tx)), USTREAM_FAULT);
+}
+
 void test_unknown_tx_type_returns_fault(void) {
     cx_sha3_t sha3;
     txContent_t content = {0};
@@ -437,6 +551,15 @@ int main(void) {
     RUN_TEST(test_eip2930_happy_path);
     RUN_TEST(test_eip1559_happy_path);
     RUN_TEST(test_eip7702_happy_path);
+    RUN_TEST(test_trailing_byte_after_outer_list_rejected);
+    RUN_TEST(test_outer_list_longer_than_fields_rejected);
+    RUN_TEST(test_outer_list_shorter_than_fields_rejected);
+    RUN_TEST(test_field_crossing_outer_list_rejected_immediately);
+    RUN_TEST(test_integer_single_zero_byte_rejected);
+    RUN_TEST(test_integer_leading_zero_rejected);
+    RUN_TEST(test_single_byte_as_short_string_rejected);
+    RUN_TEST(test_legacy_empty_r_s_accepted);
+    RUN_TEST(test_legacy_non_empty_r_s_rejected);
     RUN_TEST(test_unknown_tx_type_returns_fault);
     RUN_TEST(test_chain_id_wider_than_uint64_rejected);
     RUN_TEST(test_process_value_nonzero_copy_loop);

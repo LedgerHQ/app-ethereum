@@ -60,6 +60,11 @@ bool rlp_can_decode(uint8_t *buffer, uint32_t bufferLength, bool *valid) {
     return true;
 }
 
+// The long form is only valid for lengths of 56 and above, without leading zero bytes.
+static bool rlp_long_length_is_canonical(const uint8_t *buffer, uint32_t length) {
+    return (length >= RLP_LONG_FORM_MIN_LENGTH) && (buffer[1] != 0);
+}
+
 bool rlp_decode_length(uint8_t *buffer,
                        uint32_t bufferLength,
                        uint32_t *fieldLength,
@@ -103,6 +108,9 @@ bool rlp_decode_length(uint8_t *buffer,
             default:
                 return false;  // arbitrary 32 bits length limitation
         }
+        if (!rlp_long_length_is_canonical(buffer, *fieldLength)) {
+            return false;
+        }
     } else if (*buffer <= RLP_SHORT_LIST_MAX) {
         *offset = 1;
         *fieldLength = *buffer - RLP_SHORT_LIST_BASE;
@@ -129,6 +137,9 @@ bool rlp_decode_length(uint8_t *buffer,
                 break;
             default:
                 return false;  // arbitrary 32 bits length limitation
+        }
+        if (!rlp_long_length_is_canonical(buffer, *fieldLength)) {
+            return false;
         }
     }
 

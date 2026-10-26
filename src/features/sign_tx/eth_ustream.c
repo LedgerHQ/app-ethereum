@@ -42,6 +42,17 @@ static bool check_fields(txContext_t *context, const char *name, uint32_t length
     return true;
 }
 
+// An RLP integer has no leading zero byte, zero itself being the empty string
+static bool check_integer(txContext_t *context, const char *name) {
+    UNUSED(name);  // Just for the case where DEBUG is not enabled
+    if ((context->currentFieldPos == 0) && (context->currentFieldLength > 0) &&
+        (context->commandLength > 0) && (*context->workBuffer == 0)) {
+        PRINTF("Non-canonical integer for %s\n", name);
+        return false;
+    }
+    return true;
+}
+
 static bool check_empty_list(txContext_t *context, const char *name) {
     UNUSED(name);  // Just for the case where DEBUG is not enabled
     if (!context->currentFieldIsList) {
@@ -72,6 +83,17 @@ bool init_tx(txContext_t *context, cx_sha3_t *sha3, txContent_t *content, bool s
     return true;
 }
 
+// Once past the outer list header, every byte consumed must fit in that list
+static bool consume_outer_list(txContext_t *context, uint32_t length) {
+    if ((context->currentField > RLP_NONE + 1) &&
+        (length > (context->dataLength - context->dataPos))) {
+        PRINTF("RLP field crosses the outer list boundary\n");
+        return false;
+    }
+    context->dataPos += length;
+    return true;
+}
+
 static bool read_tx_byte(txContext_t *context, uint8_t *txByte) {
     uint8_t data;
     if (check_cmd_length(context, "read_tx_byte", 1) == false) {
@@ -84,6 +106,9 @@ static bool read_tx_byte(txContext_t *context, uint8_t *txByte) {
         context->currentFieldPos++;
     }
     if (!(context->processingField && context->fieldSingleByte)) {
+        if (!consume_outer_list(context, 1)) {
+            return false;
+        }
         if (cx_hash_no_throw((cx_hash_t *) context->sha3, 0, &data, 1, NULL, 0) != CX_OK) {
             return false;
         }
@@ -96,10 +121,20 @@ bool copy_tx_data(txContext_t *context, uint8_t *out, uint32_t length) {
     if (check_cmd_length(context, "copy_tx_data", length) == false) {
         return false;
     }
+    // A byte below 0x80 is its own encoding, never a one-byte string
+    if (context->processingField && !context->fieldSingleByte && !context->currentFieldIsList &&
+        (context->currentFieldLength == 1) && (context->currentFieldPos == 0) && (length > 0) &&
+        (*context->workBuffer <= RLP_SINGLE_BYTE_MAX)) {
+        PRINTF("Non-canonical single byte\n");
+        return false;
+    }
     if (out != NULL) {
         memmove(out, context->workBuffer, length);
     }
     if (!(context->processingField && context->fieldSingleByte)) {
+        if (!consume_outer_list(context, length)) {
+            return false;
+        }
         if (cx_hash_no_throw((cx_hash_t *) context->sha3,
                              0,
                              context->workBuffer,
@@ -124,6 +159,7 @@ static bool process_content(txContext_t *context) {
     }
 
     context->dataLength = context->currentFieldLength;
+    context->dataPos = 0;
     context->currentField++;
     context->processingField = false;
     return true;
@@ -181,7 +217,8 @@ static bool process_chain_id(txContext_t *context) {
     // today uses a value beyond uint64_t. Pre-fix, anything beyond 8 bytes
     // was still hashed into the signature but never matched on display, so
     // there is no legitimate flow this rejection breaks.
-    if (check_fields(context, "RLP_CHAINID", sizeof(uint64_t)) == false) {
+    if ((check_fields(context, "RLP_CHAINID", sizeof(uint64_t)) == false) ||
+        (check_integer(context, "RLP_CHAINID") == false)) {
         return false;
     }
 
@@ -203,7 +240,8 @@ static bool process_chain_id(txContext_t *context) {
 }
 
 static bool process_nonce(txContext_t *context) {
-    if (check_fields(context, "RLP_NONCE", INT256_LENGTH) == false) {
+    if ((check_fields(context, "RLP_NONCE", INT256_LENGTH) == false) ||
+        (check_integer(context, "RLP_NONCE") == false)) {
         return false;
     }
 
@@ -225,7 +263,8 @@ static bool process_nonce(txContext_t *context) {
 }
 
 static bool process_start_gas(txContext_t *context) {
-    if (check_fields(context, "RLP_STARTGAS", INT256_LENGTH) == false) {
+    if ((check_fields(context, "RLP_STARTGAS", INT256_LENGTH) == false) ||
+        (check_integer(context, "RLP_STARTGAS") == false)) {
         return false;
     }
 
@@ -252,7 +291,8 @@ static bool process_gas_limit(txContext_t *context) {
 }
 
 static bool process_gasprice(txContext_t *context) {
-    if (check_fields(context, "RLP_GASPRICE", INT256_LENGTH) == false) {
+    if ((check_fields(context, "RLP_GASPRICE", INT256_LENGTH) == false) ||
+        (check_integer(context, "RLP_GASPRICE") == false)) {
         return false;
     }
 
@@ -274,7 +314,8 @@ static bool process_gasprice(txContext_t *context) {
 }
 
 static bool process_value(txContext_t *context) {
-    if (check_fields(context, "RLP_VALUE", INT256_LENGTH) == false) {
+    if ((check_fields(context, "RLP_VALUE", INT256_LENGTH) == false) ||
+        (check_integer(context, "RLP_VALUE") == false)) {
         return false;
     }
 
@@ -392,8 +433,25 @@ static bool process_and_discard(txContext_t *context) {
     return true;
 }
 
+static bool process_discarded_integer(txContext_t *context) {
+    if (check_integer(context, "Discarded integer") == false) {
+        return false;
+    }
+    return process_and_discard(context);
+}
+
+// R and S of an EIP-155 signing payload are empty placeholders
+static bool process_empty_placeholder(txContext_t *context) {
+    if ((check_fields(context, "RLP_R_S", 0) == false) || (context->currentFieldLength != 0)) {
+        PRINTF("Non-empty R or S\n");
+        return false;
+    }
+    return process_and_discard(context);
+}
+
 static bool process_v(txContext_t *context) {
-    if (check_fields(context, "RLP_V", sizeof(context->content->v)) == false) {
+    if ((check_fields(context, "RLP_V", sizeof(context->content->v)) == false) ||
+        (check_integer(context, "RLP_V") == false)) {
         return false;
     }
 
@@ -460,7 +518,7 @@ static bool process_eip7702_tx(txContext_t *context) {
             break;
         }
         case EIP7702_RLP_MAX_PRIORITY_FEE_PER_GAS:
-            ret = process_and_discard(context);
+            ret = process_discarded_integer(context);
             break;
         default:
             PRINTF("Invalid RLP decoder context\n");
@@ -509,7 +567,7 @@ static bool process_eip1559_tx(txContext_t *context) {
             break;
         }
         case EIP1559_RLP_MAX_PRIORITY_FEE_PER_GAS:
-            ret = process_and_discard(context);
+            ret = process_discarded_integer(context);
             break;
         default:
             PRINTF("Invalid RLP decoder context\n");
@@ -579,7 +637,7 @@ static bool process_legacy_tx(txContext_t *context) {
             break;
         case LEGACY_RLP_R:
         case LEGACY_RLP_S:
-            ret = process_and_discard(context);
+            ret = process_empty_placeholder(context);
             break;
         case LEGACY_RLP_V:
             ret = process_v(context);
@@ -648,6 +706,11 @@ static parserStatus_e process_tx_internal(txContext_t *context) {
         customStatus_e customStatus = CUSTOM_NOT_HANDLED;
         // EIP 155 style transaction
         if (PARSING_IS_DONE(context)) {
+            // The fields must fill the outer list exactly, with nothing after it
+            if ((context->dataPos != context->dataLength) || (context->commandLength != 0)) {
+                PRINTF("RLP outer list length mismatch or trailing data\n");
+                return USTREAM_FAULT;
+            }
             if (context->store_calldata) {
                 uint8_t to[ADDRESS_LENGTH];
                 uint8_t amount[INT256_LENGTH];

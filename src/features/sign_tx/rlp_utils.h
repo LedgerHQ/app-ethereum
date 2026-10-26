@@ -51,6 +51,10 @@
 #define RLP_SHORT_LIST_BASE   0xc0  // Base for short list length
 #define RLP_LONG_LIST_BASE    0xf7  // Base for long list offset
 
+// The short form encodes payloads of 0 to 55 bytes in the prefix (0x80-0xb7, 0xc0-0xf7);
+// longer payloads use the long form (Yellow Paper, appendix B).
+#define RLP_LONG_FORM_MIN_LENGTH (RLP_LONG_STRING_BASE - RLP_SHORT_STRING_BASE + 1)
+
 /**
  * @brief Decode an RLP encoded field - see
  * https://github.com/ethereum/wiki/wiki/RLP

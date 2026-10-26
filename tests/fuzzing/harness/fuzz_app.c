@@ -361,6 +361,7 @@ static void dispatch_one(uint8_t cla,
         return;
     }
     uint16_t sw = handleApdu(&parsed, &tx);
+    fuzz_check_response_length(tx);
     if ((sw != SWO_NO_RESPONSE) && (sw != SWO_SUCCESS) && (sw != SWO_COMMAND_CODE_NOT_SUPPORTED)) {
         reset_app_context();
     }

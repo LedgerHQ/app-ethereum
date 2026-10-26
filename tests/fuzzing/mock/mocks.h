@@ -18,3 +18,6 @@
  * fuzz build supplies this one. Defined in mock/app_globals.c.
  */
 extern cx_sha3_t global_sha3;
+
+/** Aborts when a response length exceeds what G_io_tx_buffer holds before the status word. */
+void fuzz_check_response_length(uint32_t tx);

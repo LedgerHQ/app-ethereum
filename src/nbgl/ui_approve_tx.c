@@ -153,6 +153,28 @@ static bool resolve_address_pair(nbgl_contentTagValue_t *pair,
 }
 
 /**
+ * Fill a pair with the hash of the transaction being signed.
+ *
+ * @param[out] pair pair to fill
+ * @return whether the hash could be formatted
+ */
+static bool set_tx_hash_pair(nbgl_contentTagValue_t *pair) {
+    if (bytes_to_lowercase_hex_0x(strings.common.tx_hash,
+                                  sizeof(strings.common.tx_hash),
+                                  (const uint8_t *) tmpCtx.transactionContext.hash,
+                                  INT256_LENGTH) < 0) {
+        return false;
+    }
+#ifdef SCREEN_SIZE_WALLET
+    pair->item = "Transaction hash";
+#else
+    pair->item = "Tx hash";
+#endif
+    pair->value = strings.common.tx_hash;
+    return true;
+}
+
+/**
  * Retrieve the Tag/Value g_pairs to display
  *
  * @param[in] displayNetwork If true, the network name will be displayed
@@ -210,6 +232,12 @@ static bool setTagValuePairs(bool displayNetwork, bool fromPlugin) {
         g_pairs[nbPairs].item = "Max fees";
         g_pairs[nbPairs].value = strings.common.maxFee;
         nbPairs++;
+        if (N_storage.displayHash) {
+            if (!set_tx_hash_pair(&g_pairs[nbPairs])) {
+                return false;
+            }
+            nbPairs++;
+        }
     } else {
         // Display the From address
         // ------------------------
@@ -287,18 +315,10 @@ static bool setTagValuePairs(bool displayNetwork, bool fromPlugin) {
         // Display the Transaction hash
         // ----------------------------
         if ((N_storage.displayHash) || (tmpContent.txContent.dataPresent)) {
-            if (bytes_to_lowercase_hex_0x(strings.common.tx_hash,
-                                          sizeof(strings.common.tx_hash),
-                                          (const uint8_t *) tmpCtx.transactionContext.hash,
-                                          INT256_LENGTH) >= 0) {
-#ifdef SCREEN_SIZE_WALLET
-                g_pairs[nbPairs].item = "Transaction hash";
-#else
-                g_pairs[nbPairs].item = "Tx hash";
-#endif
-                g_pairs[nbPairs].value = strings.common.tx_hash;
-                nbPairs++;
+            if (!set_tx_hash_pair(&g_pairs[nbPairs])) {
+                return false;
             }
+            nbPairs++;
         }
     }
     return true;
@@ -333,6 +353,10 @@ static size_t getNbPairs(bool displayNetwork, bool fromPlugin) {
         }
         // Count the Max fees
         nbPairs++;
+        if (N_storage.displayHash) {
+            // Count the Transaction hash
+            nbPairs++;
+        }
     } else {
         if (strings.common.fromAddress[0] != 0) {
             // Count the From address

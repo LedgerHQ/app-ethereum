@@ -264,7 +264,8 @@ static size_t eth_mutate_last_step(uint8_t *input,
     const tlv_fuzz_config_t *cfg = &k_command_tlv_configs[last_cmd];
     size_t body = last_step + 1 + 2; /* step length byte, then the TLV length header */
 
-    if (cfg->num_tags == 0 || (body + 1) >= max_size) {
+    /* A step too short for the TLV length header gets the generic mutation */
+    if (cfg->num_tags == 0 || input[last_step] < 2 || (body + 1) >= max_size) {
         return LLVMFuzzerMutate(input, size, max_size);
     }
 
@@ -273,7 +274,16 @@ static size_t eth_mutate_last_step(uint8_t *input,
     if (room > UINT8_MAX - 2) {
         room = UINT8_MAX - 2; /* the step still has to fit one APDU payload */
     }
-    size_t tlv = tlv_custom_mutate(input + body, (size > body) ? size - body : 0, room, seed);
+    /* Only the last step's own payload, as far as the input and the room allow */
+    size_t tlv_size = (size_t) input[last_step] - 2;
+    size_t available = (size > body) ? size - body : 0;
+    if (tlv_size > available) {
+        tlv_size = available;
+    }
+    if (tlv_size > room) {
+        tlv_size = room;
+    }
+    size_t tlv = tlv_custom_mutate(input + body, tlv_size, room, seed);
 
     input[last_step] = (uint8_t) (2 + tlv);
     input[last_step + 1] = (uint8_t) (tlv >> 8);

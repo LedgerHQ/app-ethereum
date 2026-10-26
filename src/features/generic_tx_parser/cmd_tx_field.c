@@ -19,7 +19,7 @@ static bool handle_tlv_payload(const buffer_t *buf) {
 }
 
 uint16_t handle_tx_field(uint8_t p1, uint8_t p2, uint8_t lc, const uint8_t *payload) {
-    if (p2 != 0) {
+    if (((p1 != P1_FIRST_CHUNK) && (p1 != P1_FOLLOWING_CHUNK)) || (p2 != 0)) {
         return SWO_INCORRECT_P1_P2;
     }
     if (!call_description_is_allowed(CALL_DESCRIPTION_FIELD)) {

@@ -1260,7 +1260,9 @@ _Command:_
 
 | CLA | INS | P1                                         | P2  | LC  |
 |-----|-----|--------------------------------------------|-----|-----|
-| E0  | 24  | `01`: first chunk<br>`00`: following chunk | 00  | 00  |
+| E0  | 24  | `01`: first chunk<br>`00`: following chunk | 00  | variable |
+
+Any other P1 or P2 is refused with `0x6A86`.
 
 _Input data:_
 
@@ -1392,9 +1394,9 @@ _Command:_
 
 | CLA | INS | P1                                         | P2                                      | LC  |
 |-----|-----|--------------------------------------------|-----------------------------------------|-----|
-| E0  | 28  | `01`: first chunk<br>`00`: following chunk | `00`: transaction<br>`02`: V2 message   | 00  |
+| E0  | 28  | `01`: first chunk<br>`00`: following chunk | `00`: transaction<br>`02`: V2 message   | variable |
 
-Any other P2 is refused with `0x6A86`, and so is any other P1 when `P2 == 02`.
+Any other P1 or P2 is refused with `0x6A86`.
 
 _Input data:_
 
@@ -1755,6 +1757,8 @@ _Command:_
 | CLA | INS | P1                                         | P2  | Lc       |
 |-----|-----|--------------------------------------------|-----|----------|
 | E0  | 3A  | `01`: first chunk<br>`00`: following chunk | 00  | variable |
+
+Any other P1 or P2 is refused with `0x6A86`.
 
 _Input data:_
 

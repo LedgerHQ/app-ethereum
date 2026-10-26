@@ -271,6 +271,11 @@ void test_field_p2_rejected(void) {
                       SWO_INCORRECT_P1_P2);
 }
 
+void test_field_p1_rejected(void) {
+    appState = APP_STATE_SIGNING_TX;
+    TEST_ASSERT_EQUAL(handle_tx_field(0x02, 0, 0, NULL), SWO_INCORRECT_P1_P2);
+}
+
 void test_field_refused_when_the_flow_cannot_describe_a_call(void) {
     g_can_describe_call_ret = false;
     TEST_ASSERT_EQUAL(handle_tx_field(P1_FIRST_CHUNK, 0, 0, NULL), SWO_COMMAND_NOT_ALLOWED);
@@ -344,6 +349,11 @@ void test_tx_info_p2_rejected(void) {
     TEST_ASSERT_EQUAL(handle_tx_info(P1_FIRST_CHUNK, 1, 0, NULL), SWO_INCORRECT_P1_P2);
     TEST_ASSERT_EQUAL(handle_tx_info(P1_FIRST_CHUNK, P2_EIP712_V2_IMPLEM, 0, NULL),
                       SWO_INCORRECT_P1_P2);
+}
+
+void test_tx_info_p1_rejected(void) {
+    appState = APP_STATE_SIGNING_TX;
+    TEST_ASSERT_EQUAL(handle_tx_info(0x02, 0, 0, NULL), SWO_INCORRECT_P1_P2);
 }
 
 // =============================================================================
@@ -714,6 +724,7 @@ void tearDown(void) {
 int main(void) {
     UNITY_BEGIN();
     RUN_TEST(test_field_p2_rejected);
+    RUN_TEST(test_field_p1_rejected);
     RUN_TEST(test_field_refused_when_the_flow_cannot_describe_a_call);
     RUN_TEST(test_field_asks_about_the_descriptors_of_a_call);
     RUN_TEST(test_field_no_tx_info_triggers_cleanup);
@@ -722,6 +733,7 @@ int main(void) {
     RUN_TEST(test_tx_info_refused_when_the_flow_cannot_describe_a_call);
     RUN_TEST(test_tx_info_asks_about_the_info_of_a_call);
     RUN_TEST(test_tx_info_p2_rejected);
+    RUN_TEST(test_tx_info_p1_rejected);
     RUN_TEST(test_tx_info_tlv_failure_returns_incorrect_data);
     RUN_TEST(test_tx_info_tlv_success_returns_success);
     RUN_TEST(test_field_handler_happy_path);

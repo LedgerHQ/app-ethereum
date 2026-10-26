@@ -132,16 +132,31 @@ static void run_eip712(fuzz_cursor_t *cur) {
 /* Append/read program over one calldata store. The store is local so it cannot
  * outlive the heap that app_mem_init() resets between iterations. */
 static void run_calldata(fuzz_cursor_t *cur) {
-    s_calldata *calldata = calldata_init(CALLDATA_SELECTOR_SIZE + cur->left, NULL);
+    size_t size;
+    const uint8_t *blob = fuzz_take_slice16(cur, &size);
+    s_calldata *calldata = calldata_init(size, NULL);
+    size_t appended = 0;
 
     if (calldata == NULL) {
         return;
     }
     while (cur->left > 0) {
+        uint8_t op = fuzz_take_u8(cur);
         const uint8_t *chunk;
         uint8_t len;
 
-        if (fuzz_take_u8(cur) & 1) {
+        if (op & 1) {
+            // Next piece of the blob, so the store can complete and reads succeed.
+            size_t piece = fuzz_take_u8(cur);
+
+            if (piece > size - appended) {
+                piece = size - appended;
+            }
+            if ((piece > 0) && calldata_append(calldata, blob + appended, piece)) {
+                appended += piece;
+            }
+        } else if (op & 2) {
+            // Bytes from outside the blob, which may overrun the declared size.
             chunk = fuzz_take_slice(cur, &len);
             calldata_append(calldata, chunk, len);
         } else {

@@ -227,6 +227,13 @@ From inside the container, use the following command to build the app:
 make DEBUG=1  # compile optionally with PRINTF
 ```
 
+[EIP-7702](https://eips.ethereum.org/EIPS/eip-7702) support (authorization signing, "Smart accounts" setting and type 4
+transactions) is not part of the default build. Enable it with `EIP7702_SUPPORT=1`:
+
+```shell
+make EIP7702_SUPPORT=1
+```
+
 You can choose which device to compile and load for by setting the `BOLOS_SDK` environment variable to the following values:
 
 - `BOLOS_SDK=$NANOX_SDK`

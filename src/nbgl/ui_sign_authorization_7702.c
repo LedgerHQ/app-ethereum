@@ -1,3 +1,5 @@
+#ifdef HAVE_7702_SUPPORT
+
 #include "nbgl_use_case.h"
 #include "apdu_constants.h"
 #include "shared_context.h"
@@ -57,3 +59,5 @@ bool ui_sign_7702_auth(void) {
                        review7702Choice);
     return true;
 }
+
+#endif  // HAVE_7702_SUPPORT

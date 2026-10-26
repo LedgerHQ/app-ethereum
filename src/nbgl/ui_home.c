@@ -30,7 +30,9 @@ enum {
     BLIND_SIGNING_TOKEN,
     NONCE_TOKEN,
     EIP712_VERBOSE_TOKEN,
+#ifdef HAVE_7702_SUPPORT
     EIP7702_TOKEN,
+#endif
     DEBUG_TOKEN,
     HASH_TOKEN,
 };
@@ -43,7 +45,9 @@ enum {
     NONCE_ID,
     EIP712_VERBOSE_ID,
     DEBUG_ID,
+#ifdef HAVE_7702_SUPPORT
     EIP7702_ID,
+#endif
     HASH_ID,
     SETTINGS_SWITCHES_NB
 };
@@ -99,11 +103,13 @@ static void setting_toggle_callback(int token, uint8_t index, int page) {
             switches[EIP712_VERBOSE_ID].initState = (nbgl_state_t) value;
             nvm_write((void *) &N_storage.verbose_eip712, (void *) &value, sizeof(value));
             break;
+#ifdef HAVE_7702_SUPPORT
         case EIP7702_TOKEN:
             value = !N_storage.eip7702_enable;
             switches[EIP7702_ID].initState = (nbgl_state_t) value;
             nvm_write((void *) &N_storage.eip7702_enable, (void *) &value, sizeof(value));
             break;
+#endif  // HAVE_7702_SUPPORT
         case DEBUG_TOKEN:
             value = !N_storage.contractDetails;
             switches[DEBUG_ID].initState = (nbgl_state_t) value;
@@ -149,6 +155,7 @@ static void prepare_and_display_home(const char *appname, const char *tagline, u
     switches[EIP712_VERBOSE_ID].tuneId = TUNE_TAP_CASUAL;
 #endif
 
+#ifdef HAVE_7702_SUPPORT
     switches[EIP7702_ID].initState = N_storage.eip7702_enable ? ON_STATE : OFF_STATE;
 #ifdef SCREEN_SIZE_WALLET
     switches[EIP7702_ID].text = "Smart account upgrade";
@@ -161,6 +168,7 @@ static void prepare_and_display_home(const char *appname, const char *tagline, u
 #ifdef HAVE_PIEZO_SOUND
     switches[EIP7702_ID].tuneId = TUNE_TAP_CASUAL;
 #endif
+#endif  // HAVE_7702_SUPPORT
 
     switches[DEBUG_ID].initState = N_storage.contractDetails ? ON_STATE : OFF_STATE;
 #ifdef SCREEN_SIZE_WALLET

@@ -1,3 +1,5 @@
+#ifdef HAVE_7702_SUPPORT
+
 #include "shared_context.h"
 #include "format.h"
 #include "app_mem_utils.h"
@@ -238,3 +240,5 @@ uint16_t handle_sign_eip7702_authorization(uint8_t p1,
     }
     return SWO_NO_RESPONSE;
 }
+
+#endif  // HAVE_7702_SUPPORT

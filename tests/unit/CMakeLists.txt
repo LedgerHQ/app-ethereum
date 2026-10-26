@@ -91,10 +91,12 @@ set(COMMON_INCLUDE_DIRS
 # Compile definitions added to every test target.
 # UT_COMPILE_DEFS_SDK is provided by the SDK but not auto-applied by
 # ledger_unit_tests_add_test(); forward it here so all test targets
-# inherit the full SDK-standard set. HAVE_TRANSACTION_CHECKS is app-specific.
+# inherit the full SDK-standard set. HAVE_TRANSACTION_CHECKS and HAVE_7702_SUPPORT
+# are app-specific.
 set(COMMON_COMPILE_DEFS
   ${UT_COMPILE_DEFS_SDK}
   HAVE_TRANSACTION_CHECKS
+  HAVE_7702_SUPPORT
 )
 
 # Link libbsd via link_libraries() so it appears AFTER object files in the link

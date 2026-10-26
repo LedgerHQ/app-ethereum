@@ -48,6 +48,13 @@ ifeq ($(TARGET_NAME),$(filter $(TARGET_NAME),TARGET_STAX TARGET_FLEX TARGET_APEX
 endif
 
 
+# EIP-7702: authorization signing and type 4 transactions
+EIP7702_SUPPORT ?= 0
+ifneq ($(EIP7702_SUPPORT),0)
+    DEFINES += HAVE_7702_SUPPORT
+endif
+
+# Whitelist entries used by the test framework (requires EIP7702_SUPPORT)
 EIP7702_TEST_WHITELIST ?= 0
 ifneq ($(EIP7702_TEST_WHITELIST),0)
     DEFINES += HAVE_EIP7702_WHITELIST_TEST
@@ -62,6 +69,13 @@ endif
 
 # Check features incompatibilities
 # --------------------------------
+# EIP-7702
+ifneq ($(EIP7702_TEST_WHITELIST),0)
+    ifeq ($(EIP7702_SUPPORT),0)
+        $(error EIP7702_TEST_WHITELIST requires EIP7702_SUPPORT=1)
+    endif
+endif
+
 # NFTs
 ifneq (,$(filter $(DEFINES),HAVE_NFT_TEST_KEY))
     ifneq (, $(filter $(DEFINES),HAVE_NFT_STAGING_KEY))

@@ -90,6 +90,7 @@ _Output data:_
 
 The application supports signing legacy or [EIP-2718](https://eips.ethereum.org/EIPS/eip-2718) transactions for Type 2
 ([EIP-1559](https://eips.ethereum.org/EIPS/eip-1559)) and Type 4 ([EIP-7702](https://eips.ethereum.org/EIPS/eip-7702)).
+Type 4 transactions are only supported by builds compiled with `EIP7702_SUPPORT=1`.
 
 This command signs an Ethereum transaction after having the user validate the following parameters:
 
@@ -1399,6 +1400,9 @@ This command computes the signature for an element of an [EIP-7702](https://eips
 Authorization list on the given account, for the given delegate, chain ID and nonce.
 
 The user is prompted to confirm the operation before the signature is issued.
+
+This command is only available in builds compiled with `EIP7702_SUPPORT=1`; other builds answer with an invalid
+instruction status word.
 
 #### Coding
 

@@ -217,7 +217,9 @@ uint64_t get_tx_chain_id(void) {
             break;
         case EIP2930:
         case EIP1559:
+#ifdef HAVE_7702_SUPPORT
         case EIP7702:
+#endif
             chain_id = u64_from_BE(tmpContent.txContent.chainID.value,
                                    tmpContent.txContent.chainID.length);
             break;

@@ -17,9 +17,9 @@
 #include "utils.h"
 
 // All internal alias names start with 'minus'
+// The first match wins: address-bound entries come before the address wildcard ones.
 
 static const internalEthPlugin_t INTERNAL_ETH_PLUGINS[] = {
-    {NULL, 0, ERC20_SELECTORS, NUM_ERC20_SELECTORS, "-erc20", erc20_plugin_call},
 #ifdef HAVE_ETH2
     {ETH2_ADDRESSES,
      NUM_ETH2_ADDRESSES,
@@ -30,6 +30,7 @@ static const internalEthPlugin_t INTERNAL_ETH_PLUGINS[] = {
 #endif
     {EIP7002_ADDRESSES, NUM_EIP7002_ADDRESSES, NULL, 0, "-eip7002", eip7002_plugin_call},
     {EIP7251_ADDRESSES, NUM_EIP7251_ADDRESSES, NULL, 0, "-eip7251", eip7251_plugin_call},
+    {NULL, 0, ERC20_SELECTORS, NUM_ERC20_SELECTORS, "-erc20", erc20_plugin_call},
 };
 
 void eth_plugin_prepare_init(ethPluginInitContract_t *init,

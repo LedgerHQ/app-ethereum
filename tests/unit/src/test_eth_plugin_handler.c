@@ -669,6 +669,19 @@ void test_perform_init_none_matches_eip7002_by_address(void) {
     TEST_ASSERT_EQUAL_STRING(dataContext.tokenContext.pluginName, "-eip7002");
 }
 
+void test_perform_init_none_address_entry_wins_over_erc20_selector(void) {
+    // An ERC-20 selector sent to an address-bound plugin must reach that plugin.
+    pluginType = PLUGIN_TYPE_NONE;
+    uint8_t contract[ADDRESS_LENGTH];
+    memcpy(contract, g_eip7002_address, ADDRESS_LENGTH);
+    ethPluginInitContract_t init = {.selector = g_erc20_transfer_selector};
+
+    eth_plugin_perform_init(contract, &init);
+
+    TEST_ASSERT_EQUAL(pluginType, PLUGIN_TYPE_OLD_INTERNAL);
+    TEST_ASSERT_EQUAL_STRING(dataContext.tokenContext.pluginName, "-eip7002");
+}
+
 void test_perform_init_none_no_match_unavailable(void) {
     // Contract not in any address-bound plugin, selector not in any
     // selector-bound plugin → old_internal returns false. Then
@@ -761,6 +774,7 @@ int main(void) {
     RUN_TEST(test_perform_init_swap_with_calldata_sets_ok);
     RUN_TEST(test_perform_init_none_matches_erc20_transfer);
     RUN_TEST(test_perform_init_none_matches_eip7002_by_address);
+    RUN_TEST(test_perform_init_none_address_entry_wins_over_erc20_selector);
     RUN_TEST(test_perform_init_none_no_match_unavailable);
     RUN_TEST(test_perform_init_none_no_match_swap_mode_returns_error);
     return UNITY_END();

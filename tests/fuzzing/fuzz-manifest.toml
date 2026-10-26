@@ -2,7 +2,7 @@
 # this file: see the "Manifest" page of the SDK Fuzzing Framework docs. One
 # [[targets]] block per fuzzer built by CMakeLists.txt.
 
-harness_version = "4"
+harness_version = "5"
 
 [coverage]
 exclude_regexes = [

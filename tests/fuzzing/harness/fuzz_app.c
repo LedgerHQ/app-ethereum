@@ -338,6 +338,59 @@ void fuzz_app_reset(void) {
     appState = restored_app_state;
 }
 
+/* P1/P2 values each handler accepts. The structured lane maps the drawn bytes onto
+ * them so most calls get past parameter validation; the raw lane keeps the bytes.
+ * Commands not listed take TLV chunking: P1 first/following chunk, P2 zero. */
+typedef struct {
+    uint8_t ins;
+    uint8_t n_p1;
+    uint8_t p1[2];
+    uint8_t n_p2;
+    uint8_t p2[15];
+} eth_param_set_t;
+
+// clang-format off
+static const eth_param_set_t k_param_sets[] = {
+    {INS_GET_PUBLIC_KEY,                  2, {0x00, 0x01}, 2, {0x00, 0x01}},
+    {INS_SIGN,                            2, {0x00, 0x80}, 3, {0x00, 0x01, 0x02}},
+    {INS_GET_APP_CONFIGURATION,           1, {0x00},       1, {0x00}},
+    {INS_SIGN_PERSONAL_MESSAGE,           2, {0x00, 0x80}, 1, {0x00}},
+    {INS_PROVIDE_ERC20_TOKEN_INFORMATION, 2, {0x00, 0x01}, 2, {0x00, 0x01}},
+    {INS_SIGN_EIP_712_MESSAGE,            1, {0x00},       2, {0x00, 0x01}},
+    {INS_SET_ETH2_WITHDRAWAL_INDEX,       1, {0x00},       1, {0x00}},
+    {INS_SET_EXTERNAL_PLUGIN,             1, {0x00},       1, {0x00}},
+    {INS_PROVIDE_NFT_INFORMATION,         1, {0x00},       1, {0x00}},
+    {INS_SET_PLUGIN,                      1, {0x00},       1, {0x00}},
+    {INS_PERFORM_PRIVACY_OPERATION,       2, {0x00, 0x01}, 2, {0x00, 0x01}},
+    {INS_EIP712_STRUCT_DEF,               1, {0x00},       2, {0x00, 0xFF}},
+    {INS_EIP712_STRUCT_IMPL,              2, {0x00, 0xFF}, 3, {0x00, 0xFF, 0x0F}},
+    {INS_EIP712_FILTERING,                2, {0x00, 0x01}, 15, {0x00, 0x01, 0x0F, 0xF4, 0xF5, 0xF6, 0xF7, 0xF8,
+                                                                0xF9, 0xFA, 0xFB, 0xFC, 0xFD, 0xFE, 0xFF}},
+    {INS_GET_CHALLENGE,                   1, {0x00},       1, {0x00}},
+    {INS_PROVIDE_NETWORK_INFO,            2, {0x00, 0x01}, 3, {0x00, 0x01, 0x02}},
+    {INS_PROVIDE_TX_SIMULATION,           2, {0x00, 0x01}, 2, {0x00, 0x01}},
+    {INS_PROVIDE_SAFE_ACCOUNT,            2, {0x00, 0x01}, 2, {0x00, 0x01}},
+};
+// clang-format on
+
+static const eth_param_set_t k_tlv_chunk_params = {0, 2, {0x01, 0x00}, 1, {0x00}};
+
+static void map_params(uint8_t ins, uint8_t *p1, uint8_t *p2) {
+    const eth_param_set_t *set = &k_tlv_chunk_params;
+
+    if (!fuzz_use_structured_lane()) {
+        return;
+    }
+    for (size_t i = 0; i < ARRAYLEN(k_param_sets); i++) {
+        if (k_param_sets[i].ins == ins) {
+            set = &k_param_sets[i];
+            break;
+        }
+    }
+    *p1 = set->p1[*p1 % set->n_p1];
+    *p2 = set->p2[*p2 % set->n_p2];
+}
+
 /** Re-encodes one command as a real APDU and runs the parser production uses. */
 static void dispatch_one(uint8_t cla,
                          uint8_t ins,
@@ -392,6 +445,7 @@ void fuzz_app_dispatch(void *cmd_v) {
     uint8_t cla = cmd->cla;
     uint8_t ins = cmd->ins;
 
+    map_params(ins, &p1, &p2);
     for (;;) {
         uint8_t lc;
         const uint8_t *payload = fuzz_take_slice(&cur, &lc);
@@ -407,5 +461,6 @@ void fuzz_app_dispatch(void *cmd_v) {
         ins = spec->ins;
         p1 = fuzz_clamp_p(fuzz_take_u8(&cur), spec->p1_max);
         p2 = fuzz_clamp_p(fuzz_take_u8(&cur), spec->p2_max);
+        map_params(ins, &p1, &p2);
     }
 }

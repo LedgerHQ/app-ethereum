@@ -1,3 +1,5 @@
+#ifdef HAVE_EIP712_V1
+
 #include "eip712_v1_commands.h"
 #include "eip712_v1_context.h"
 #include "eip712_session.h"
@@ -347,3 +349,5 @@ uint16_t handle_eip712_v1_sign(const uint8_t *cdata, uint8_t length) {
     }
     return SWO_NO_RESPONSE;
 }
+
+#endif  // HAVE_EIP712_V1

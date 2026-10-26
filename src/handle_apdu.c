@@ -14,7 +14,9 @@
 #include "cmd_safe_account.h"
 #include "cmd_trusted_name.h"
 #include "cmd_tx_info.h"
+#ifdef HAVE_EIP712_V1
 #include "eip712_v1_commands.h"
+#endif  // HAVE_EIP712_V1
 #ifdef HAVE_7702_SUPPORT
 #include "commands_7702.h"
 #endif
@@ -84,9 +86,11 @@ uint16_t handleApdu(command_t *cmd, uint32_t *tx) {
                     forget_known_assets();
                     sw = handle_sign_eip712_message_v0(cmd->p1, cmd->data, cmd->lc);
                     break;
+#ifdef HAVE_EIP712_V1
                 case P2_EIP712_V1_IMPLEM:
                     sw = handle_eip712_v1_sign(cmd->data, cmd->lc);
                     break;
+#endif  // HAVE_EIP712_V1
                 case P2_EIP712_V2_IMPLEM:
                     sw = handle_eip712_v2_sign(cmd->p1, cmd->p2, cmd->lc);
                     break;
@@ -111,7 +115,11 @@ uint16_t handleApdu(command_t *cmd, uint32_t *tx) {
             if (cmd->p2 == P2_EIP712_V2_IMPLEM) {
                 sw = handle_eip712_v2_schema(cmd->p1, cmd->p2, cmd->lc, cmd->data);
             } else {
+#ifdef HAVE_EIP712_V1
                 sw = handle_eip712_v1_struct_def(cmd->p2, cmd->data, cmd->lc);
+#else
+                sw = SWO_WRONG_P1_P2;
+#endif  // HAVE_EIP712_V1
             }
             break;
 
@@ -119,13 +127,19 @@ uint16_t handleApdu(command_t *cmd, uint32_t *tx) {
             if (cmd->p2 == P2_EIP712_V2_IMPLEM) {
                 sw = handle_eip712_v2_values(cmd->p1, cmd->p2, cmd->lc, cmd->data);
             } else {
+#ifdef HAVE_EIP712_V1
                 sw = handle_eip712_v1_struct_impl(cmd->p1, cmd->p2, cmd->data, cmd->lc);
+#else
+                sw = SWO_WRONG_P1_P2;
+#endif  // HAVE_EIP712_V1
             }
             break;
 
+#ifdef HAVE_EIP712_V1
         case INS_EIP712_FILTERING:
             sw = handle_eip712_v1_filtering(cmd->p1, cmd->p2, cmd->data, cmd->lc);
             break;
+#endif  // HAVE_EIP712_V1
 
         // Generic clear-signing protocol (GCS) and trusted data provisioning
         case INS_GET_CHALLENGE:

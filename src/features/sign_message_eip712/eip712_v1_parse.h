@@ -1,5 +1,7 @@
 #pragma once
 
+#ifdef HAVE_EIP712_V1
+
 #include <stdbool.h>
 #include <stdint.h>
 #include "typed_data.h"
@@ -24,3 +26,5 @@ uint8_t v1_backup_depth_count(void);
 const s_struct_712_field *v1_backup_nth_field(uint8_t n);
 bool v1_backup_exists(const char *path, size_t length);
 void v1_parse_deinit(void);
+
+#endif  // HAVE_EIP712_V1

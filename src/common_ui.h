@@ -2,7 +2,9 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#ifdef HAVE_EIP712_V1
 #include "eip712_v1_ui_logic.h"
+#endif  // HAVE_EIP712_V1
 #include "shared_context.h"
 #include "ux.h"
 
@@ -41,7 +43,9 @@ void ui_191_start(const char *message, bool is_hex);
 bool ui_191_message_fits(const char *message);
 
 // EIP-712
+#ifdef HAVE_EIP712_V1
 bool ui_sign_712_v1(e_eip712_filtering_mode filtering_mode);
+#endif  // HAVE_EIP712_V1
 bool ui_sign_712_v0(void);
 bool ui_712_v2_review(void);
 void ui_712_v2_cleanup(void);

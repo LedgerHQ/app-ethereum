@@ -2,7 +2,10 @@
 #include <string.h>
 
 #include "shared_context.h"
+#ifdef HAVE_EIP712_V1
 #include "eip712_v1_context.h"  // eip712_v1_context_deinit
+#endif                          // HAVE_EIP712_V1
+#include "typed_data.h"         // td_deinit
 #include "eip712_session.h"     // eip712_session_close
 #include "bip32_utils.h"
 #include "bip32.h"
@@ -60,7 +63,9 @@ void reset_app_context_ex(bool scrub_strings) {
     if (appState == APP_STATE_SIGNING_MESSAGE) {
         message_cleanup();
     }
+#ifdef HAVE_EIP712_V1
     eip712_v1_context_deinit();
+#endif  // HAVE_EIP712_V1
     G_called_from_swap = false;
     G_swap_response_ready = false;
     G_swap_checked = false;

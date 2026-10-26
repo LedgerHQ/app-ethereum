@@ -31,8 +31,6 @@
 #include "handle_get_printable_amount.h"
 #include "handle_check_address.h"
 #include "swap_entrypoints.h"
-#include "eip712_v1_commands.h"
-#include "eip712_v1_context.h"  // eip712_v1_context, eip712_v1_context_deinit
 #include "challenge.h"
 #include "cmd_trusted_name.h"
 #include "crypto_helpers.h"

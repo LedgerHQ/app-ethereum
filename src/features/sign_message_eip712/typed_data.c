@@ -1,6 +1,5 @@
 #include "typed_data.h"
 #include "sol_typenames.h"
-#include "eip712_v1_context.h"
 #include "common_utils.h"
 #include "app_mem_utils.h"
 #include "read.h"

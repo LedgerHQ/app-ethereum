@@ -1,3 +1,5 @@
+#ifdef HAVE_EIP712_V1
+
 #include "app_mem_utils.h"
 #include "read.h"
 #include "os_utils.h"  // is_zeroes_buffer
@@ -808,3 +810,5 @@ void v1_parse_deinit(void) {
     g_pending_struct = NULL;
     g_domain_root = NULL;
 }
+
+#endif  // HAVE_EIP712_V1

@@ -18,6 +18,12 @@ ifneq ($(SET_PLUGIN_TEST_KEY),0)
     DEFINES += HAVE_SET_PLUGIN_TEST_KEY
 endif
 
+# EIP-712 V1: the struct definitions and values streamed one APDU at a time, and their filtering.
+EIP712_V1 ?= 1
+ifneq ($(EIP712_V1),0)
+    DEFINES += HAVE_EIP712_V1
+endif
+
 # NFTs
 NFT_TEST_KEY ?= 0
 ifneq ($(NFT_TEST_KEY),0)

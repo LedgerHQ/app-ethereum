@@ -1,5 +1,7 @@
 #pragma once
 
+#ifdef HAVE_EIP712_V1
+
 #include <stdbool.h>
 #include <stdint.h>
 #include "ux.h"
@@ -112,3 +114,5 @@ bool calldata_info_all_received(const s_eip712_calldata_info *calldata_info);
 bool ui_712_accumulate_value(const s_struct_712_field *field_ptr,
                              const uint8_t *data,
                              size_t length);
+
+#endif  // HAVE_EIP712_V1

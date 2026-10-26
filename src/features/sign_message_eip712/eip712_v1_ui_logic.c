@@ -1,3 +1,5 @@
+#ifdef HAVE_EIP712_V1
+
 #include "eip712_v1_ui_logic.h"
 #include "app_mem_utils.h"
 #include "mem_utils.h"
@@ -1427,3 +1429,5 @@ bool calldata_info_all_received(const s_eip712_calldata_info *calldata_info) {
     }
     return true;
 }
+
+#endif  // HAVE_EIP712_V1

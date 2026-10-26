@@ -75,6 +75,7 @@ bool ui_712_start_review(nbgl_operationType_t operationType, nbgl_choiceCallback
     return true;
 }
 
+#ifdef HAVE_EIP712_V1
 /**
  * @brief Start EIP712 signature review flow
  *
@@ -95,6 +96,7 @@ bool ui_sign_712_v1(e_eip712_filtering_mode filtering_mode) {
 
     return ui_712_start_review(TYPE_MESSAGE, ui_712_review_choice);
 }
+#endif  // HAVE_EIP712_V1
 
 /**
  * @brief Start EIP712 signature review flow in Legacy (v0) mode

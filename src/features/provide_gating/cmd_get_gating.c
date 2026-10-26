@@ -41,7 +41,9 @@
 #include "typed_data.h"
 #include "type_hash.h"
 #include "eip712_v2_message_info.h"
+#ifdef HAVE_EIP712_V1
 #include "schema_hash.h"
+#endif  // HAVE_EIP712_V1
 #include "lcx_sha256.h"
 
 // Display the Dated Signing screen 1/X times
@@ -641,14 +643,37 @@ static bool check_gating_chain_id(void) {
     return true;
 }
 
+#ifdef HAVE_EIP712_V1
+/**
+ * @brief Check the HASH of the Gating payload against the schema hash of a V1 message.
+ *
+ * @return whether it matches
+ */
+static bool check_gating_schema_hash(void) {
+    uint8_t schema_hash[CX_SHA224_SIZE];
+
+    if (compute_schema_hash(schema_hash) == false) {
+        PRINTF("[GATING] Failed to compute schema hash\n");
+        return false;
+    }
+    if (memcmp(GATING->hash_selector, schema_hash, sizeof(GATING->hash_selector)) != 0) {
+        PRINTF("[GATING] schemaHash mismatch: %.*h != %.*h\n",
+               sizeof(GATING->hash_selector),
+               GATING->hash_selector,
+               sizeof(schema_hash),
+               schema_hash);
+        return false;
+    }
+    return true;
+}
+#endif  // HAVE_EIP712_V1
+
 /**
  * @brief Check the SELECTOR vs Gating payload.
  *
  * @return whether it was successful
  */
 static bool check_gating_selector(void) {
-    uint8_t schema_hash[CX_SHA224_SIZE];
-
     switch (GATING->type) {
         case TX_TYPE_TRANSACTION:
             // Check if the descriptor is set
@@ -665,19 +690,14 @@ static bool check_gating_selector(void) {
             }
             break;
         case TX_TYPE_TYPED_DATA:
-            if (compute_schema_hash(schema_hash) == false) {
-                PRINTF("[GATING] Failed to compute schema hash\n");
-                return false;
-            }
-            if (memcmp(GATING->hash_selector, schema_hash, sizeof(GATING->hash_selector)) != 0) {
-                PRINTF("[GATING] schemaHash mismatch: %.*h != %.*h\n",
-                       sizeof(GATING->hash_selector),
-                       GATING->hash_selector,
-                       sizeof(schema_hash),
-                       schema_hash);
+#ifdef HAVE_EIP712_V1
+            if (!check_gating_schema_hash()) {
                 return false;
             }
             break;
+#else
+            return false;
+#endif  // HAVE_EIP712_V1
         default:
             return false;
     }

@@ -1,3 +1,5 @@
+#ifdef HAVE_EIP712_V1
+
 #include "eip712_v1_context.h"
 #include "eip712_session.h"
 #include "app_mem_utils.h"
@@ -71,3 +73,5 @@ bool eip712_v1_sign_claim(void) {
     eip712_v1_context->sign_claimed = true;
     return true;
 }
+
+#endif  // HAVE_EIP712_V1

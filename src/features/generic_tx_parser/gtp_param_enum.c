@@ -59,8 +59,9 @@ bool format_param_enum(const s_param_enum *param, const char *name) {
     const uint8_t *selector;
     const uint8_t *callee;
 
-    // Enum entries are 8-bit: the schema must declare an 8-bit unsigned value
-    if ((param->value.type_family != TF_UINT) || (param->value.type_size != sizeof(uint8_t))) {
+    // Enum entries are 8-bit: the schema must declare an unsigned value. Wider declarations are
+    // accepted as long as the calldata word fits in 8 bits (checked below).
+    if (param->value.type_family != TF_UINT) {
         return false;
     }
 

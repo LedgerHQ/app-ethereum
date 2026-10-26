@@ -43,10 +43,9 @@ bool copy_transaction_parameters(create_transaction_parameters_t *sign_transacti
     explicit_bzero(expected_value, sizeof(expected_value));
 
     // Set destination address
-    strlcpy(stack_data.toAddress,
-            sign_transaction_params->destination_address,
-            sizeof(stack_data.toAddress));
-    if ((stack_data.toAddress[sizeof(stack_data.toAddress) - 1] != '\0') ||
+    if ((strlcpy(stack_data.toAddress,
+                 sign_transaction_params->destination_address,
+                 sizeof(stack_data.toAddress)) >= sizeof(stack_data.toAddress)) ||
         (sign_transaction_params->amount_length > 32) ||
         (sign_transaction_params->fee_amount_length > 8)) {
         return false;

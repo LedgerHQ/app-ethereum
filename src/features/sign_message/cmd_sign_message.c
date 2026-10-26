@@ -18,6 +18,9 @@ typedef struct {
 cx_sha3_t *g_msg_hash_ctx = NULL;
 static signMsgCtx_t *signMsgCtx = NULL;
 
+// Largest length whose hex display form (length * 2 + 3) fits in a uint16_t.
+#define MAX_MSG_LENGTH ((UINT16_MAX - 3) / 2)
+
 static const char SIGN_MAGIC[] =
     "\x19"
     "Ethereum Signed Message:\n";
@@ -39,6 +42,7 @@ static void set_idle(void) {
  */
 static uint16_t first_apdu_data(uint8_t **data, uint8_t *length) {
     cx_err_t error = CX_INTERNAL_ERROR;
+    uint32_t msg_length;
 
     // Initialize the Message Context
     message_cleanup();
@@ -61,7 +65,12 @@ static uint16_t first_apdu_data(uint8_t **data, uint8_t *length) {
     }
 
     // Get the message length
-    signMsgCtx->msg_length = (uint16_t) U4BE(*data, 0);
+    msg_length = U4BE(*data, 0);
+    if (msg_length > MAX_MSG_LENGTH) {
+        PRINTF("Error: message too long (%u > %u)\n", msg_length, MAX_MSG_LENGTH);
+        return SWO_INCORRECT_DATA;
+    }
+    signMsgCtx->msg_length = (uint16_t) msg_length;
 
     // Allocate the buffer for the message
     if (APP_MEM_CALLOC((void **) &(signMsgCtx->received_buffer), signMsgCtx->msg_length) == false) {
@@ -152,10 +161,8 @@ static uint16_t final_process(void) {
     // Guard against uint16_t overflow in the display buffer length calculation.
     // In the worst case (hex path) the length becomes msg_length * 2 + 3, so
     // reject messages that would cause that expression to exceed UINT16_MAX.
-    if (signMsgCtx->msg_length > ((UINT16_MAX - 3) / 2)) {
-        PRINTF("Error: message too long (%u > %u)\n",
-               signMsgCtx->msg_length,
-               ((UINT16_MAX - 3) / 2));
+    if (signMsgCtx->msg_length > MAX_MSG_LENGTH) {
+        PRINTF("Error: message too long (%u > %u)\n", signMsgCtx->msg_length, MAX_MSG_LENGTH);
         error = SWO_INCORRECT_DATA;
         goto end;
     }

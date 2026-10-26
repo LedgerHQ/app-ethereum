@@ -9,7 +9,7 @@
 
 static void reviewChoice(bool confirm) {
     if (confirm) {
-        io_seproxyhal_touch_address_ok();
+        io_seproxyhal_touch_eth2_address_ok();
         nbgl_useCaseReviewStatus(STATUS_TYPE_ADDRESS_VERIFIED, ui_idle);
     } else {
         io_seproxyhal_touch_address_cancel();

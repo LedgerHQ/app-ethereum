@@ -68,7 +68,6 @@ def test_get_eth2_pk(scenario_navigator: NavigateWithScenario, test_name: str):
         scenario_navigator.address_review_approve(test_name=test_name)
 
     pk = app_client.response().data
-    pk = pk[1:49]
     ref_pk = bls.SkToPk(mnemonic_and_path_to_key(SPECULOS_MNEMONIC, path))
 
     assert pk == ref_pk

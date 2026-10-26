@@ -89,10 +89,23 @@ const uint8_t *get_implem_contract(const uint64_t *chain_id,
 // the MAB-source re-derivation hook.
 //
 // getEthAddressFromRawKey lives in common_utils.c and we let the real
-// implementation run; instead, we shape the raw pubkey bytes so the
-// 20-byte address it derives matches g_derived_addr.
+// implementation run; the Keccak below makes the 20-byte address it
+// derives match g_derived_addr.
 static uint8_t g_derived_addr[ADDRESS_LENGTH];
 static uint32_t g_derive_ret = 0;  // CX_OK
+static int g_keccak_calls = 0;
+
+// cx_keccak_256_hash is static inline, so the linkable symbol is the iovec one.
+cx_err_t cx_keccak_256_hash_iovec(const cx_iovec_t *iovec,
+                                  size_t iovec_len,
+                                  uint8_t digest[static CX_KECCAK_256_SIZE]) {
+    (void) iovec;
+    (void) iovec_len;
+    g_keccak_calls++;
+    memset(digest, 0, CX_KECCAK_256_SIZE);
+    memcpy(digest + CX_KECCAK_256_SIZE - ADDRESS_LENGTH, g_derived_addr, ADDRESS_LENGTH);
+    return CX_OK;
+}
 uint32_t bip32_derive_with_seed_get_pubkey_256(uint32_t derivation_mode,
                                                uint32_t curve,
                                                const uint32_t *path,
@@ -110,13 +123,8 @@ uint32_t bip32_derive_with_seed_get_pubkey_256(uint32_t derivation_mode,
     (void) hash_id;
     (void) seed;
     (void) seed_len;
-    // The real getEthAddressFromRawKey hashes the pubkey with Keccak
-    // and takes the last 20 bytes. We use a wrapped Keccak that
-    // writes g_derived_addr directly into the output, so the resulting
-    // wallet_addr is whatever the test set.
     if (raw_pubkey != NULL) {
-        memset(raw_pubkey, 0x04, 1);
-        memcpy(raw_pubkey + 1, g_derived_addr, ADDRESS_LENGTH);
+        memset(raw_pubkey, 0x04, 65);
     }
     return g_derive_ret;
 }
@@ -137,6 +145,7 @@ static void reset(void) {
     s_finalize_hash_ret = true;
     g_implem_contract_ret = NULL;
     g_derive_ret = 0;
+    g_keccak_calls = 0;
     memset(g_derived_addr, 0, sizeof(g_derived_addr));
 }
 
@@ -486,15 +495,13 @@ void test_signature_too_short_rejected(void) {
 // =============================================================================
 
 void test_v2_mab_source_matching_owner_accepted(void) {
-    // Set the address the BIP32 derive stub will "produce". Use the
-    // same bytes as the OWNER tag so the memcmp inside
-    // verify_trusted_name_struct succeeds.
+    // The builder writes g_derived_addr as OWNER, and the derivation yields it too.
     memset(g_derived_addr, 0x99, ADDRESS_LENGTH);
     uint8_t tlv[400];
     s_tlv_opts opts = {.struct_type = 0x03,
                        .struct_version = 0x02,
                        .signer_algo = 0x0001,
-                       .name_type = TN_TYPE_CONTRACT,
+                       .name_type = TN_TYPE_ACCOUNT,
                        .name_source = TN_SOURCE_MAB,
                        .chain_id = 1,
                        .name = "MyWallet",
@@ -502,15 +509,8 @@ void test_v2_mab_source_matching_owner_accepted(void) {
                        .include_owner_deriv_path = true,
                        .sig_len = 16};
     size_t len = build_v2_account_tlv(tlv, sizeof(tlv), opts);
-    TEST_ASSERT_FALSE(run_parse_and_verify(tlv, len));
-    // Wait — TN_SOURCE_MAB with TN_TYPE_CONTRACT fails the type/source
-    // cross-check (CONTRACT must be from CAL). The test below is the
-    // documented failure path. The MAB-with-matching-owner happy path
-    // would require a name_type that accepts MAB, but the source rules
-    // in verify_trusted_name_struct restrict ACCOUNT to non-CAL and
-    // CONTRACT/TOKEN to CAL only. There is no MAB-compatible name_type
-    // in the current implementation — so the path is reachable only
-    // for ACCOUNT names where verify_fields then enforces CHALLENGE.
+    TEST_ASSERT_TRUE(run_parse_and_verify(tlv, len));
+    TEST_ASSERT_EQUAL_INT(1, g_keccak_calls);
 }
 
 void test_v2_mab_source_mismatching_owner_rejected(void) {
@@ -552,6 +552,7 @@ void test_v2_mab_source_mismatching_owner_rejected(void) {
     // mismatches the OWNER bytes baked into the TLV.
     memset(g_derived_addr, 0x77, ADDRESS_LENGTH);
     TEST_ASSERT_FALSE(run_parse_and_verify(tlv, len2));
+    TEST_ASSERT_EQUAL_INT(1, g_keccak_calls);
 }
 
 // =============================================================================

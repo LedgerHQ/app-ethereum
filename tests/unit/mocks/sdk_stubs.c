@@ -217,7 +217,9 @@ __attribute__((weak)) uint32_t cx_keccak_256_hash_iovec(const struct cx_iovec_s 
                                                         uint8_t *digest) {
     (void) iovec;
     (void) iovec_len;
-    (void) digest;
+    if (digest != NULL) {
+        memset(digest, 0, 32);
+    }
     return CX_OK;
 }
 

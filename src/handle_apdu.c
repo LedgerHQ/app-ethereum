@@ -18,6 +18,7 @@
 #ifdef HAVE_7702_SUPPORT
 #include "commands_7702.h"
 #endif
+#include "cmd_eip712_v2_schema.h"
 
 #ifdef HAVE_ETH2
 #include "withdrawal_index.h"
@@ -100,7 +101,11 @@ uint16_t handleApdu(command_t *cmd, uint32_t *tx) {
 
         // EIP-712 full implementation: structure definition, instantiation, filtering
         case INS_EIP712_STRUCT_DEF:
-            sw = handle_eip712_v1_struct_def(cmd->p2, cmd->data, cmd->lc);
+            if (cmd->p2 == P2_EIP712_V2_IMPLEM) {
+                sw = handle_eip712_v2_schema(cmd->p1, cmd->p2, cmd->lc, cmd->data);
+            } else {
+                sw = handle_eip712_v1_struct_def(cmd->p2, cmd->data, cmd->lc);
+            }
             break;
 
         case INS_EIP712_STRUCT_IMPL:

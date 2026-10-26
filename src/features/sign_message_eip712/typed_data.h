@@ -330,6 +330,11 @@ bool td_has_domain(void);
 bool td_has_message(void);
 
 /**
+ * @return whether at least one struct definition has been added
+ */
+bool td_has_schema(void);
+
+/**
  * Initialize the typed data context
  *
  * @return whether the initialization was successful

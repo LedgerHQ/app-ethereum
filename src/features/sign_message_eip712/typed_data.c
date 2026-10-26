@@ -375,6 +375,10 @@ bool td_has_message(void) {
     return g_impl.message != NULL;
 }
 
+bool td_has_schema(void) {
+    return g_structs != NULL;
+}
+
 bool td_get_domain_chain_id(uint64_t *chain_id) {
     if (g_impl.domain != NULL) {
         for (const s_struct_712_value *child = g_impl.domain->children; child != NULL;

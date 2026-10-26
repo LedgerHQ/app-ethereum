@@ -25,12 +25,14 @@
 // ===========================================================================
 
 static int g_vg_call = 0;
-static s_parsed_value_collection g_vg[5];
+// one collection for each value a calldata param can read
+static s_parsed_value_collection g_vg[6];
 
 static bool g_tx_ctx_init_ret = true;
 
 bool value_get(const s_value *value, s_parsed_value_collection *collection) {
     (void) value;
+    TEST_ASSERT_LESS_THAN_INT((int) ARRAYLEN(g_vg), g_vg_call);
     *collection = g_vg[g_vg_call++];
     return true;
 }

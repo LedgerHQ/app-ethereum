@@ -119,7 +119,9 @@ bool handle_data_path_struct(const buffer_t *buf, s_data_path_context *context) 
 
 static bool path_tuple(const s_tuple_args *tuple, uint32_t *offset, uint32_t *ref_offset) {
     *ref_offset = *offset;
-    *offset += tuple->value;
+    if (__builtin_add_overflow(*offset, tuple->value, offset)) {
+        return false;
+    }
     return true;
 }
 

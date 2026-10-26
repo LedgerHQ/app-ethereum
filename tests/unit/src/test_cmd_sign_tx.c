@@ -194,6 +194,8 @@ static void reset(void) {
     g_reset_app_calls = 0;
     g_ui_gcs_calls = 0;
     tmpCtx.transactionContext.sign_mode = SIGN_MODE_BASIC;
+    G_called_from_swap = false;
+    G_swap_response_ready = false;
 }
 
 // =============================================================================
@@ -424,6 +426,26 @@ void test_handle_parsing_status_fault_in_swap_triggers_app_exit(void) {
     TEST_ASSERT_TRUE(G_swap_response_ready);
 }
 
+void test_swap_rejects_non_basic_sign_modes(void) {
+    const uint8_t modes[] = {SIGN_MODE_STORE, SIGN_MODE_START_FLOW};
+
+    for (size_t i = 0; i < sizeof(modes); i++) {
+        reset();
+        G_called_from_swap = true;
+        EXPECT_NORETURN(handle_sign(P1_FIRST, modes[i], NULL, 0));
+        TEST_ASSERT_EQUAL(g_noreturn_calls, 1);
+        TEST_ASSERT_TRUE(G_swap_response_ready);
+        TEST_ASSERT_EQUAL(appState, APP_STATE_IDLE);
+        TEST_ASSERT_NULL(g_tx_hash_ctx);
+    }
+}
+
+void test_swap_accepts_basic_sign_mode(void) {
+    G_called_from_swap = true;
+    TEST_ASSERT_EQUAL(handle_sign(0xFF, SIGN_MODE_BASIC, NULL, 0), SWO_WRONG_P1_P2);
+    TEST_ASSERT_FALSE(G_swap_response_ready);
+}
+
 // =============================================================================
 // Runner
 // =============================================================================
@@ -463,5 +485,7 @@ int main(void) {
     RUN_TEST(test_handle_parsing_status_fault_non_swap_returns_incorrect_data);
     RUN_TEST(test_handle_parsing_status_default_returns_incorrect_data);
     RUN_TEST(test_handle_parsing_status_fault_in_swap_triggers_app_exit);
+    RUN_TEST(test_swap_rejects_non_basic_sign_modes);
+    RUN_TEST(test_swap_accepts_basic_sign_mode);
     return UNITY_END();
 }

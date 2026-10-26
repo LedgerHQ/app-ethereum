@@ -147,6 +147,10 @@ uint16_t handle_sign(uint8_t p1, uint8_t p2, const uint8_t *payload, uint8_t len
                 PRINTF("Signature not initialized\n");
                 return SWO_COMMAND_NOT_ALLOWED;
             }
+            if ((e_sign_mode) tmpCtx.transactionContext.sign_mode != SIGN_MODE_STORE) {
+                PRINTF("No stored transaction to review\n");
+                return SWO_COMMAND_NOT_ALLOWED;
+            }
             if (length != 0) {
                 return SWO_INCORRECT_DATA;
             }
@@ -164,6 +168,8 @@ uint16_t handle_sign(uint8_t p1, uint8_t p2, const uint8_t *payload, uint8_t len
                 PRINTF("Error: remnant unprocessed TX context!\n");
                 return SWO_COMMAND_NOT_ALLOWED;
             }
+            // The review can only be started once per stored transaction.
+            tmpCtx.transactionContext.sign_mode = SIGN_MODE_START_FLOW;
             if (!ui_gcs()) {
                 ui_gcs_cleanup();
                 return SWO_NOT_SUPPORTED_ERROR_NO_INFO;

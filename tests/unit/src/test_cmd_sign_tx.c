@@ -99,6 +99,11 @@ customStatus_e custom_processor(txContext_t *context) {
     return CUSTOM_NOT_HANDLED;
 }
 
+// Mirrors e_sign_mode, private to cmd_sign_tx.c.
+#define SIGN_MODE_BASIC      0
+#define SIGN_MODE_STORE      1
+#define SIGN_MODE_START_FLOW 2
+
 // =============================================================================
 // Stubs — symbols referenced by cmd_sign_tx.c that we don't exercise
 // =============================================================================
@@ -112,7 +117,9 @@ bool process_empty_txs_after(void) {
 size_t get_tx_ctx_count(void) {
     return 1;
 }
+static int g_ui_gcs_calls = 0;
 bool ui_gcs(void) {
+    g_ui_gcs_calls++;
     return true;
 }
 void ui_gcs_cleanup(void) {
@@ -185,6 +192,8 @@ static void reset(void) {
     g_keccak_init_ret = CX_OK;
     g_cx_hash_ret = CX_OK;
     g_reset_app_calls = 0;
+    g_ui_gcs_calls = 0;
+    tmpCtx.transactionContext.sign_mode = SIGN_MODE_BASIC;
 }
 
 // =============================================================================
@@ -218,9 +227,30 @@ void test_start_flow_without_signing_rejected(void) {
 
 void test_start_flow_with_nonzero_length_rejected(void) {
     appState = APP_STATE_SIGNING_TX;
+    tmpCtx.transactionContext.sign_mode = SIGN_MODE_STORE;
     uint8_t data[1] = {0};
     uint16_t sw = handle_sign(0, /*p2=*/2, data, 1);
     TEST_ASSERT_EQUAL(sw, SWO_INCORRECT_DATA);
+}
+
+void test_start_flow_after_basic_mode_rejected(void) {
+    appState = APP_STATE_SIGNING_TX;
+    tmpCtx.transactionContext.sign_mode = SIGN_MODE_BASIC;
+    uint16_t sw = handle_sign(0, SIGN_MODE_START_FLOW, NULL, 0);
+    TEST_ASSERT_EQUAL(sw, SWO_COMMAND_NOT_ALLOWED);
+    TEST_ASSERT_EQUAL(g_ui_gcs_calls, 0);
+}
+
+void test_start_flow_only_accepted_once(void) {
+    appState = APP_STATE_SIGNING_TX;
+    tmpCtx.transactionContext.sign_mode = SIGN_MODE_STORE;
+    uint16_t sw = handle_sign(0, SIGN_MODE_START_FLOW, NULL, 0);
+    TEST_ASSERT_EQUAL(sw, SWO_NO_RESPONSE);
+    TEST_ASSERT_EQUAL(g_ui_gcs_calls, 1);
+
+    sw = handle_sign(0, SIGN_MODE_START_FLOW, NULL, 0);
+    TEST_ASSERT_EQUAL(sw, SWO_COMMAND_NOT_ALLOWED);
+    TEST_ASSERT_EQUAL(g_ui_gcs_calls, 1);
 }
 
 // =============================================================================
@@ -411,6 +441,8 @@ int main(void) {
     RUN_TEST(test_p1_more_without_first_rejected);
     RUN_TEST(test_start_flow_without_signing_rejected);
     RUN_TEST(test_start_flow_with_nonzero_length_rejected);
+    RUN_TEST(test_start_flow_after_basic_mode_rejected);
+    RUN_TEST(test_start_flow_only_accepted_once);
     RUN_TEST(test_first_bad_bip32_rejected);
     RUN_TEST(test_first_no_tx_byte_after_bip32_rejected);
     RUN_TEST(test_first_rejected_when_app_not_idle);

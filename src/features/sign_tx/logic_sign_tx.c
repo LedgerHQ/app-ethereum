@@ -46,8 +46,10 @@ static bool is_rlp_data_field(const txContext_t *context) {
             return context->currentField == EIP2930_RLP_DATA;
         case EIP1559:
             return context->currentField == EIP1559_RLP_DATA;
+#ifdef HAVE_7702_SUPPORT
         case EIP7702:
             return context->currentField == EIP7702_RLP_DATA;
+#endif
         default:
             return false;
     }

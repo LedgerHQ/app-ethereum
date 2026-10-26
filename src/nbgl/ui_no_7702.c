@@ -1,3 +1,5 @@
+#ifdef HAVE_7702_SUPPORT
+
 #include "nbgl_use_case.h"
 #include "shared_context.h"
 #include "common_ui.h"
@@ -24,3 +26,5 @@ void ui_error_no_7702(void) {
                        "Reject authorization",
                        ui_error_no_7702_choice);
 }
+
+#endif  // HAVE_7702_SUPPORT

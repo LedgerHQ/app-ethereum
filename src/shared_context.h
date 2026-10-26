@@ -48,7 +48,9 @@ typedef struct internalStorage_t {
     bool tx_check_opt_in;
 #endif
     uint8_t gating_counter;
+#ifdef HAVE_7702_SUPPORT
     bool eip7702_enable;
+#endif
     bool displayHash;
     bool initialized;
 } internalStorage_t;
@@ -125,17 +127,21 @@ typedef struct messageSigningContext712_t {
     uint8_t messageHash[INT256_LENGTH];
 } messageSigningContext712_t;
 
+#ifdef HAVE_7702_SUPPORT
 typedef struct authSigningContext7702_t {
     bip32_path_t bip32;
     uint8_t authHash[INT256_LENGTH];
 } authSigningContext7702_t;
+#endif  // HAVE_7702_SUPPORT
 
 typedef union {
     publicKeyContext_t publicKeyContext;
     transactionContext_t transactionContext;
     messageSigningContext_t messageSigningContext;
     messageSigningContext712_t messageSigningContext712;
+#ifdef HAVE_7702_SUPPORT
     authSigningContext7702_t authSigningContext7702;
+#endif
 } tmpCtx_t;
 
 typedef union {
@@ -154,7 +160,9 @@ typedef enum {
     APP_STATE_SIGNING_MESSAGE,
     APP_STATE_PREPARING_EIP712,  // STRUCT_DEF received, UI not yet started
     APP_STATE_SIGNING_EIP712,
+#ifdef HAVE_7702_SUPPORT
     APP_STATE_SIGNING_EIP7702,
+#endif
 } app_state_t;
 
 typedef enum {

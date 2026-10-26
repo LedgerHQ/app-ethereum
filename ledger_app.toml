@@ -4,9 +4,9 @@ sdk = "C"
 devices = ["apex_p", "nanox", "nanos+", "stax", "flex"]
 
 [use_cases]
-use_test_keys = "EIP7702_TEST_WHITELIST=1"
-dbg_use_test_keys = "DEBUG=1 EIP7702_TEST_WHITELIST=1"
-memory_profiling = "DEBUG=1 EIP7702_TEST_WHITELIST=1 MEMORY_PROFILING=1"
+use_test_keys = "EIP7702_SUPPORT=1 EIP7702_TEST_WHITELIST=1"
+dbg_use_test_keys = "DEBUG=1 EIP7702_SUPPORT=1 EIP7702_TEST_WHITELIST=1"
+memory_profiling = "DEBUG=1 EIP7702_SUPPORT=1 EIP7702_TEST_WHITELIST=1 MEMORY_PROFILING=1"
 dbg_no_checks = "DEBUG=1 BYPASS_SIGNATURES=1 CHALLENGE_NO_CHECK=1"
 dbg_no_checks_profiling = "DEBUG=1 BYPASS_SIGNATURES=1 CHALLENGE_NO_CHECK=1 MEMORY_PROFILING=1"
 

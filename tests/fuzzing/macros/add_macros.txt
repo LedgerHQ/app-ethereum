@@ -2,4 +2,5 @@
 # Production-enabled flags (HAVE_SWAP, HAVE_ETH2, HAVE_TRANSACTION_CHECKS, ...)
 # arrive from there automatically, so do not duplicate them here.
 HAVE_BYPASS_SIGNATURES
+HAVE_7702_SUPPORT
 HAVE_EIP7702_WHITELIST_TEST

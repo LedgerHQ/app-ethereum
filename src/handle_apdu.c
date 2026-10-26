@@ -15,7 +15,9 @@
 #include "cmd_trusted_name.h"
 #include "cmd_tx_info.h"
 #include "eip712_v1_commands.h"
+#ifdef HAVE_7702_SUPPORT
 #include "commands_7702.h"
+#endif
 
 #ifdef HAVE_ETH2
 #include "withdrawal_index.h"
@@ -144,9 +146,11 @@ uint16_t handleApdu(command_t *cmd, uint32_t *tx) {
             break;
 #endif
 
+#ifdef HAVE_7702_SUPPORT
         case INS_SIGN_EIP7702_AUTHORIZATION:
             sw = handle_sign_eip7702_authorization(cmd->p1, cmd->data, cmd->lc);
             break;
+#endif
 
         case INS_PROVIDE_SAFE_ACCOUNT:
             sw = handle_safe_account(cmd->p1, cmd->p2, cmd->data, cmd->lc);

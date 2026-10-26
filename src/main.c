@@ -49,7 +49,9 @@
 #include "cmd_get_gating.h"
 #include "cmd_proxy_info.h"
 #include "tlv_apdu.h"
+#ifdef HAVE_7702_SUPPORT
 #include "commands_7702.h"
+#endif
 #include "sign_message.h"
 #include "ui_utils.h"
 #include "network_info.h"

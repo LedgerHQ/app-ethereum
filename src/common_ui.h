@@ -48,11 +48,13 @@ bool ui_sign_712_v0(void);
 bool ui_gcs(void);
 void ui_gcs_cleanup(void);
 
+#ifdef HAVE_7702_SUPPORT
 // EIP-7702
 bool ui_sign_7702_auth(void);
 bool ui_sign_7702_revocation(void);
 void ui_error_no_7702(void);
 void ui_error_no_7702_whitelist(void);
+#endif  // HAVE_7702_SUPPORT
 
 // Swap
 void ui_swap_show_signing(void);
@@ -69,7 +71,9 @@ unsigned int io_seproxyhal_touch_data_cancel(void);
 unsigned int io_seproxyhal_touch_eth2_address_ok(void);
 unsigned int io_seproxyhal_touch_privacy_ok(void);
 unsigned int io_seproxyhal_touch_privacy_cancel(void);
+#ifdef HAVE_7702_SUPPORT
 unsigned int auth_7702_ok_cb(void);
 unsigned int auth_7702_cancel_cb(void);
+#endif  // HAVE_7702_SUPPORT
 
 uint16_t io_seproxyhal_send_status(uint16_t sw, uint32_t tx, bool reset, bool idle);

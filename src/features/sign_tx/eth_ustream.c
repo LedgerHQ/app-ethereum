@@ -148,6 +148,7 @@ static bool process_access_list(txContext_t *context) {
     return true;
 }
 
+#ifdef HAVE_7702_SUPPORT
 static bool process_auth_list(txContext_t *context) {
     if (check_empty_list(context, "RLP_AUTH_LIST") == false) {
         return false;
@@ -166,6 +167,7 @@ static bool process_auth_list(txContext_t *context) {
     }
     return true;
 }
+#endif  // HAVE_7702_SUPPORT
 
 static bool process_chain_id(txContext_t *context) {
     // Reject chain IDs that would not fit in a uint64_t. Downstream
@@ -413,6 +415,7 @@ static bool process_v(txContext_t *context) {
     return true;
 }
 
+#ifdef HAVE_7702_SUPPORT
 static bool process_eip7702_tx(txContext_t *context) {
     bool ret = false;
     switch (context->currentField) {
@@ -464,6 +467,7 @@ static bool process_eip7702_tx(txContext_t *context) {
     }
     return ret;
 }
+#endif  // HAVE_7702_SUPPORT
 
 static bool process_eip1559_tx(txContext_t *context) {
     bool ret = false;
@@ -715,11 +719,13 @@ static parserStatus_e process_tx_internal(txContext_t *context) {
                         return USTREAM_FAULT;
                     }
                     break;
+#ifdef HAVE_7702_SUPPORT
                 case EIP7702:
                     if (process_eip7702_tx(context) == false) {
                         return USTREAM_FAULT;
                     }
                     break;
+#endif
                 default:
                     PRINTF("Transaction type %d is not supported\n", context->txType);
                     return USTREAM_FAULT;

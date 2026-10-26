@@ -4,6 +4,7 @@ from client.client import EthAppClient
 from client.dynamic_networks import DynamicNetwork
 from client.status_word import StatusWord
 from dynamic_networks_cfg import get_network_config
+from eth_utils import keccak
 from py_ecc.bls import G2ProofOfPossession as bls
 from ragger.bip import CurveChoice, calculate_public_key_and_chaincode
 from ragger.bip.seed import SPECULOS_MNEMONIC
@@ -56,6 +57,28 @@ def test_get_pk(
     assert pk.hex() == ref_pk
     if with_chaincode:
         assert chaincode.hex() == ref_chaincode
+
+
+def _checksum_address(raw_address: str, chain_id: int) -> str:
+    # EIP-55, with the EIP-1191 chain ID prefix for RSK
+    prefix = f"{chain_id}0x" if chain_id in (30, 31) else ""
+    digest = keccak(text=prefix + raw_address).hex()
+    return "".join(c.upper() if int(digest[i], 16) >= 8 else c for i, c in enumerate(raw_address))
+
+
+@pytest.mark.parametrize("chain_id", [1, 30, 31])
+def test_get_pk_checksum_follows_chain_id(scenario_navigator: NavigateWithScenario, chain_id: int):
+    app_client = EthAppClient(scenario_navigator.backend)
+
+    with app_client.get_public_addr(display=False, chain_id=chain_id):
+        pass
+
+    data = app_client.response().data
+    pk, raw_address, _ = ResponseParser.pk_addr(data)
+    # pk_addr() drops the casing: read the address string itself, after the address length byte
+    addr_offset = 1 + len(pk) + 1
+    address = data[addr_offset : addr_offset + 2 * len(raw_address)].decode()
+    assert address == _checksum_address(raw_address.hex(), chain_id)
 
 
 def test_get_eth2_pk(scenario_navigator: NavigateWithScenario, test_name: str):

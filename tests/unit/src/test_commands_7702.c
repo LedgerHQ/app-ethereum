@@ -284,6 +284,23 @@ void test_happy_path_drives_auth_review(void) {
     TEST_ASSERT_EQUAL_STRING(strings.common.toAddress, "Simple7702Account");
 }
 
+void test_multi_chunk_payload_acknowledges_then_drives_review(void) {
+    uint8_t payload[80];
+    size_t len = build_tlv_payload(payload, sizeof(payload), 0x01, g_simple7702_account, 1, 0x07);
+    size_t first_len = len / 2;
+
+    uint16_t sw = handle_sign_eip7702_authorization(P1_FIRST_CHUNK, payload, (uint8_t) first_len);
+    TEST_ASSERT_EQUAL(sw, SWO_SUCCESS);
+    TEST_ASSERT_EQUAL(appState, APP_STATE_SIGNING_EIP7702);
+    TEST_ASSERT_EQUAL(g_ui_auth_calls, 0);
+
+    sw = handle_sign_eip7702_authorization(P1_FOLLOWING_CHUNK,
+                                           payload + first_len,
+                                           (uint8_t) (len - first_len));
+    TEST_ASSERT_EQUAL(sw, SWO_NO_RESPONSE);
+    TEST_ASSERT_EQUAL(g_ui_auth_calls, 1);
+}
+
 void test_revocation_path_drives_revocation_review(void) {
     // Delegate = 20 zero bytes triggers the revocation branch (no
     // whitelist lookup — the user is revoking the active delegation).
@@ -451,6 +468,7 @@ int main(void) {
     RUN_TEST(test_first_chunk_parseBip32_failure_resets_app_context);
     RUN_TEST(test_continuation_chunk_outside_session_rejected);
     RUN_TEST(test_happy_path_drives_auth_review);
+    RUN_TEST(test_multi_chunk_payload_acknowledges_then_drives_review);
     RUN_TEST(test_revocation_path_drives_revocation_review);
     RUN_TEST(test_eip7702_disabled_rejected);
     RUN_TEST(test_delegate_not_in_whitelist_rejected);

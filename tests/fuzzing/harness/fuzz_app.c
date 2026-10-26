@@ -240,6 +240,11 @@ static size_t eth_mutate_last_step(uint8_t *input,
                                    size_t size,
                                    size_t max_size,
                                    unsigned int seed) {
+    /* Too short to hold the control bytes and a first step */
+    if (size < (size_t) FUZZ_CTRL_LEN + 1) {
+        return LLVMFuzzerMutate(input, size, max_size);
+    }
+
     size_t step = FUZZ_CTRL_LEN; /* offset of the current step's length byte */
     size_t cmd = input[1] % fuzz_n_commands;
     size_t last_step = step, last_cmd = cmd;

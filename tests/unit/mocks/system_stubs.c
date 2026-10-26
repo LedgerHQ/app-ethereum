@@ -4,9 +4,11 @@
  *
  * This file provides two categories of stubs:
  *  1. Weak default stubs for app functions that are not linked in most test
- *     binaries. The defaults return a sensible success value. Any test that
- *     needs to control the behaviour or inspect arguments installs a strong
- *     local definition that overrides the weak one at link time.
+ *     binaries. The defaults return a sensible success value, except security
+ *     checks (signature, challenge, TLV framing, tx data copy, chain policy),
+ *     which fail the test. Any test that needs to control the behaviour or
+ *     inspect arguments installs a strong local definition that overrides the
+ *     weak one at link time.
  *  2. Noreturn stubs (app_exit, send_swap_error_simple) with the longjmp
  *     handshake used by the EXPECT_NORETURN() macro in wraps.h.
  *
@@ -21,6 +23,7 @@
 #include <stdint.h>
 #include <string.h>
 
+#include "unity.h"
 #include "buffer.h"
 #include "cx_errors.h"
 #include "tlv_apdu.h"
@@ -57,7 +60,8 @@ __attribute__((weak)) bool check_signature_with_pubkey(uint8_t *buffer,
     (void) keyUsageExp;
     (void) signature;
     (void) sigLen;
-    return true;
+    TEST_FAIL_MESSAGE("check_signature_with_pubkey: no override in this test");
+    return false;
 }
 
 // =============================================================================
@@ -88,7 +92,8 @@ __attribute__((weak)) e_tlv_apdu_ret tlv_from_apdu(bool first_chunk,
     (void) lc;
     (void) payload;
     (void) handler;
-    return TLV_APDU_SUCCESS;
+    TEST_FAIL_MESSAGE("tlv_from_apdu: no override in this test");
+    return TLV_APDU_ERROR;
 }
 
 // =============================================================================
@@ -139,7 +144,8 @@ bool tlv_parse(const uint8_t *payload, uint16_t size, void *handler, void *conte
 
 __attribute__((weak)) bool check_challenge(uint32_t received_challenge) {
     (void) received_challenge;
-    return true;
+    TEST_FAIL_MESSAGE("check_challenge: no override in this test");
+    return false;
 }
 
 __attribute__((weak)) uint64_t u64_from_BE(const uint8_t *in, uint8_t size) {
@@ -355,7 +361,8 @@ __attribute__((weak)) bool copy_tx_data(struct txContext_t *context,
     (void) context;
     (void) out;
     (void) length;
-    return true;
+    TEST_FAIL_MESSAGE("copy_tx_data: no override in this test");
+    return false;
 }
 
 __attribute__((weak)) void eth_plugin_prepare_init(ethPluginInitContract_t *init,
@@ -489,9 +496,8 @@ __attribute__((weak)) void gcs_set_root_from_shown(void) {
 __attribute__((weak)) void gcs_set_root_value_shown(void) {
 }
 
-// Default: every chain is signable. Tests covering the rejection install a
-// strong local definition.
 __attribute__((weak)) bool chain_id_is_signable(uint64_t chain_id) {
     (void) chain_id;
-    return true;
+    TEST_FAIL_MESSAGE("chain_id_is_signable: no override in this test");
+    return false;
 }

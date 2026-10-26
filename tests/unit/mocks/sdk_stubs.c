@@ -18,6 +18,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "app_mem_utils.h"
 #include "cx_errors.h"
 
 // =============================================================================
@@ -323,7 +324,7 @@ char *mem_utils_strdup(const char *s, const char *file, int line) {
 }
 
 __attribute__((weak)) bool mem_utils_calloc(void **buffer,
-                                            uint16_t size,
+                                            size_t size,
                                             bool permanent,
                                             const char *file,
                                             int line) {

@@ -88,7 +88,7 @@ cx_err_t cx_sha256_hash_iovec(const cx_iovec_t *iovec,
 // mem_utils_calloc backs APP_MEM_PERMANENT. The wrap lets us simulate an
 // out-of-memory scenario without touching the real allocator (mocks/mock.c
 // otherwise delegates to malloc which never fails in test).
-bool mem_utils_calloc(void **buffer, uint16_t size, bool permanent, const char *file, int line) {
+bool mem_utils_calloc(void **buffer, size_t size, bool permanent, const char *file, int line) {
     (void) permanent;
     (void) file;
     (void) line;

@@ -102,7 +102,7 @@ bool finalize_hash(cx_hash_t *hash_ctx, uint8_t *out, size_t out_len) {
 // false (0 = first, 1 = second, ...). Default -1 = never fail.
 static int g_calloc_fail_at_call_n = -1;
 static int g_calloc_call_count = 0;
-bool mem_utils_calloc(void **buffer, uint16_t size, bool permanent, const char *file, int line) {
+bool mem_utils_calloc(void **buffer, size_t size, bool permanent, const char *file, int line) {
     (void) permanent;
     (void) file;
     (void) line;

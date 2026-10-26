@@ -38,10 +38,9 @@ strings
 warning
 prelude_details
 generic_details
-# TX_SIMULATION removed from zero-symbols: risk/type/category enums gate
-# code paths in cmd_get_tx_simulation.c. Fields are embedded arrays (no
-# pointers), so random bytes are memory-safe. Enum fields constrained
-# via domain-overrides.
+# Provisioned transaction simulation: a restored `received` blocks a new
+# INS_PROVIDE_TX_SIMULATION, so the state is built by APDU sequences instead.
+G_transaction_check_info@cmd_get_tx_simulation.c
 
 # ── SDK IO/UX state (large structures, no handler branches) ──
 G_io_app

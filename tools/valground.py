@@ -258,10 +258,10 @@ def main() -> None:
 
     if mem is None:
         print(f"{COLORS['fg_red']}No memory profiling was found.{COLORS['all_reset']}")
-    else:
-        if mem.summary(args.quiet) is False:
-            ret_code = 1
-        global_summary.summary()
+        sys.exit(1)
+    if mem.summary(args.quiet) is False:
+        ret_code = 1
+    global_summary.summary()
     sys.exit(ret_code)
 
 

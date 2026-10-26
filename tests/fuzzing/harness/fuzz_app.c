@@ -306,6 +306,7 @@ void fuzz_app_reset(void) {
      * fuzzed value so the invariant stays the single source of protocol state. */
     uint8_t restored_app_state = appState;
 
+    fuzz_pending_reset = false;
     g_caller_app = NULL;
     // Absolution zeroes g_chain_config (zero-symbols); production keeps it set.
     g_chain_config = &g_fuzz_chain_config;
@@ -362,7 +363,9 @@ static void dispatch_one(uint8_t cla,
     }
     uint16_t sw = handleApdu(&parsed, &tx);
     fuzz_check_response_length(tx);
-    if ((sw != SWO_NO_RESPONSE) && (sw != SWO_SUCCESS) && (sw != SWO_COMMAND_CODE_NOT_SUPPORTED)) {
+    if (fuzz_pending_reset || ((sw != SWO_NO_RESPONSE) && (sw != SWO_SUCCESS) &&
+                               (sw != SWO_COMMAND_CODE_NOT_SUPPORTED))) {
+        fuzz_pending_reset = false;
         reset_app_context();
     }
 }

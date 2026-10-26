@@ -23,10 +23,14 @@ void fuzz_check_response_length(uint32_t tx) {
 
 /* ── Stubs for symbols from excluded main.c ─────────────────────────── */
 
+bool fuzz_pending_reset;
+
 uint16_t io_seproxyhal_send_status(uint16_t sw, uint32_t tx, bool reset, bool idle) {
     (void) sw;
     fuzz_check_response_length(tx);
-    (void) reset;
+    if (reset) {
+        fuzz_pending_reset = true;
+    }
     (void) idle;
     return 0;
 }

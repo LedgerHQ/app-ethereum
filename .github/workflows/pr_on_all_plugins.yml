@@ -39,7 +39,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout SDK repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           submodules: true
           repository: LedgerHQ/ethereum-plugin-sdk
@@ -92,12 +92,10 @@ jobs:
       fail-fast: false
       matrix:
         repo: ${{ fromJSON(needs.build-repositories-matrix.outputs.repo-matrix) }}
-    env:
-      GITHUB_TOKEN: ${{ secrets.CI_BOT_TOKEN }}
 
     steps:
       - name: Checkout plugin repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           repository: LedgerHQ/${{ matrix.repo }}
           submodules: recursive
@@ -143,12 +141,16 @@ jobs:
           git push -u origin "$branch_name" --force
 
       - name: Create 'auto' label if missing
+        env:
+          GITHUB_TOKEN: ${{ secrets.CI_BOT_TOKEN }}
         run: |
           if [[ -z $(gh label list --search auto) ]]; then
             gh label create 'auto' --color 'b4a8d1' --description 'Automatically created'
           fi
 
       - name: Create pull request and comment on SDK issue
+        env:
+          GITHUB_TOKEN: ${{ secrets.CI_BOT_TOKEN }}
         run: |
           # Github limits the number of possible PR being opened in a given time window.
           # The limits are 20 creation per minute and 150 per hour.

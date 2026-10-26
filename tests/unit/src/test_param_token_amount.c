@@ -32,6 +32,7 @@ static const void *g_get_matching_token_info_or_dummy_ret = NULL;
 
 bool value_get(const s_value *value, s_parsed_value_collection *collection) {
     (void) value;
+    TEST_ASSERT_LESS_THAN_INT((int) ARRAYLEN(g_vg), g_vg_call);
     *collection = g_vg[g_vg_call++];
     return true;
 }

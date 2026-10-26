@@ -163,6 +163,7 @@ typedef enum {
 #ifdef HAVE_7702_SUPPORT
     APP_STATE_SIGNING_EIP7702,
 #endif
+    APP_STATE_VERIFYING_SAFE_ACCOUNT,
 } app_state_t;
 
 typedef enum {

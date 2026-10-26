@@ -165,9 +165,12 @@ bool mul128(const uint128_t *number1, const uint128_t *number2, uint128_t *targe
     return true;
 }
 
-void divmod128(const uint128_t *l, const uint128_t *r, uint128_t *retDiv, uint128_t *retMod) {
+bool divmod128(const uint128_t *l, const uint128_t *r, uint128_t *retDiv, uint128_t *retMod) {
     uint128_t copyd, adder, resDiv, resMod;
     uint128_t one;
+    if (zero128(r)) {
+        return false;
+    }
     UPPER(one) = 0;
     LOWER(one) = 1;
     uint32_t diffBits = bits128(l) - bits128(r);
@@ -194,6 +197,7 @@ void divmod128(const uint128_t *l, const uint128_t *r, uint128_t *retDiv, uint12
         copy128(retDiv, &resDiv);
         copy128(retMod, &resMod);
     }
+    return true;
 }
 
 bool tostring128(const uint128_t *number, uint32_t baseParam, char *out, uint32_t outLength) {
@@ -212,7 +216,9 @@ bool tostring128(const uint128_t *number, uint32_t baseParam, char *out, uint32_
         if (offset > (outLength - 1)) {
             return false;
         }
-        divmod128(&rDiv, &base, &rDiv, &rMod);
+        if (!divmod128(&rDiv, &base, &rDiv, &rMod)) {
+            return false;
+        }
         out[offset++] = HEXDIGITS[(uint8_t) LOWER(rMod)];
     } while (!zero128(&rDiv));
 
@@ -253,7 +259,9 @@ bool tostring128_signed(const uint128_t *number, uint32_t base, char *out, uint3
         LOWER(two_val) = 2;
 
         memset(&max_unsigned_val, 0xFF, sizeof(max_unsigned_val));
-        divmod128(&max_unsigned_val, &two_val, &max_signed_val, &tmp);
+        if (!divmod128(&max_unsigned_val, &two_val, &max_signed_val, &tmp)) {
+            return false;
+        }
         if (gt128(number, &max_signed_val))  // negative value
         {
             if (out_length < 2) {

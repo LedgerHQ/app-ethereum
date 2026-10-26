@@ -188,9 +188,12 @@ bool mul256(const uint256_t *number1, const uint256_t *number2, uint256_t *targe
     return true;
 }
 
-void divmod256(const uint256_t *l, const uint256_t *r, uint256_t *retDiv, uint256_t *retMod) {
+bool divmod256(const uint256_t *l, const uint256_t *r, uint256_t *retDiv, uint256_t *retMod) {
     uint256_t copyd, adder, resDiv, resMod;
     uint256_t one;
+    if (zero256(r)) {
+        return false;
+    }
     clear256(&one);
     UPPER(LOWER(one)) = 0;
     LOWER(LOWER(one)) = 1;
@@ -218,6 +221,7 @@ void divmod256(const uint256_t *l, const uint256_t *r, uint256_t *retDiv, uint25
         copy256(retDiv, &resDiv);
         copy256(retMod, &resMod);
     }
+    return true;
 }
 
 bool tostring256(const uint256_t *number, uint32_t baseParam, char *out, uint32_t outLength) {
@@ -234,7 +238,9 @@ bool tostring256(const uint256_t *number, uint32_t baseParam, char *out, uint32_
         return false;
     }
     do {
-        divmod256(&rDiv, &base, &rDiv, &rMod);
+        if (!divmod256(&rDiv, &base, &rDiv, &rMod)) {
+            return false;
+        }
         out[offset++] = HEXDIGITS[(uint8_t) LOWER(LOWER(rMod))];
     } while (!zero256(&rDiv) && (offset < outLength));
 
@@ -280,7 +286,9 @@ bool tostring256_signed(const uint256_t *number, uint32_t base, char *out, uint3
         LOWER(LOWER(two_val)) = 2;
 
         memset(&max_unsigned_val, 0xFF, sizeof(max_unsigned_val));
-        divmod256(&max_unsigned_val, &two_val, &max_signed_val, &tmp);
+        if (!divmod256(&max_unsigned_val, &two_val, &max_signed_val, &tmp)) {
+            return false;
+        }
         if (gt256(number, &max_signed_val))  // negative value
         {
             if (out_length < 2) {

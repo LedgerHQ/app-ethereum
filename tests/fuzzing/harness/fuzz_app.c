@@ -124,6 +124,14 @@ static const tlv_tag_info_t TAGS_SAFE_DESCRIPTOR[] = {
     {0x15, 70, 72},
 };
 
+static const tlv_tag_info_t TAGS_SIGNER_DESCRIPTOR[] = {
+    {0x01, 1, 1},
+    {0x02, 1, 1},
+    {0x12, 1, 4},
+    {0x22, 20, 20},
+    {0x15, 70, 72},
+};
+
 static const tlv_tag_info_t TAGS_GTP_TX_INFO[] = {
     {0x00, 1, 1},
     {0x01, 1, 8},
@@ -226,6 +234,10 @@ static const tlv_fuzz_config_t k_command_tlv_configs[] = {ETH_FUZZ_COMMANDS(_CMD
 
 static void map_params(bool structured, uint8_t ins, uint8_t *p1, uint8_t *p2);
 
+#define SAFE_P2_SIGNER_DESCRIPTOR 0x01
+
+static const tlv_fuzz_config_t k_signer_descriptor_tlv = TLV_CFG(TAGS_SIGNER_DESCRIPTOR);
+
 /* Grammar of a step that starts a TLV descriptor, NULL for continuation chunks and
  * non-TLV sub-commands. *offset gets the bytes preceding the TLV length header. */
 static const tlv_fuzz_config_t *step_tlv_config(size_t cmd,
@@ -245,6 +257,11 @@ static const tlv_fuzz_config_t *step_tlv_config(size_t cmd,
         case INS_PROVIDE_NETWORK_INFO:
         case INS_PROVIDE_GATING:
             first_chunk = first_chunk && (p2 == 0x00);
+            break;
+        case INS_PROVIDE_SAFE_ACCOUNT:
+            if (p2 == SAFE_P2_SIGNER_DESCRIPTOR) {
+                cfg = &k_signer_descriptor_tlv;
+            }
             break;
         case INS_SIGN_EIP7702_AUTHORIZATION:
             /* The BIP32 path precedes the descriptor */

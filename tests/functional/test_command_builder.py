@@ -3,8 +3,10 @@
 Pure Python: these check the bytes the builder puts on the wire, with no device.
 """
 
+import pytest
 from client.client import EIP712CalldataParamPresence
 from client.command_builder import CommandBuilder
+from client.eip712.struct import EIP712FieldType
 
 
 def test_eip712_calldata_info_flags_are_not_narrowed():
@@ -27,3 +29,18 @@ def test_eip712_calldata_info_flags_are_not_narrowed():
     cdata = apdu[5:]
     assert cdata[2] == verifying_contract, "callee flag narrowed"
     assert cdata[6] == verifying_contract, "spender flag narrowed"
+
+
+def test_eip712_struct_field_rejects_non_ascii():
+    with pytest.raises(UnicodeEncodeError):
+        CommandBuilder().eip712_send_struct_def_struct_field(EIP712FieldType.STRING, "", None, [], "prénom")
+
+
+def test_eip712_discarded_path_rejects_non_ascii():
+    with pytest.raises(UnicodeEncodeError):
+        CommandBuilder().eip712_filtering_discarded_path("données.montant")
+
+
+def test_eip712_filtering_display_name_rejects_non_ascii():
+    with pytest.raises(UnicodeEncodeError):
+        CommandBuilder().eip712_filtering_datetime("Échéance", b"", False)

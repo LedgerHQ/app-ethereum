@@ -136,8 +136,7 @@ class CommandBuilder:
         typedesc |= field_type << EIP712TypeDescOffset.TYPE
         data.append(typedesc)
         if field_type == EIP712FieldType.CUSTOM:
-            data.append(len(type_name))
-            data += type_name.encode()
+            data += self._u8_prefixed_ascii(type_name)
         if type_size is not None:
             data.append(type_size)
         if len(array_levels) > 0:
@@ -146,8 +145,7 @@ class CommandBuilder:
                 data.append(0 if level is None else 1)
                 if level is not None:
                     data.append(level)
-        data.append(len(key_name))
-        data += key_name.encode()
+        data += self._u8_prefixed_ascii(key_name)
         return self._serialize(
             InsType.EIP712_SEND_STRUCT_DEF,
             P1Type.COMPLETE_SEND,
@@ -207,16 +205,14 @@ class CommandBuilder:
 
     def _eip712_filtering_send_name(self, name: str, sig: bytes) -> bytes:
         data = bytearray()
-        data.append(len(name))
-        data += name.encode()
+        data += self._u8_prefixed_ascii(name)
         data.append(len(sig))
         data += sig
         return bytes(data)
 
     def eip712_filtering_discarded_path(self, path: str) -> bytes:
         data = bytearray()
-        data.append(len(path))
-        data += path.encode()
+        data += self._u8_prefixed_ascii(path)
         return self._serialize(
             InsType.EIP712_SEND_FILTERING,
             P1Type.COMPLETE_SEND,
@@ -226,8 +222,7 @@ class CommandBuilder:
 
     def eip712_filtering_message_info(self, name: str, filters_count: int, sig: bytes) -> bytes:
         data = bytearray()
-        data.append(len(name))
-        data += name.encode()
+        data += self._u8_prefixed_ascii(name)
         data.append(filters_count)
         data.append(len(sig))
         data += sig
@@ -252,8 +247,7 @@ class CommandBuilder:
 
     def eip712_filtering_amount_join_value(self, token_idx: int, name: str, sig: bytes, discarded: bool) -> bytes:
         data = bytearray()
-        data.append(len(name))
-        data += name.encode()
+        data += self._u8_prefixed_ascii(name)
         data.append(token_idx)
         data.append(len(sig))
         data += sig
@@ -281,8 +275,7 @@ class CommandBuilder:
         discarded: bool,
     ) -> bytes:
         data = bytearray()
-        data.append(len(name))
-        data += name.encode()
+        data += self._u8_prefixed_ascii(name)
         data.append(len(name_types))
         for t in name_types:
             data.append(t)

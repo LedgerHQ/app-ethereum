@@ -1,4 +1,4 @@
-FROM ghcr.io/ledgerhq/ledger-app-builder/ledger-app-dev-tools:latest AS app-builder
+FROM ghcr.io/ledgerhq/ledger-app-builder/ledger-app-builder-lite:latest AS app-builder
 
 # Base image with clang toolchain
 FROM gcr.io/oss-fuzz-base/base-builder:v1

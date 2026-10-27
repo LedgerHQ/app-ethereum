@@ -80,7 +80,7 @@ void clear_icon(void) {
 
 // Strong override of the weak allocator stub, to make an allocation fail
 static bool g_calloc_fails = false;
-bool mem_utils_calloc(void **buffer, uint16_t size, bool permanent, const char *file, int line) {
+bool mem_utils_calloc(void **buffer, size_t size, bool permanent, const char *file, int line) {
     (void) permanent;
     (void) file;
     (void) line;

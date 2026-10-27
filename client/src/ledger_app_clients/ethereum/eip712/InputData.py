@@ -624,8 +624,9 @@ def process_data_locked(aclient: EthAppClient, data_json: dict, filters: dict | 
     filtering_calldatas = []
     sig_ctx = {}
 
-    # deepcopy because this function modifies the dict
+    # deepcopy because this function modifies the dicts
     data_json = copy.deepcopy(data_json)
+    filters = copy.deepcopy(filters)
     app_client = aclient
     domain_typename = "EIP712Domain"
     message_typename = data_json["primaryType"]

@@ -110,6 +110,9 @@ endif()
 # COMMON_LINK_OPTIONS carries only any remaining raw linker flags (empty for now).
 set(COMMON_LINK_OPTIONS "")
 
+# Same char signedness and enum width as the firmware build (SDK Makefile.defines).
+add_compile_options(-funsigned-char -fshort-enums)
+
 # =============================================================================
 # Test targets (grouped by feature)
 # =============================================================================

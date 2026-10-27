@@ -18,6 +18,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "app_mem_utils.h"
 #include "cx_errors.h"
 
 // =============================================================================
@@ -216,7 +217,9 @@ __attribute__((weak)) uint32_t cx_keccak_256_hash_iovec(const struct cx_iovec_s 
                                                         uint8_t *digest) {
     (void) iovec;
     (void) iovec_len;
-    (void) digest;
+    if (digest != NULL) {
+        memset(digest, 0, 32);
+    }
     return CX_OK;
 }
 
@@ -323,7 +326,7 @@ char *mem_utils_strdup(const char *s, const char *file, int line) {
 }
 
 __attribute__((weak)) bool mem_utils_calloc(void **buffer,
-                                            uint16_t size,
+                                            size_t size,
                                             bool permanent,
                                             const char *file,
                                             int line) {

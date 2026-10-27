@@ -44,11 +44,7 @@ extern char *g_finishMsg;
 
 static int g_alloc_force_failure_after = -1;  // -1 = always succeed
 static int g_alloc_calls = 0;
-bool mem_utils_calloc(void **ptr_storage,
-                      uint16_t size,
-                      bool permanent,
-                      const char *file,
-                      int line) {
+bool mem_utils_calloc(void **ptr_storage, size_t size, bool permanent, const char *file, int line) {
     (void) permanent;
     (void) file;
     (void) line;

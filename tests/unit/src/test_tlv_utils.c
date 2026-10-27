@@ -28,6 +28,12 @@
 #include "tlv_library.h"
 #include "common_utils.h"
 
+// Accepts any challenge; check_challenge itself is covered by test_cmd_get_challenge.
+bool check_challenge(uint32_t received_challenge) {
+    (void) received_challenge;
+    return true;
+}
+
 // =============================================================================
 // Helpers
 // =============================================================================

@@ -2,8 +2,22 @@
 # "Invariants" page of the SDK Fuzzing Framework docs. The lines below are just
 # this app's globals and the values that keep them in range.
 
-# ── App state enum (IDLE=0, SIGNING_TX=1, SIGNING_MSG=2, SIGNING_EIP712=3) ──
+# ── App state enum (IDLE=0, VERIFYING_ADDRESS=1, PERFORMING_PRIVACY_OP=2, SIGNING_TX=3).
+# ── States 4-7 need a message, EIP-712 or EIP-7702 context that zero-symbols keeps
+# ── NULL, so they are reached through APDU sequences instead. ──
 appState. = values \x00 \x01 \x02 \x03
+
+# ── User settings: every combination, including the fresh-install all-off one ──
+N_storage_real.dataAllowed = values \x00 \x01
+N_storage_real.contractDetails = values \x00 \x01
+N_storage_real.displayNonce = values \x00 \x01
+N_storage_real.verbose_eip712 = values \x00 \x01
+N_storage_real.tx_check_enable = values \x00 \x01
+N_storage_real.tx_check_opt_in = values \x00 \x01
+N_storage_real.gating_counter = top
+N_storage_real.eip7702_enable = values \x00 \x01
+N_storage_real.displayHash = values \x00 \x01
+N_storage_real.initialized = values \x01
 
 # ── Swap mode enum (STANDARD=0, CROSSCHAIN_PENDING=1, CROSSCHAIN_SUCCESS=2, ERROR=3) ──
 G_swap_mode. = values \x00 \x01 \x02 \x03

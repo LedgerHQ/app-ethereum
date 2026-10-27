@@ -28,7 +28,7 @@ static int g_live_allocs = 0;
 static int g_fail_alloc_at = 0;
 
 bool __real_mem_utils_calloc(void **buffer,
-                             uint16_t size,
+                             size_t size,
                              bool permanent,
                              const char *file,
                              int line);
@@ -36,7 +36,7 @@ void __real_mem_utils_free(void *ptr, const char *file, int line);
 void __real_mem_utils_free_and_null(void **buffer, const char *file, int line);
 
 bool __wrap_mem_utils_calloc(void **buffer,
-                             uint16_t size,
+                             size_t size,
                              bool permanent,
                              const char *file,
                              int line) {

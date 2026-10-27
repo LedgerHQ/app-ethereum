@@ -4,9 +4,11 @@
  *
  * This file provides two categories of stubs:
  *  1. Weak default stubs for app functions that are not linked in most test
- *     binaries. The defaults return a sensible success value. Any test that
- *     needs to control the behaviour or inspect arguments installs a strong
- *     local definition that overrides the weak one at link time.
+ *     binaries. The defaults return a sensible success value, except security
+ *     checks (signature, challenge, TLV framing, tx data copy, chain policy),
+ *     which fail the test. Any test that needs to control the behaviour or
+ *     inspect arguments installs a strong local definition that overrides the
+ *     weak one at link time.
  *  2. Noreturn stubs (app_exit, send_swap_error_simple) with the longjmp
  *     handshake used by the EXPECT_NORETURN() macro in wraps.h.
  *
@@ -21,9 +23,11 @@
 #include <stdint.h>
 #include <string.h>
 
+#include "unity.h"
 #include "buffer.h"
 #include "cx_errors.h"
 #include "tlv_apdu.h"
+#include "plugins/eth_plugin_handler.h"
 
 // Forward-declared SDK opaque types (avoid pulling lcx_*.h here).
 typedef struct cx_hash_header_s cx_hash_t;
@@ -56,7 +60,8 @@ __attribute__((weak)) bool check_signature_with_pubkey(uint8_t *buffer,
     (void) keyUsageExp;
     (void) signature;
     (void) sigLen;
-    return true;
+    TEST_FAIL_MESSAGE("check_signature_with_pubkey: no override in this test");
+    return false;
 }
 
 // =============================================================================
@@ -87,7 +92,8 @@ __attribute__((weak)) e_tlv_apdu_ret tlv_from_apdu(bool first_chunk,
     (void) lc;
     (void) payload;
     (void) handler;
-    return TLV_APDU_SUCCESS;
+    TEST_FAIL_MESSAGE("tlv_from_apdu: no override in this test");
+    return TLV_APDU_ERROR;
 }
 
 // =============================================================================
@@ -138,7 +144,8 @@ bool tlv_parse(const uint8_t *payload, uint16_t size, void *handler, void *conte
 
 __attribute__((weak)) bool check_challenge(uint32_t received_challenge) {
     (void) received_challenge;
-    return true;
+    TEST_FAIL_MESSAGE("check_challenge: no override in this test");
+    return false;
 }
 
 __attribute__((weak)) uint64_t u64_from_BE(const uint8_t *in, uint8_t size) {
@@ -354,37 +361,43 @@ __attribute__((weak)) bool copy_tx_data(struct txContext_t *context,
     (void) context;
     (void) out;
     (void) length;
-    return true;
+    TEST_FAIL_MESSAGE("copy_tx_data: no override in this test");
+    return false;
 }
 
-__attribute__((weak)) void eth_plugin_prepare_init(void *msg,
-                                                   const uint8_t *pluginName,
-                                                   uint8_t pluginNameLength) {
-    (void) msg;
-    (void) pluginName;
-    (void) pluginNameLength;
+__attribute__((weak)) void eth_plugin_prepare_init(ethPluginInitContract_t *init,
+                                                   const uint8_t *selector,
+                                                   uint32_t data_size) {
+    (void) init;
+    (void) selector;
+    (void) data_size;
 }
 
-__attribute__((weak)) bool eth_plugin_perform_init(uint8_t *contractAddress, void *msg) {
-    (void) contractAddress;
-    (void) msg;
-    return true;
+// No plugin handles the contract unless a test overrides this.
+__attribute__((weak)) eth_plugin_result_t eth_plugin_perform_init(uint8_t *contract_address,
+                                                                  ethPluginInitContract_t *init) {
+    (void) contract_address;
+    (void) init;
+    return ETH_PLUGIN_RESULT_UNAVAILABLE;
 }
 
-__attribute__((weak)) void eth_plugin_prepare_finalize(void *msg) {
-    (void) msg;
+__attribute__((weak)) void eth_plugin_prepare_finalize(ethPluginFinalize_t *finalize) {
+    (void) finalize;
 }
 
-__attribute__((weak)) void eth_plugin_prepare_provide_info(void *msg) {
-    (void) msg;
+__attribute__((weak)) void eth_plugin_prepare_provide_info(ethPluginProvideInfo_t *provide_token) {
+    (void) provide_token;
 }
 
-__attribute__((weak)) void eth_plugin_prepare_provide_parameter(void *msg,
-                                                                const uint8_t *param,
-                                                                uint32_t paramOffset) {
-    (void) msg;
-    (void) param;
-    (void) paramOffset;
+__attribute__((weak)) void eth_plugin_prepare_provide_parameter(
+    ethPluginProvideParameter_t *provide_parameter,
+    uint8_t *parameter,
+    uint32_t parameter_offset,
+    uint8_t parameter_size) {
+    (void) provide_parameter;
+    (void) parameter;
+    (void) parameter_offset;
+    (void) parameter_size;
 }
 
 __attribute__((weak)) void *get_matching_asset_info(const uint64_t *chain_id,
@@ -442,7 +455,7 @@ __attribute__((weak)) __attribute__((noreturn)) void app_exit(void) {
     }
 }
 
-__attribute__((weak)) __attribute__((noreturn)) void os_sched_exit(unsigned int exit_code) {
+__attribute__((weak)) __attribute__((noreturn)) void os_sched_exit(bolos_task_status_t exit_code) {
     (void) exit_code;
     g_noreturn_calls++;
     if (g_noreturn_armed) longjmp(g_noreturn_jmp, 1);
@@ -483,9 +496,8 @@ __attribute__((weak)) void gcs_set_root_from_shown(void) {
 __attribute__((weak)) void gcs_set_root_value_shown(void) {
 }
 
-// Default: every chain is signable. Tests covering the rejection install a
-// strong local definition.
 __attribute__((weak)) bool chain_id_is_signable(uint64_t chain_id) {
     (void) chain_id;
-    return true;
+    TEST_FAIL_MESSAGE("chain_id_is_signable: no override in this test");
+    return false;
 }

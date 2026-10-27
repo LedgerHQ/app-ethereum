@@ -170,6 +170,7 @@ ledger_unit_tests_add_test(NAME test_eth_plugin_handler
     ${APP_DIR}/features/set_plugin
   COMPILE_DEFS
     ${COMMON_COMPILE_DEFS}
+    HAVE_ETH2
   LINK_OPTIONS
     ${COMMON_LINK_OPTIONS}
 )

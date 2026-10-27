@@ -63,7 +63,7 @@ const nbgl_icon_details_t *get_tx_icon(bool fromPlugin) {
         // Check with Alex if this is expected or a bug
         return NULL;
     }
-    if ((g_caller_app != NULL) && !fromPlugin) {
+    if ((g_caller_app != NULL) && (g_caller_app->type == CALLER_TYPE_CLONE) && !fromPlugin) {
         // Clone case
         return get_app_icon(true);
     }

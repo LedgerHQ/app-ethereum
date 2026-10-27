@@ -167,6 +167,11 @@ def test_transfer_erc20_nonce_display(navigator: Navigator, scenario_navigator: 
     common_transfer(scenario_navigator, 10)
 
 
+def test_transfer_erc20_hash_display(navigator: Navigator, scenario_navigator: NavigateWithScenario):
+    settings_toggle(scenario_navigator.backend.device, navigator, [SettingID.DISPLAY_HASH])
+    common_transfer(scenario_navigator, 10)
+
+
 # these extra data are not part of the ABI :
 # - https://github.com/ethereum/ercs/blob/master/ERCS/erc-20.md#transfer
 # - https://github.com/ethereum/ercs/blob/master/ERCS/erc-20.md#approve

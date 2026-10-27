@@ -141,6 +141,7 @@ typedef struct txContext_t {
     bool processingField;
     bool fieldSingleByte;
     uint32_t dataLength;
+    uint32_t dataPos;  // bytes of the outer list payload consumed so far
     uint8_t rlpBuffer[5];
     uint32_t rlpBufferPos;
     const uint8_t *workBuffer;

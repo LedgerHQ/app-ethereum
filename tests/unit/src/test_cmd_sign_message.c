@@ -215,6 +215,21 @@ void test_first_truncated_before_msg_length_rejected(void) {
     TEST_ASSERT_EQUAL(sw, SWO_INCORRECT_DATA);
 }
 
+void test_first_length_above_16_bits_rejected(void) {
+    uint8_t data[64];
+    size_t len = build_first_apdu(data, sizeof(data), 0x10005, (uint8_t *) "hello", 5);
+    uint16_t sw = handle_sign_personal_message(P1_FIRST, data, (uint8_t) len);
+    TEST_ASSERT_EQUAL(sw, SWO_INCORRECT_DATA);
+    TEST_ASSERT_EQUAL(g_ui_191_calls, 0);
+}
+
+void test_first_length_above_display_limit_rejected(void) {
+    uint8_t data[64];
+    size_t len = build_first_apdu(data, sizeof(data), (UINT16_MAX - 3) / 2 + 1, NULL, 0);
+    uint16_t sw = handle_sign_personal_message(P1_FIRST, data, (uint8_t) len);
+    TEST_ASSERT_EQUAL(sw, SWO_INCORRECT_DATA);
+}
+
 void test_first_keccak_init_failure_propagates(void) {
     g_keccak_init_ret = CX_INVALID_PARAMETER;
     uint8_t data[64];
@@ -372,6 +387,8 @@ int main(void) {
     RUN_TEST(test_p1_more_without_prior_first_rejected);
     RUN_TEST(test_first_bad_bip32_returns_incorrect_data);
     RUN_TEST(test_first_truncated_before_msg_length_rejected);
+    RUN_TEST(test_first_length_above_16_bits_rejected);
+    RUN_TEST(test_first_length_above_display_limit_rejected);
     RUN_TEST(test_first_keccak_init_failure_propagates);
     RUN_TEST(test_single_chunk_ascii_starts_ui);
     RUN_TEST(test_single_chunk_hex_uses_0x_prefix);

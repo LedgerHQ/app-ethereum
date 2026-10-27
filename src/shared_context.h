@@ -13,10 +13,10 @@
 #define PLUGIN_ID_LENGTH 30
 
 // Maximum number of plugin-driven items that can be added to the transaction review.
-// The review builder counts pluginUiMaxItems plus up to 4 fixed pairs (From, Nonce,
-// Network, Max fees) into a uint8_t (g_pairsList->nbPairs and the cast at ui_pairs_init).
-// Bound the source so the sum never overflows the 8-bit pair counter.
-#define MAX_PLUGIN_UI_ITEMS (UINT8_MAX - 4)
+// The review builder counts pluginUiMaxItems plus up to 5 fixed pairs (From, Nonce,
+// Network, Max fees, Transaction hash) into a uint8_t (g_pairsList->nbPairs and the cast at
+// ui_pairs_init). Bound the source so the sum never overflows the 8-bit pair counter.
+#define MAX_PLUGIN_UI_ITEMS (UINT8_MAX - 5)
 
 // Address length
 #define ADDRESS_LENGTH_HEX     HEX_STRING_LEN(ADDRESS_LENGTH)
@@ -163,6 +163,7 @@ typedef enum {
 #ifdef HAVE_7702_SUPPORT
     APP_STATE_SIGNING_EIP7702,
 #endif
+    APP_STATE_VERIFYING_SAFE_ACCOUNT,
 } app_state_t;
 
 typedef enum {
@@ -260,7 +261,7 @@ extern uint8_t appState;
 extern uint32_t eth2WithdrawalIndex;
 #endif
 
-void app_quit(void);
+NORETURN void app_quit(void);
 void reset_app_context(void);
 void reset_app_context_ex(bool scrub_strings);
 const uint8_t *parseBip32(const uint8_t *dataBuffer, uint8_t *dataLength, bip32_path_t *bip32);

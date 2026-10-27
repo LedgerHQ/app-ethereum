@@ -4,6 +4,7 @@
 #include "apdu_constants.h"
 #include "tlv_apdu.h"
 #include "common_ui.h"
+#include "shared_context.h"
 
 #define SAFE_DESCRIPTOR   0x00
 #define SIGNER_DESCRIPTOR 0x01
@@ -19,6 +20,9 @@
  * @return whether the handling was successful
  */
 uint16_t handle_safe_account(uint8_t p1, uint8_t p2, const uint8_t *data, uint8_t length) {
+    if (appState != APP_STATE_IDLE) {
+        return SWO_COMMAND_NOT_ALLOWED;
+    }
     // Check P1 parameter
     if (p1 != P1_FIRST_CHUNK && p1 != P1_FOLLOWING_CHUNK) {
         PRINTF("Error: Invalid P1 (%u)\n", p1);
@@ -62,6 +66,7 @@ uint16_t handle_safe_account(uint8_t p1, uint8_t p2, const uint8_t *data, uint8_
 
     // Display UI when all data is received
     if (SIGNER_DESC.is_valid) {
+        appState = APP_STATE_VERIFYING_SAFE_ACCOUNT;
         ui_display_safe_account();
         return SWO_NO_RESPONSE;
     }

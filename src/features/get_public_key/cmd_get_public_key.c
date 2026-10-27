@@ -14,10 +14,8 @@ uint16_t handle_get_public_key(uint8_t p1,
     bip32_path_t bip32;
     uint64_t chain_id;
 
-    if (!G_called_from_swap) {
-        if (appState != APP_STATE_IDLE) {
-            return SWO_COMMAND_NOT_ALLOWED;
-        }
+    if (appState != APP_STATE_IDLE) {
+        return SWO_COMMAND_NOT_ALLOWED;
     }
 
     if ((p1 != P1_CONFIRM) && (p1 != P1_NON_CONFIRM)) {
@@ -31,16 +29,6 @@ uint16_t handle_get_public_key(uint8_t p1,
 
     dataBuffer = parseBip32(dataBuffer, &dataLength, &bip32);
     if (dataBuffer == NULL) {
-        return SWO_INCORRECT_DATA;
-    }
-
-    tmpCtx.publicKeyContext.getChaincode = (p2 == P2_CHAINCODE);
-    if (get_public_key_string(
-            &bip32,
-            tmpCtx.publicKeyContext.publicKey.W,
-            tmpCtx.publicKeyContext.address,
-            (tmpCtx.publicKeyContext.getChaincode ? tmpCtx.publicKeyContext.chainCode : NULL),
-            g_chain_config->chain_id)) {
         return SWO_INCORRECT_DATA;
     }
 
@@ -60,6 +48,17 @@ uint16_t handle_get_public_key(uint8_t p1,
     (void) dataBuffer;  // to prevent dead increment warning
     if (dataLength > 0) {
         PRINTF("Error: Leftover unwanted data (%u bytes long)!\n", dataLength);
+        return SWO_INCORRECT_DATA;
+    }
+
+    // The checksum scheme depends on the chain ID (EIP-1191)
+    tmpCtx.publicKeyContext.getChaincode = (p2 == P2_CHAINCODE);
+    if (get_public_key_string(
+            &bip32,
+            tmpCtx.publicKeyContext.publicKey.W,
+            tmpCtx.publicKeyContext.address,
+            (tmpCtx.publicKeyContext.getChaincode ? tmpCtx.publicKeyContext.chainCode : NULL),
+            chain_id)) {
         return SWO_INCORRECT_DATA;
     }
 

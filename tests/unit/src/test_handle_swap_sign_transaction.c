@@ -228,12 +228,13 @@ void test_fee_amount_length_over_8_rejected(void) {
     TEST_ASSERT_FALSE(copy_transaction_parameters(&p, &s_chain));
 }
 
-// The "destination_address overflow" guard in the source
-// (toAddress[sizeof(toAddress)-1] != '\0') is effectively dead code today:
-// strlcpy always writes a NUL at dst[size-1] when size > 0. We leave the
-// guard in place as defense-in-depth against a future refactor that
-// swaps strlcpy for strncpy, but there is no way to exercise that branch
-// from a unit test without intercepting strlcpy itself.
+void test_destination_address_overflow_rejected(void) {
+    // One character longer than a 0x-prefixed address.
+    static char long_addr[] = "0x11111111111111111111111111111111111111112";
+    create_transaction_parameters_t p = make_params();
+    p.destination_address = long_addr;
+    TEST_ASSERT_FALSE(copy_transaction_parameters(&p, &s_chain));
+}
 
 // =============================================================================
 // parse_swap_config failure
@@ -433,6 +434,7 @@ int main(void) {
     UNITY_BEGIN();
     RUN_TEST(test_amount_length_over_32_rejected);
     RUN_TEST(test_fee_amount_length_over_8_rejected);
+    RUN_TEST(test_destination_address_overflow_rejected);
     RUN_TEST(test_parse_swap_config_failure_rejected);
     RUN_TEST(test_amount_to_string_fees_failure_rejected);
     RUN_TEST(test_amount_to_string_value_failure_standard_rejected);

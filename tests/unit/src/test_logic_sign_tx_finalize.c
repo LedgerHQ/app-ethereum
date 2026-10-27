@@ -537,12 +537,8 @@ void test_swap_double_sign_safety_triggers_app_quit(void) {
     G_called_from_swap = true;
     G_swap_response_ready = true;  // already-replied flag
     pluginType = PLUGIN_TYPE_NONE;
-    // app_quit is *not* noreturn in production (shared_context.h declares
-    // it `void app_quit(void)` -- callers wrap it in `while(1);` as a
-    // defence in depth). The mock returns; we just count the call.
-    g_noreturn_calls = 0;
-    finalize_parsing(&s_ctx);
-    TEST_ASSERT_EQUAL(g_noreturn_calls, 1);
+    EXPECT_NORETURN(finalize_parsing(&s_ctx));
+    TEST_ASSERT_EQUAL(g_touch_tx_ok_calls, 0);
 }
 
 void test_swap_unexpected_plugin_type_triggers_app_exit(void) {

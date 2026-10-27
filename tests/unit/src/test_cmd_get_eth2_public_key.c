@@ -18,8 +18,7 @@
  *    - parseBip32 returns NULL                     SWO_INCORRECT_DATA
  *    - P1_NON_CONFIRM happy path                   SWO_SUCCESS + tx set
  *    - P1_CONFIRM happy path                       0 (deferred reply via UI)
- *    - G_called_from_swap=false  -> reset_app_context() called once
- *    - G_called_from_swap=true   -> reset_app_context() NOT called
+ *    - appState not idle, even from swap           SWO_COMMAND_NOT_ALLOWED
  *
  * get_eth2_public_key itself (the BLS pipeline) lives in the same
  * translation unit as the dispatcher; the linker can't redirect intra-TU
@@ -201,12 +200,13 @@ void test_confirm_defers_reply_via_ui(void) {
     TEST_ASSERT_EQUAL(g_ui_calls, 1);
 }
 
-void test_called_from_swap_skips_reset_app_context(void) {
+void test_not_idle_rejected_even_from_swap(void) {
     unsigned int tx = 0;
     G_called_from_swap = true;
-    // Drive to a quick SWO_WRONG_P1_P2 path so the reset-check is the
-    // only thing under observation.
-    handle_get_eth2_public_key(0xFF, 0, (uint8_t *) "", 0, &tx);
+    appState = APP_STATE_SIGNING_TX;
+    uint16_t sw = handle_get_eth2_public_key(P1_NON_CONFIRM, 0, (uint8_t *) "", 0, &tx);
+    TEST_ASSERT_EQUAL(sw, SWO_COMMAND_NOT_ALLOWED);
+    TEST_ASSERT_EQUAL(appState, APP_STATE_SIGNING_TX);
     TEST_ASSERT_EQUAL(g_reset_calls, 0);
 }
 
@@ -277,7 +277,7 @@ int main(void) {
     RUN_TEST(test_parsebip32_failure_rejected);
     RUN_TEST(test_non_confirm_returns_success_and_sets_tx);
     RUN_TEST(test_confirm_defers_reply_via_ui);
-    RUN_TEST(test_called_from_swap_skips_reset_app_context);
+    RUN_TEST(test_not_idle_rejected_even_from_swap);
     RUN_TEST(test_init_private_key_failure_propagates);
     RUN_TEST(test_generate_pair_failure_propagates);
     RUN_TEST(test_math_mult_failure_propagates);

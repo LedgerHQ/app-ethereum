@@ -68,10 +68,8 @@ uint16_t handle_get_eth2_public_key(uint8_t p1,
     bip32_path_t bip32;
     cx_err_t error = CX_INTERNAL_ERROR;
 
-    if (!G_called_from_swap) {
-        if (appState != APP_STATE_IDLE) {
-            return SWO_COMMAND_NOT_ALLOWED;
-        }
+    if (appState != APP_STATE_IDLE) {
+        return SWO_COMMAND_NOT_ALLOWED;
     }
     if ((p1 != P1_CONFIRM) && (p1 != P1_NON_CONFIRM)) {
         return SWO_WRONG_P1_P2;

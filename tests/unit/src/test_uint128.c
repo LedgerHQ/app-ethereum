@@ -303,7 +303,7 @@ void test_divmod128_basic(void) {
     uint128_t l = {{0, 100}};
     uint128_t r_val = {{0, 7}};
     uint128_t q, rem;
-    divmod128(&l, &r_val, &q, &rem);
+    TEST_ASSERT_TRUE(divmod128(&l, &r_val, &q, &rem));
     TEST_ASSERT_EQUAL(UPPER(q), 0);
     TEST_ASSERT_EQUAL(LOWER(q), 14);
     TEST_ASSERT_EQUAL(UPPER(rem), 0);
@@ -312,17 +312,24 @@ void test_divmod128_basic(void) {
     // l < r → q = 0, rem = l
     uint128_t small = {{0, 5}};
     uint128_t big = {{0, 50}};
-    divmod128(&small, &big, &q, &rem);
+    TEST_ASSERT_TRUE(divmod128(&small, &big, &q, &rem));
     TEST_ASSERT_TRUE(zero128(&q));
     TEST_ASSERT_TRUE(equal128(&rem, &small));
 
     // l == r → q = 1, rem = 0
     uint128_t v = {{0xAA, 0xBB}};
     uint128_t v2 = {{0xAA, 0xBB}};
-    divmod128(&v, &v2, &q, &rem);
+    TEST_ASSERT_TRUE(divmod128(&v, &v2, &q, &rem));
     TEST_ASSERT_EQUAL(UPPER(q), 0);
     TEST_ASSERT_EQUAL(LOWER(q), 1);
     TEST_ASSERT_TRUE(zero128(&rem));
+}
+
+void test_divmod128_zero_divisor_rejected(void) {
+    uint128_t l = {{0, 100}};
+    uint128_t zero = {{0, 0}};
+    uint128_t q, rem;
+    TEST_ASSERT_FALSE(divmod128(&l, &zero, &q, &rem));
 }
 
 // =============================================================================
@@ -523,6 +530,7 @@ int main(void) {
     RUN_TEST(test_mul128_overflow_returns_false);
     RUN_TEST(test_mul128_boundary_fits_in_uint128);
     RUN_TEST(test_divmod128_basic);
+    RUN_TEST(test_divmod128_zero_divisor_rejected);
     RUN_TEST(test_tostring128_base10);
     RUN_TEST(test_tostring128_base16);
     RUN_TEST(test_tostring128_base2);

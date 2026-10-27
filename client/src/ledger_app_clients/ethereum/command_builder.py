@@ -86,6 +86,14 @@ class CommandBuilder:
             return b"\x00"
         return i.to_bytes(math.ceil(i.bit_length() / 8), "big")
 
+    @staticmethod
+    def _u8_prefixed_ascii(value: str) -> bytes:
+        # The device only displays ASCII: any other character raises UnicodeEncodeError
+        encoded = value.encode("ascii")
+        if len(encoded) > 0xFF:
+            raise ValueError("Field exceeds 255 bytes")
+        return bytes([len(encoded)]) + encoded
+
     def _serialize(
         self,
         ins: InsType | int,
@@ -400,8 +408,7 @@ class CommandBuilder:
 
     def set_external_plugin(self, plugin_name: str, contract_address: bytes, selector: bytes, sig: bytes) -> bytes:
         data = bytearray()
-        data.append(len(plugin_name))
-        data += plugin_name.encode()
+        data += self._u8_prefixed_ascii(plugin_name)
         data += contract_address
         data += selector
         data += sig
@@ -483,8 +490,7 @@ class CommandBuilder:
         payload = bytearray()
         payload.append(type_)
         payload.append(version)
-        payload.append(len(plugin_name))
-        payload += plugin_name.encode()
+        payload += self._u8_prefixed_ascii(plugin_name)
         payload += contract_addr
         payload += selector
         payload += struct.pack(">Q", chain_id)
@@ -508,8 +514,7 @@ class CommandBuilder:
         payload = bytearray()
         payload.append(type_)
         payload.append(version)
-        payload.append(len(collection_name))
-        payload += collection_name.encode()
+        payload += self._u8_prefixed_ascii(collection_name)
         payload += addr
         payload += struct.pack(">Q", chain_id)
         payload.append(key_id)
@@ -533,8 +538,7 @@ class CommandBuilder:
 
     def provide_erc20_token_information(self, ticker: str, addr: bytes, decimals: int, chain_id: int, sig: bytes) -> bytes:
         payload = bytearray()
-        payload.append(len(ticker))
-        payload += ticker.encode()
+        payload += self._u8_prefixed_ascii(ticker)
         payload += addr
         payload += struct.pack(">I", decimals)
         payload += struct.pack(">I", chain_id)

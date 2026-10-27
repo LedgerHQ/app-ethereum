@@ -162,7 +162,9 @@ static bool tx_value_to_gwei(const txInt256_t *value, uint64_t *amount_gwei) {
     }
     convertUint256BE(value->value, value->length, &wei);
     convertUint256BE(GWEI_BE, sizeof(GWEI_BE), &unit);
-    divmod256(&wei, &unit, &amount, &remainder);
+    if (!divmod256(&wei, &unit, &amount, &remainder)) {
+        return false;
+    }
     if (!zero256(&remainder)) {
         PRINTF("eth2 plugin: deposit value is not a whole number of Gwei\n");
         return false;

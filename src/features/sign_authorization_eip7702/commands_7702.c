@@ -227,18 +227,24 @@ uint16_t handle_sign_eip7702_authorization(uint8_t p1,
             return SWO_WRONG_P1_P2;
     }
 
-    if (!tlv_from_apdu(p1 == P1_FIRST_CHUNK, dataLength, dataBuffer, &handle_auth7702_tlv)) {
-        if (g_7702_sw == SWO_COMMAND_NOT_ALLOWED) {
-            // An error screen is already displayed and its own callback handles idle;
-            // only reset the state so subsequent APDUs are accepted.
-            ui_hold_error_screen();
-            appState = APP_STATE_IDLE;
-        } else {
-            reset_app_context();
-        }
-        return g_7702_sw;
+    switch (tlv_from_apdu(p1 == P1_FIRST_CHUNK, dataLength, dataBuffer, &handle_auth7702_tlv)) {
+        case TLV_APDU_SUCCESS:
+            return SWO_NO_RESPONSE;
+        case TLV_APDU_PENDING:
+            return SWO_SUCCESS;
+        case TLV_APDU_ERROR:
+        default:
+            break;
     }
-    return SWO_NO_RESPONSE;
+    if (g_7702_sw == SWO_COMMAND_NOT_ALLOWED) {
+        // An error screen is already displayed and its own callback handles idle;
+        // only reset the state so subsequent APDUs are accepted.
+        ui_hold_error_screen();
+        appState = APP_STATE_IDLE;
+    } else {
+        reset_app_context();
+    }
+    return g_7702_sw;
 }
 
 #endif  // HAVE_7702_SUPPORT

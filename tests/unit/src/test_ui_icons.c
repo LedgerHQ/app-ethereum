@@ -27,7 +27,8 @@
  *   get_tx_icon:
  *     - fromPlugin=true, EXTERNAL, name matches toAddress -> caller icon
  *     - fromPlugin=true, EXTERNAL, name doesn't match     -> NULL
- *     - fromPlugin=false, g_caller_app != NULL (clone)    -> caller icon
+ *     - fromPlugin=false, clone caller                    -> caller icon
+ *     - fromPlugin=false, plugin caller, chain == config  -> app ICONGLYPH
  *     - fromPlugin=false, NULL caller, chain == config    -> app ICONGLYPH
  *     - fromPlugin=false, NULL caller, chain != config    -> network icon
  */
@@ -164,9 +165,18 @@ void test_tx_icon_plugin_external_no_name_match_returns_null(void) {
 void test_tx_icon_clone_returns_caller_icon(void) {
     // fromPlugin=false but caller present == clone case (Ethereum running
     // under a clone app). Use the caller's icon.
-    caller_app_t caller = {.icon = &s_caller_icon};
+    caller_app_t caller = {.icon = &s_caller_icon, .type = CALLER_TYPE_CLONE};
     g_caller_app = &caller;
     TEST_ASSERT_EQUAL_PTR(get_tx_icon(false), &s_caller_icon);
+}
+
+void test_tx_icon_plugin_caller_generic_tx_returns_app_iconglyph(void) {
+    // A transaction no plugin parsed does not take the calling plugin's icon
+    caller_app_t caller = {.name = "MyPlugin", .icon = &s_caller_icon, .type = CALLER_TYPE_PLUGIN};
+    g_caller_app = &caller;
+    s_tx_chain_id = 1;
+    g_chainConfig.chain_id = 1;
+    TEST_ASSERT_EQUAL_PTR(get_tx_icon(false), &test_glyph);
 }
 
 void test_tx_icon_standard_matching_chain_returns_app_iconglyph(void) {
@@ -216,6 +226,7 @@ int main(void) {
     RUN_TEST(test_tx_icon_plugin_external_matching_name_returns_caller_icon);
     RUN_TEST(test_tx_icon_plugin_external_no_name_match_returns_null);
     RUN_TEST(test_tx_icon_clone_returns_caller_icon);
+    RUN_TEST(test_tx_icon_plugin_caller_generic_tx_returns_app_iconglyph);
     RUN_TEST(test_tx_icon_standard_matching_chain_returns_app_iconglyph);
     RUN_TEST(test_tx_icon_standard_other_chain_returns_network_icon);
     return UNITY_END();

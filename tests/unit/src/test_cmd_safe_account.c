@@ -109,6 +109,7 @@ static e_tlv_apdu_ret tlv_from_apdu_stub(bool first_chunk,
 static safe_descriptor_t s_safe_storage;
 
 static void reset(void) {
+    appState = APP_STATE_IDLE;
     SAFE_DESC = NULL;
     memset(&SIGNER_DESC, 0, sizeof(SIGNER_DESC));
     memset(&s_safe_storage, 0, sizeof(s_safe_storage));
@@ -220,6 +221,22 @@ void test_signer_complete_triggers_ui_and_no_response(void) {
     uint16_t sw = handle_safe_account(P1_FOLLOWING_CHUNK, /*p2*/ 1, (uint8_t *) "", 32);
     TEST_ASSERT_EQUAL(sw, SWO_NO_RESPONSE);
     TEST_ASSERT_EQUAL(g_ui_display_calls, 1);
+    TEST_ASSERT_EQUAL(appState, APP_STATE_VERIFYING_SAFE_ACCOUNT);
+}
+
+void test_rejected_when_app_not_idle(void) {
+    appState = APP_STATE_SIGNING_TX;
+    uint16_t sw = handle_safe_account(P1_FIRST_CHUNK, /*p2*/ 0, (uint8_t *) "", 32);
+    TEST_ASSERT_EQUAL(sw, SWO_COMMAND_NOT_ALLOWED);
+    TEST_ASSERT_NULL(s_tlv_handler);
+    TEST_ASSERT_EQUAL(appState, APP_STATE_SIGNING_TX);
+
+    // A pending Safe review owns the state as well
+    appState = APP_STATE_VERIFYING_SAFE_ACCOUNT;
+    SAFE_DESC = &s_safe_storage;
+    sw = handle_safe_account(P1_FIRST_CHUNK, /*p2*/ 1, (uint8_t *) "", 32);
+    TEST_ASSERT_EQUAL(sw, SWO_COMMAND_NOT_ALLOWED);
+    TEST_ASSERT_EQUAL(g_ui_display_calls, 0);
 }
 
 void test_signer_incomplete_still_returns_success_no_ui(void) {
@@ -266,6 +283,7 @@ int main(void) {
     RUN_TEST(test_signer_descriptor_tlv_failure_returns_incorrect_data);
     RUN_TEST(test_signer_complete_triggers_ui_and_no_response);
     RUN_TEST(test_signer_incomplete_still_returns_success_no_ui);
+    RUN_TEST(test_rejected_when_app_not_idle);
     RUN_TEST(test_clear_safe_account_clears_both);
     return UNITY_END();
 }

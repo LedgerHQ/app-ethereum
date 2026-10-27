@@ -95,6 +95,7 @@ void reset_app_context_ex(bool scrub_strings) {
 #endif
     proxy_cleanup();
     clear_gating();
+    ui_approve_tx_cleanup();
     tlv_apdu_reset();
     abort_icon_reception();
     if (scrub_strings) {

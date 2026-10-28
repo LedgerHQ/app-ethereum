@@ -674,6 +674,103 @@ def test_gcs_group_sequential_arrays(scenario_navigator: NavigateWithScenario):
         scenario_navigator.review_approve()
 
 
+GROUP_MAX_DEPTH = 4
+
+
+def nest_in_groups(field: Field, depth: int) -> Field:
+    """Wrap a field in `depth` nested SEQUENTIAL groups."""
+    for level in range(depth, 0, -1):
+        field = Field(1, f"Group {level}", ParamGroup(1, GroupIterationType.SEQUENTIAL, [field]))
+    return field
+
+
+def start_nested_poap_mint(app_client: EthAppClient, depths: list[int]) -> list[Field]:
+    """Store a POAP mint and provide its TX_INFO.
+
+    Return the fields to provide: the Event ID nested at each of the given depths.
+    """
+    with open(f"{ABIS_FOLDER}/poap.abi.json", encoding="utf-8") as file:
+        contract = Web3().eth.contract(abi=json.load(file), address=None)
+    data = contract.encode_abi(
+        "mintToken",
+        [
+            175676,
+            7163978,
+            bytes.fromhex("Dad77910DbDFdE764fC21FCD4E74D71bBACA6D8D"),
+            1730621615,
+            bytes.fromhex(
+                "8991da687cff5300959810a08c4ec183bb2a56dc82f5aac2b24f1106c2d983ac6f7a6b28700a236724d814000d0fd8c395fcf9f87c4424432ebf30c9479201d71c"
+            ),
+        ],
+    )
+    tx_params = {
+        "nonce": 235,
+        "maxFeePerGas": Web3.to_wei(100, "gwei"),
+        "maxPriorityFeePerGas": Web3.to_wei(10, "gwei"),
+        "gas": 44001,
+        # PoapBridge
+        "to": bytes.fromhex("0bb4D3e88243F4A057Db77341e6916B0e449b158"),
+        "data": data,
+        "chainId": 1,
+    }
+
+    with app_client.sign("m/44'/60'/0'/0/0", tx_params, mode=SignMode.STORE):
+        pass
+
+    event_id_path = get_path(f"{ABIS_FOLDER}/poap.abi.json", "mintToken", "eventId")
+    fields = [
+        nest_in_groups(
+            Field(
+                1,
+                f"Depth {depth}",
+                ParamRaw(1, Value(1, TypeFamily.UINT, type_size=32, data_path=DataPath(1, event_id_path))),
+            ),
+            depth,
+        )
+        for depth in depths
+    ]
+    tx_info = TxInfo(
+        1,
+        tx_params["chainId"],
+        tx_params["to"],
+        get_selector_from_data(tx_params["data"]),
+        compute_inst_hash(fields),
+        "mint POAP",
+        creator_name="POAP",
+        creator_legal_name="Proof of Attendance Protocol",
+        creator_url="poap.xyz",
+        contract_name="PoapBridge",
+        deploy_date=1646305200,
+    )
+    app_client.provide_transaction_info(tx_info.serialize())
+    return fields
+
+
+def test_gcs_group_nested(scenario_navigator: NavigateWithScenario):
+    """Groups nest up to the maximum depth.
+
+    Each nesting level recurses on the device stack: every depth must fit on every device.
+    """
+    app_client = EthAppClient(scenario_navigator.backend)
+
+    fields = start_nested_poap_mint(app_client, list(range(1, GROUP_MAX_DEPTH + 1)))
+    for field in fields:
+        app_client.provide_transaction_field_desc(field.serialize())
+
+    with app_client.sign(mode=SignMode.START_FLOW):
+        scenario_navigator.review_approve(do_comparison=False)
+
+
+def test_gcs_group_nested_too_deep(scenario_navigator: NavigateWithScenario):
+    """A group nested past the maximum depth is refused."""
+    app_client = EthAppClient(scenario_navigator.backend)
+
+    fields = start_nested_poap_mint(app_client, [GROUP_MAX_DEPTH + 1])
+    with pytest.raises(ExceptionRAPDU) as e:
+        app_client.provide_transaction_field_desc(fields[0].serialize())
+    assert e.value.status == StatusWord.SWO_INCORRECT_DATA
+
+
 def test_gcs_separator(scenario_navigator: NavigateWithScenario):
     """Test FIELD-level SEPARATOR tag on an array field.
 

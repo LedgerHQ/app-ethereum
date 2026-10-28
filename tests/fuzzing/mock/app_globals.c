@@ -34,7 +34,7 @@ const chain_config_t *g_chain_config = NULL;
 
 // Stable chain config every harness points g_chain_config at. Production sets it
 // at init, so the fuzzer must not leave it NULL (a random/zero pointer here
-// crashes readers like app_compatible_with_chain_id).
+// crashes readers like chain_id_is_signable).
 // FUZZ_CHAIN_ID builds a clone, the way a clone app is built with its own CHAINID.
 #ifndef FUZZ_CHAIN_ID
 #define FUZZ_CHAIN_ID ETHEREUM_MAINNET_CHAINID

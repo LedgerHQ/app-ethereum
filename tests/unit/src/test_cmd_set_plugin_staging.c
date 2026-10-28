@@ -32,7 +32,7 @@
 // Stubs (mirror test_cmd_set_plugin.c)
 // =============================================================================
 
-bool app_compatible_with_chain_id(const uint64_t *chain_id) {
+bool chain_id_is_signable(uint64_t chain_id) {
     (void) chain_id;
     return true;
 }

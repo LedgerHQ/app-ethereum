@@ -158,9 +158,9 @@ void test_group_depth_cap_rejects(void) {
     MAKE_NODE(node, &sub, NULL);
     s_field outer = make_group_field(GROUP_ITER_SEQUENTIAL, &node);
 
-    // 8 = MAX_PARAM_GROUP_DEPTH. No expect/will_return: format_field is
+    // 4 = MAX_PARAM_GROUP_DEPTH. No expect/will_return: format_field is
     // unreachable when the cap fires.
-    TEST_ASSERT_FALSE(format_param_group(&outer, 8));
+    TEST_ASSERT_FALSE(format_param_group(&outer, 4));
 }
 
 // =============================================================================

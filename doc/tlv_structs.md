@@ -307,6 +307,7 @@ If the network is not found, the device falls back to displaying the raw chain I
 >
 > - `ITERATION_TYPE` defaults to `BUNDLED` (0x00) if not present.
 > - Each `FIELD` payload is a fully encoded `FIELD` struct (same format as a top-level field descriptor).
+> - Groups nest at most 4 levels deep: a 5th nested group is refused.
 > - `BUNDLED` iteration is not implemented: the device refuses a group that asks for it. A group with
 >   no `ITERATION_TYPE` is a `BUNDLED` one, so a group has to say `SEQUENTIAL`.
 >   The root cause is architectural: `format_field` currently iterates over __all__ array elements of a

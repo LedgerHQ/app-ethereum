@@ -49,6 +49,7 @@ _Static_assert(ARRAYLEN(fuzz_commands) == PARSER_COUNT, "parser tables out of sy
 extern const chain_config_t g_fuzz_chain_config;  // mock/app_globals.c
 
 void fuzz_app_reset(void) {
+    fuzz_pending_reset = false;
     reset_app_context();
     app_mem_init();
 
@@ -111,19 +112,26 @@ static void run_eip712(fuzz_cursor_t *cur) {
         uint8_t len;
         const uint8_t *payload = fuzz_take_slice(cur, &len);
 
+        uint16_t sw;
         switch (op % 4) {
             case 0:
-                handle_eip712_v1_struct_def(p2, payload, len);
+                sw = handle_eip712_v1_struct_def(p2, payload, len);
                 break;
             case 1:
-                handle_eip712_v1_struct_impl(p1, p2, payload, len);
+                sw = handle_eip712_v1_struct_impl(p1, p2, payload, len);
                 break;
             case 2:
-                handle_eip712_v1_filtering(p1, p2, payload, len);
+                sw = handle_eip712_v1_filtering(p1, p2, payload, len);
                 break;
             default:
-                handle_eip712_v1_sign(payload, len);
+                sw = handle_eip712_v1_sign(payload, len);
                 break;
+        }
+        // Same reset as main.c before the next command; the context is rebuilt lazily.
+        if (fuzz_pending_reset || ((sw != SWO_NO_RESPONSE) && (sw != SWO_SUCCESS) &&
+                                   (sw != SWO_COMMAND_CODE_NOT_SUPPORTED))) {
+            fuzz_pending_reset = false;
+            reset_app_context();
         }
     }
     eip712_v1_context_deinit();

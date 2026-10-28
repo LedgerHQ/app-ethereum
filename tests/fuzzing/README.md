@@ -25,8 +25,9 @@ a timestamp); outputs land in `.fuzz-artifacts/<name>/`.
 ## Targets
 
 | Target | What it drives |
-|--------|----------------|
-| `fuzz_app`    | A sequence of fuzzed APDUs through the real `apdu_parser()` → `handleApdu()` path |
+| --- | --- |
+| `fuzz_app` | A sequence of fuzzed APDUs through the real `apdu_parser()` → `handleApdu()` path |
+| `fuzz_app_clone` | `fuzz_app` built as a clone (chain ID 61), for the checks that reject other chains |
 | `fuzz_plugin` | One internal plugin through the production `eth_plugin_call()` sequence |
 | `fuzz_parser` | The generic tx parser, EIP-712 and the calldata store, at their own entry points |
 

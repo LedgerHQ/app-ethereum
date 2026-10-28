@@ -49,6 +49,11 @@ key_files = [
     "src/features/sign_authorization_eip7702/rlp_encode.c",
     "src/features/sign_authorization_eip7702/whitelist_7702.c",
     "src/features/sign_message_eip712/eip712_v1_commands.c",
+    "src/features/sign_message_eip712/cmd_eip712_v2_schema.c",
+    "src/features/sign_message_eip712/cmd_eip712_v2_values.c",
+    "src/features/sign_message_eip712/cmd_eip712_v2_message_info.c",
+    "src/features/sign_message_eip712/cmd_eip712_v2_field.c",
+    "src/features/sign_message_eip712/cmd_eip712_v2_sign.c",
     "src/features/generic_tx_parser/cmd_tx_info.c",
     "src/features/generic_tx_parser/cmd_tx_field.c",
     "src/features/generic_tx_parser/call_description.c",
@@ -67,6 +72,7 @@ tokens = [
     { name = "ins_sign_personal_msg", value = "\\xE0\\x08\\x00\\x00" },
     { name = "ins_provide_erc20", value = "\\xE0\\x0A\\x00\\x00" },
     { name = "ins_sign_eip712", value = "\\xE0\\x0C\\x00\\x00" },
+    { name = "ins_sign_eip712_v2", value = "\\xE0\\x0C\\x00\\x02" },
     { name = "ins_get_eth2_pk", value = "\\xE0\\x0E\\x00\\x00" },
     { name = "ins_set_eth2_withdrawal", value = "\\xE0\\x10\\x00\\x00" },
     { name = "ins_set_external_plugin", value = "\\xE0\\x12\\x00\\x00" },
@@ -74,13 +80,17 @@ tokens = [
     { name = "ins_set_plugin", value = "\\xE0\\x16\\x00\\x00" },
     { name = "ins_privacy_op", value = "\\xE0\\x18\\x00\\x00" },
     { name = "ins_eip712_struct_def", value = "\\xE0\\x1A\\x00\\x00" },
+    { name = "ins_eip712_v2_schema", value = "\\xE0\\x1A\\x00\\x02" },
     { name = "ins_eip712_struct_impl", value = "\\xE0\\x1C\\x00\\x00" },
+    { name = "ins_eip712_v2_values", value = "\\xE0\\x1C\\x00\\x02" },
     { name = "ins_eip712_filtering", value = "\\xE0\\x1E\\x00\\x00" },
     { name = "ins_get_challenge", value = "\\xE0\\x20\\x00\\x00" },
     { name = "ins_trusted_name", value = "\\xE0\\x22\\x00\\x00" },
     { name = "ins_enum_value", value = "\\xE0\\x24\\x00\\x00" },
     { name = "ins_operation_info", value = "\\xE0\\x26\\x00\\x00" },
+    { name = "ins_eip712_v2_message_info", value = "\\xE0\\x26\\x00\\x02" },
     { name = "ins_operation_field", value = "\\xE0\\x28\\x00\\x00" },
+    { name = "ins_eip712_v2_field", value = "\\xE0\\x28\\x00\\x02" },
     { name = "ins_proxy_info", value = "\\xE0\\x2A\\x00\\x00" },
     { name = "ins_network_config", value = "\\xE0\\x30\\x00\\x00" },
     { name = "ins_tx_simulation", value = "\\xE0\\x32\\x00\\x00" },
@@ -175,8 +185,14 @@ key_files = [
     "src/features/sign_message_eip712/schema_hash.c",
     "src/features/sign_message_eip712/format_hash_field_type.c",
     "src/features/sign_message_eip712/sol_typenames.c",
+    "src/features/sign_message_eip712/eip712_v2_schema.c",
+    "src/features/sign_message_eip712/eip712_v2_schema_struct.c",
+    "src/features/sign_message_eip712/eip712_v2_schema_field.c",
+    "src/features/sign_message_eip712/eip712_v2_values.c",
+    "src/features/sign_message_eip712/eip712_v2_message_info.c",
+    "src/features/sign_message_eip712/eip712_v2_path.c",
 ]
-seeds = { ins = [0x00, 0x01, 0x02, 0x03, 0x04] }
+seeds = { ins = [0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08] }
 
 [targets.dictionary]
 tokens = [

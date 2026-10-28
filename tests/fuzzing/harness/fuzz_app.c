@@ -200,7 +200,7 @@ static const tlv_tag_info_t TAGS_MAP_ENTRY[] = {
     X(INS_GET_APP_CONFIGURATION,           0,    0,    0,                 NONE)          \
     X(INS_SIGN_PERSONAL_MESSAGE,           0x80, 0,    FUZZ_CMD_HAS_DATA, NONE)          \
     X(INS_PROVIDE_ERC20_TOKEN_INFORMATION, 0,    0,    FUZZ_CMD_HAS_DATA, NONE)          \
-    X(INS_SIGN_EIP_712_MESSAGE,            1,    1,    FUZZ_CMD_HAS_DATA, NONE)          \
+    X(INS_SIGN_EIP_712_MESSAGE,            1,    2,    FUZZ_CMD_HAS_DATA, NONE)          \
     X(INS_GET_ETH2_PUBLIC_KEY,             1,    0,    FUZZ_CMD_HAS_DATA, NONE)          \
     X(INS_SET_ETH2_WITHDRAWAL_INDEX,       0,    0,    FUZZ_CMD_HAS_DATA, NONE)          \
     X(INS_SET_EXTERNAL_PLUGIN,             0,    0,    FUZZ_CMD_HAS_DATA, NONE)          \
@@ -432,7 +432,7 @@ void fuzz_app_reset(void) {
 typedef struct {
     uint8_t ins;
     uint8_t n_p1;
-    uint8_t p1[2];
+    uint8_t p1[3];
     uint8_t n_p2;
     uint8_t p2[15];
 } eth_param_set_t;
@@ -444,20 +444,22 @@ static const eth_param_set_t k_param_sets[] = {
     {INS_GET_APP_CONFIGURATION,           1, {0x00},       1, {0x00}},
     {INS_SIGN_PERSONAL_MESSAGE,           2, {0x00, 0x80}, 1, {0x00}},
     {INS_PROVIDE_ERC20_TOKEN_INFORMATION, 2, {0x00, 0x01}, 2, {0x00, 0x01}},
-    {INS_SIGN_EIP_712_MESSAGE,            1, {0x00},       2, {0x00, 0x01}},
+    {INS_SIGN_EIP_712_MESSAGE,            1, {0x00},       3, {0x00, 0x01, 0x02}},
     {INS_SET_ETH2_WITHDRAWAL_INDEX,       1, {0x00},       1, {0x00}},
     {INS_SET_EXTERNAL_PLUGIN,             1, {0x00},       1, {0x00}},
     {INS_PROVIDE_NFT_INFORMATION,         1, {0x00},       1, {0x00}},
     {INS_SET_PLUGIN,                      1, {0x00},       1, {0x00}},
     {INS_PERFORM_PRIVACY_OPERATION,       2, {0x00, 0x01}, 2, {0x00, 0x01}},
-    {INS_EIP712_STRUCT_DEF,               1, {0x00},       2, {0x00, 0xFF}},
-    {INS_EIP712_STRUCT_IMPL,              2, {0x00, 0xFF}, 3, {0x00, 0xFF, 0x0F}},
+    {INS_EIP712_STRUCT_DEF,               2, {0x00, 0x01}, 3, {0x00, 0xFF, 0x02}},
+    {INS_EIP712_STRUCT_IMPL,              3, {0x00, 0xFF, 0x01}, 4, {0x00, 0xFF, 0x0F, 0x02}},
     {INS_EIP712_FILTERING,                2, {0x00, 0x01}, 15, {0x00, 0x01, 0x0F, 0xF4, 0xF5, 0xF6, 0xF7, 0xF8,
                                                                 0xF9, 0xFA, 0xFB, 0xFC, 0xFD, 0xFE, 0xFF}},
     {INS_GET_CHALLENGE,                   1, {0x00},       1, {0x00}},
     {INS_PROVIDE_NETWORK_INFO,            2, {0x00, 0x01}, 3, {0x00, 0x01, 0x02}},
     {INS_PROVIDE_TX_SIMULATION,           2, {0x00, 0x01}, 2, {0x00, 0x01}},
     {INS_PROVIDE_SAFE_ACCOUNT,            2, {0x00, 0x01}, 2, {0x00, 0x01}},
+    {INS_PROVIDE_OPERATION_INFO,          2, {0x01, 0x00}, 2, {0x00, 0x02}},
+    {INS_PROVIDE_OPERATION_FIELD_DESC,    2, {0x01, 0x00}, 2, {0x00, 0x02}},
 };
 // clang-format on
 

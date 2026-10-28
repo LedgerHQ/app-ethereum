@@ -74,7 +74,7 @@ bool handle_param_unit_struct(const buffer_t *buf, s_param_unit_context *context
     return true;
 }
 
-bool format_param_unit(const s_param_unit *param, const char *name) {
+__attribute__((noinline)) bool format_param_unit(const s_param_unit *param, const char *name) {
     bool ret;
     s_parsed_value_collection collec = {0};
     char *buf = strings.tmp.tmp;

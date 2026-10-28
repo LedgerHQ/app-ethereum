@@ -50,7 +50,8 @@ bool handle_param_duration_struct(const buffer_t *buf, s_param_duration_context 
     return true;
 }
 
-bool format_param_duration(const s_param_duration *param, const char *name) {
+__attribute__((noinline)) bool format_param_duration(const s_param_duration *param,
+                                                     const char *name) {
     bool ret = true;
     s_parsed_value_collection collec = {0};
     char *buf = strings.tmp.tmp;

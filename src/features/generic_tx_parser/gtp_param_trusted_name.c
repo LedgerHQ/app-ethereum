@@ -189,7 +189,7 @@ static bool append_network_suffix(char *buf, size_t buf_size, uint64_t chain_id)
     return strlcat(buf, ")", buf_size) < buf_size;
 }
 
-bool format_param_trusted_name(const struct s_field *field) {
+__attribute__((noinline)) bool format_param_trusted_name(const struct s_field *field) {
     bool ret = false;
     s_parsed_value_collection values = {0};
     char *buf = strings.tmp.tmp;

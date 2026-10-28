@@ -165,7 +165,8 @@ static bool process_token_amount(const s_param_token_amount *param,
     return true;
 }
 
-bool format_param_token_amount(const s_param_token_amount *param, const char *name) {
+__attribute__((noinline)) bool format_param_token_amount(const s_param_token_amount *param,
+                                                         const char *name) {
     bool ret;
     s_parsed_value_collection collec_value = {0};
     s_parsed_value_collection collec_token = {0};

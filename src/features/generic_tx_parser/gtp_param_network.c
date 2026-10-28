@@ -133,7 +133,8 @@ static bool format_network_name(const s_parsed_value *value, char *buf, size_t b
  * @note Only supports TF_BYTES type family for network values
  * @note The formatted network name is added to the field table with PARAM_TYPE_NETWORK type
  */
-bool format_param_network(const s_param_network *param, const char *name) {
+__attribute__((noinline)) bool format_param_network(const s_param_network *param,
+                                                    const char *name) {
     bool ret;
     s_parsed_value_collection collec = {0};
     char *buf = strings.tmp.tmp;

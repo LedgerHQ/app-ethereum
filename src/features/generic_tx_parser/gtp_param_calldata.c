@@ -204,7 +204,8 @@ static bool check_param(const s_param_calldata *param,
     return true;
 }
 
-bool format_param_calldata(const s_param_calldata *param, const char *name) {
+__attribute__((noinline)) bool format_param_calldata(const s_param_calldata *param,
+                                                     const char *name) {
     bool ret;
     s_parsed_value_collection calldatas = {0};
     s_parsed_value_collection contract_addrs = {0};

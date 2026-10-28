@@ -162,6 +162,22 @@ void test_chain_compatible_unknown_false(void) {
 }
 
 // =============================================================================
+// chain_has_ethereum_staking
+// =============================================================================
+
+void test_staking_mainnet_and_hoodi(void) {
+    TEST_ASSERT_TRUE(chain_has_ethereum_staking(1));
+    TEST_ASSERT_TRUE(chain_has_ethereum_staking(560048));
+}
+
+void test_staking_other_chains_rejected(void) {
+    TEST_ASSERT_FALSE(chain_has_ethereum_staking(0));
+    TEST_ASSERT_FALSE(chain_has_ethereum_staking(137));       // Polygon
+    TEST_ASSERT_FALSE(chain_has_ethereum_staking(11155111));  // Sepolia
+    TEST_ASSERT_FALSE(chain_has_ethereum_staking(3151908));   // Kurtosis devnet
+}
+
+// =============================================================================
 // chain_id_is_signable
 // =============================================================================
 
@@ -350,5 +366,7 @@ int main(void) {
     RUN_TEST(test_clone_name_null_app_returns_null);
     RUN_TEST(test_clone_name_non_clone_returns_null);
     RUN_TEST(test_clone_name_clone_returns_name);
+    RUN_TEST(test_staking_mainnet_and_hoodi);
+    RUN_TEST(test_staking_other_chains_rejected);
     return UNITY_END();
 }

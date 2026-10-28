@@ -207,6 +207,10 @@ bool chain_is_ethereum_compatible(const uint64_t *chain_id) {
     return get_network_from_chain_id(chain_id, true) != NULL;
 }
 
+bool chain_has_ethereum_staking(uint64_t chain_id) {
+    return (chain_id == ETHEREUM_MAINNET_CHAINID) || (chain_id == ETHEREUM_HOODI_CHAINID);
+}
+
 // Returns the chain ID. Defaults to 0 if txType was not found (For TX).
 uint64_t get_tx_chain_id(void) {
     uint64_t chain_id = 0;

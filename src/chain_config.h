@@ -26,6 +26,7 @@ typedef struct chain_config_s {
 } chain_config_t;
 
 #define ETHEREUM_MAINNET_CHAINID 1
+#define ETHEREUM_HOODI_CHAINID   560048
 
 // Chain ID Validation (per EIP-2294)
 // See https://github.com/ethereum/EIPs/blob/master/EIPS/eip-2294.md

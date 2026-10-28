@@ -34,6 +34,10 @@ static uint64_t get_tx_chain_id_stub(int cmock_num_calls) {
     (void) cmock_num_calls;
     return s_tx_chain_id;
 }
+static bool chain_has_ethereum_staking_stub(uint64_t chain_id, int cmock_num_calls) {
+    (void) cmock_num_calls;
+    return (chain_id == 1) || (chain_id == 560048);
+}
 
 // =============================================================================
 // eip7251_context_t mirror (file-static in the source)
@@ -51,6 +55,7 @@ typedef struct {
         };
     };
     uint8_t received;
+    bool malformed;
 } eip7251_context_t;
 
 // =============================================================================
@@ -105,20 +110,25 @@ void test_init_copies_selector(void) {
     TEST_ASSERT_EQUAL(ctx.consolidation_request[0], 0xDE);
 }
 
-void test_init_wrong_data_size_rejected(void) {
+void test_init_wrong_data_size_flagged(void) {
     static const uint8_t selector[CALLDATA_SELECTOR_SIZE] = {0xDE, 0xAD, 0xBE, 0xEF};
+    static const size_t sizes[] = {CONSOLIDATION_REQUEST_SIZE - 1,
+                                   CONSOLIDATION_REQUEST_SIZE + 1,
+                                   0};
     eip7251_context_t ctx;
 
-    TEST_ASSERT_EQUAL(ETH_PLUGIN_RESULT_ERROR,
-                      run_init_with_size(&ctx, selector, CONSOLIDATION_REQUEST_SIZE - 1));
-    TEST_ASSERT_EQUAL(ETH_PLUGIN_RESULT_ERROR,
-                      run_init_with_size(&ctx, selector, CONSOLIDATION_REQUEST_SIZE + 1));
-    TEST_ASSERT_EQUAL(ETH_PLUGIN_RESULT_ERROR, run_init_with_size(&ctx, selector, 0));
+    // Rejection is deferred to FINALIZE, once the chain is known.
+    for (size_t i = 0; i < sizeof(sizes) / sizeof(sizes[0]); ++i) {
+        TEST_ASSERT_EQUAL(ETH_PLUGIN_RESULT_OK, run_init_with_size(&ctx, selector, sizes[i]));
+        TEST_ASSERT_TRUE(ctx.malformed);
+        TEST_ASSERT_EQUAL(0, ctx.received);
+    }
     TEST_ASSERT_EQUAL(ETH_PLUGIN_RESULT_OK,
                       run_init_with_size(&ctx, selector, CONSOLIDATION_REQUEST_SIZE));
+    TEST_ASSERT_FALSE(ctx.malformed);
 }
 
-void test_parameter_overflow_rejected(void) {
+void test_parameter_overflow_flagged(void) {
     eip7251_context_t ctx = {.received = CONSOLIDATION_REQUEST_SIZE - 1};
     uint8_t chunk[32];
     memset(chunk, 0xFF, sizeof(chunk));
@@ -127,7 +137,10 @@ void test_parameter_overflow_rejected(void) {
     msg.parameter = chunk;
     msg.parameter_size = 32;
     eip7251_plugin_call(ETH_PLUGIN_PROVIDE_PARAMETER, &msg);
-    TEST_ASSERT_EQUAL(msg.result, ETH_PLUGIN_RESULT_ERROR);
+    TEST_ASSERT_EQUAL(msg.result, ETH_PLUGIN_RESULT_OK);
+    TEST_ASSERT_TRUE(ctx.malformed);
+    TEST_ASSERT_EQUAL(CONSOLIDATION_REQUEST_SIZE - 1, ctx.received);
+    TEST_ASSERT_EQUAL(0, ctx.consolidation_request[CONSOLIDATION_REQUEST_SIZE - 1]);
 }
 
 // =============================================================================
@@ -238,7 +251,7 @@ void test_parameter_success_copies_into_context(void) {
     TEST_ASSERT_EQUAL(ctx.consolidation_request[31], 0x42);
 }
 
-void test_finalize_non_mainnet_rejected(void) {
+void test_finalize_non_staking_chain_falls_back(void) {
     eip7251_context_t ctx = {.received = CONSOLIDATION_REQUEST_SIZE};
     memset(ctx.source_pubkey, 0xAA, VALIDATOR_PUBKEY_SIZE);
     memset(ctx.target_pubkey, 0xAA, VALIDATOR_PUBKEY_SIZE);
@@ -246,9 +259,43 @@ void test_finalize_non_mainnet_rejected(void) {
     ethPluginFinalize_t msg = {0};
     msg.pluginContext = (uint8_t *) &ctx;
     msg.txContent = &tx;
-    s_tx_chain_id = 2;  // not mainnet
+    s_tx_chain_id = 3151908;  // devnet
+    eip7251_plugin_call(ETH_PLUGIN_FINALIZE, &msg);
+    TEST_ASSERT_EQUAL(msg.result, ETH_PLUGIN_RESULT_FALLBACK);
+}
+
+void test_finalize_malformed_rejected_on_staking_chain(void) {
+    eip7251_context_t ctx = {.received = CONSOLIDATION_REQUEST_SIZE, .malformed = true};
+    txContent_t tx = {0};
+    ethPluginFinalize_t msg = {0};
+    msg.pluginContext = (uint8_t *) &ctx;
+    msg.txContent = &tx;
     eip7251_plugin_call(ETH_PLUGIN_FINALIZE, &msg);
     TEST_ASSERT_EQUAL(msg.result, ETH_PLUGIN_RESULT_ERROR);
+}
+
+void test_finalize_malformed_non_staking_chain_falls_back(void) {
+    eip7251_context_t ctx = {.malformed = true};
+    txContent_t tx = {0};
+    ethPluginFinalize_t msg = {0};
+    msg.pluginContext = (uint8_t *) &ctx;
+    msg.txContent = &tx;
+    s_tx_chain_id = 3151908;  // devnet
+    eip7251_plugin_call(ETH_PLUGIN_FINALIZE, &msg);
+    TEST_ASSERT_EQUAL(msg.result, ETH_PLUGIN_RESULT_FALLBACK);
+}
+
+void test_finalize_hoodi_accepted(void) {
+    eip7251_context_t ctx = {.received = CONSOLIDATION_REQUEST_SIZE};
+    memset(ctx.source_pubkey, 0xAA, VALIDATOR_PUBKEY_SIZE);
+    memset(ctx.target_pubkey, 0xAA, VALIDATOR_PUBKEY_SIZE);
+    txContent_t tx = {0};
+    ethPluginFinalize_t msg = {0};
+    msg.pluginContext = (uint8_t *) &ctx;
+    msg.txContent = &tx;
+    s_tx_chain_id = 560048;  // Hoodi
+    eip7251_plugin_call(ETH_PLUGIN_FINALIZE, &msg);
+    TEST_ASSERT_EQUAL(msg.result, ETH_PLUGIN_RESULT_OK);
 }
 
 void test_finalize_incomplete_rejected(void) {
@@ -419,6 +466,7 @@ void setUp(void) {
     s_tx_chain_id = 1;
     Mocknetwork_Init();
     get_tx_chain_id_StubWithCallback(get_tx_chain_id_stub);
+    chain_has_ethereum_staking_StubWithCallback(chain_has_ethereum_staking_stub);
     get_displayable_ticker_IgnoreAndReturn("ETH");
 }
 void tearDown(void) {
@@ -429,8 +477,8 @@ void tearDown(void) {
 int main(void) {
     UNITY_BEGIN();
     RUN_TEST(test_init_copies_selector);
-    RUN_TEST(test_init_wrong_data_size_rejected);
-    RUN_TEST(test_parameter_overflow_rejected);
+    RUN_TEST(test_init_wrong_data_size_flagged);
+    RUN_TEST(test_parameter_overflow_flagged);
     RUN_TEST(test_parameter_success_copies_into_context);
     RUN_TEST(test_dispatcher_null_param_silent);
     RUN_TEST(test_dispatcher_unknown_message_silent);
@@ -438,7 +486,10 @@ int main(void) {
     RUN_TEST(test_ui_msg_too_small_for_pubkey_rejected);
     RUN_TEST(test_ui_unknown_screen_rejected);
     RUN_TEST(test_has_tx_value_length_above_uint64_returns_true);
-    RUN_TEST(test_finalize_non_mainnet_rejected);
+    RUN_TEST(test_finalize_non_staking_chain_falls_back);
+    RUN_TEST(test_finalize_malformed_rejected_on_staking_chain);
+    RUN_TEST(test_finalize_malformed_non_staking_chain_falls_back);
+    RUN_TEST(test_finalize_hoodi_accepted);
     RUN_TEST(test_finalize_incomplete_rejected);
     RUN_TEST(test_finalize_compound_single_screen);
     RUN_TEST(test_finalize_consolidate_two_screens);

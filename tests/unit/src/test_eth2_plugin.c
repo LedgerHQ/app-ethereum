@@ -26,8 +26,8 @@
  *    derivation-path-attack guard,
  *  - FINALIZE: valid=1 -> OK + 2 screens, valid=0 -> ERROR,
  *  - QUERY_CONTRACT_ID writes "ETH2"/"Deposit",
- *  - QUERY_CONTRACT_UI screen 0 is the amount (using
- *    g_chain_config->ticker), screen 1 is "0x" + 96 hex chars
+ *  - QUERY_CONTRACT_UI screen 0 is the amount (using the
+ *    transaction's displayable ticker), screen 1 is "0x" + 96 hex chars
  *    (48-byte BLS G1 pubkey).
  */
 
@@ -50,6 +50,10 @@ static uint64_t s_tx_chain_id = 1;
 static uint64_t get_tx_chain_id_stub(int cmock_num_calls) {
     (void) cmock_num_calls;
     return s_tx_chain_id;
+}
+static bool chain_has_ethereum_staking_stub(uint64_t chain_id, int cmock_num_calls) {
+    (void) cmock_num_calls;
+    return (chain_id == 1) || (chain_id == 560048);
 }
 
 // =============================================================================
@@ -252,7 +256,8 @@ void test_withdrawal_credentials_mismatch_flips_valid(void) {
     msg.parameter = param;
     msg.parameterOffset = 4 + (PARAMETER_LENGTH * 8);
     eth2_plugin_call(ETH_PLUGIN_PROVIDE_PARAMETER, &msg);
-    TEST_ASSERT_EQUAL(msg.result, ETH_PLUGIN_RESULT_ERROR);
+    // Rejection is deferred to FINALIZE, once the chain is known.
+    TEST_ASSERT_EQUAL(msg.result, ETH_PLUGIN_RESULT_OK);
     TEST_ASSERT_EQUAL(ctx.valid, 0);
 }
 
@@ -264,7 +269,8 @@ void test_withdrawal_index_above_max_rejected(void) {
     msg.parameter = param;
     msg.parameterOffset = 4 + (PARAMETER_LENGTH * 8);
     eth2_plugin_call(ETH_PLUGIN_PROVIDE_PARAMETER, &msg);
-    TEST_ASSERT_EQUAL(msg.result, ETH_PLUGIN_RESULT_ERROR);
+    // Rejection is deferred to FINALIZE, once the chain is known.
+    TEST_ASSERT_EQUAL(msg.result, ETH_PLUGIN_RESULT_OK);
     TEST_ASSERT_EQUAL(ctx.valid, 0);
 }
 
@@ -321,15 +327,50 @@ void test_finalize_invalid_returns_error(void) {
     TEST_ASSERT_EQUAL(msg.result, ETH_PLUGIN_RESULT_ERROR);
 }
 
-void test_finalize_non_mainnet_rejected(void) {
+void test_finalize_non_staking_chain_falls_back(void) {
     eth2_deposit_parameters_t ctx = {.valid = 1};
     txContent_t tx = {0};
     ethPluginFinalize_t msg = {0};
     msg.pluginContext = (uint8_t *) &ctx;
     msg.txContent = &tx;
-    s_tx_chain_id = 2;  // not mainnet
+    s_tx_chain_id = 3151908;  // devnet
     eth2_plugin_call(ETH_PLUGIN_FINALIZE, &msg);
-    TEST_ASSERT_EQUAL(msg.result, ETH_PLUGIN_RESULT_ERROR);
+    TEST_ASSERT_EQUAL(msg.result, ETH_PLUGIN_RESULT_FALLBACK);
+}
+
+void test_finalize_invalid_non_staking_chain_falls_back(void) {
+    eth2_deposit_parameters_t ctx = {.valid = 0};
+    txContent_t tx = {0};
+    ethPluginFinalize_t msg = {0};
+    msg.pluginContext = (uint8_t *) &ctx;
+    msg.txContent = &tx;
+    s_tx_chain_id = 3151908;  // devnet
+    eth2_plugin_call(ETH_PLUGIN_FINALIZE, &msg);
+    TEST_ASSERT_EQUAL(msg.result, ETH_PLUGIN_RESULT_FALLBACK);
+}
+
+void test_misaligned_offset_flips_valid(void) {
+    eth2_deposit_parameters_t ctx = {.valid = 1};
+    uint8_t param[PARAMETER_LENGTH] = {0};
+    ethPluginProvideParameter_t msg = {0};
+    msg.pluginContext = (uint8_t *) &ctx;
+    msg.parameter = param;
+    msg.parameterOffset = 4 + 1;
+    eth2_plugin_call(ETH_PLUGIN_PROVIDE_PARAMETER, &msg);
+    TEST_ASSERT_EQUAL(msg.result, ETH_PLUGIN_RESULT_OK);
+    TEST_ASSERT_EQUAL(ctx.valid, 0);
+    TEST_ASSERT_EQUAL(ctx.received_words, 0);
+}
+
+void test_finalize_hoodi_accepted(void) {
+    eth2_deposit_parameters_t ctx = {.valid = 1, .received_words = 0x1FFF};
+    txContent_t tx = {0};
+    ethPluginFinalize_t msg = {0};
+    msg.pluginContext = (uint8_t *) &ctx;
+    msg.txContent = &tx;
+    s_tx_chain_id = 560048;  // Hoodi
+    eth2_plugin_call(ETH_PLUGIN_FINALIZE, &msg);
+    TEST_ASSERT_EQUAL(msg.result, ETH_PLUGIN_RESULT_OK);
 }
 
 void test_query_contract_id_eth2_deposit(void) {
@@ -347,8 +388,19 @@ void test_query_contract_id_eth2_deposit(void) {
     TEST_ASSERT_EQUAL_STRING(version, "Deposit");
 }
 
+static const char *displayable_ticker_stub(const uint64_t *chain_id,
+                                           const chain_config_t *chain_cfg,
+                                           bool dynamic,
+                                           int cmock_num_calls) {
+    (void) chain_cfg;
+    (void) cmock_num_calls;
+    TEST_ASSERT_TRUE(dynamic);
+    return (*chain_id == 560048) ? "HoodiETH" : "ETH";
+}
+
 void test_ui_amount_screen_uses_chain_ticker(void) {
     eth2_deposit_parameters_t ctx = {0};
+    get_displayable_ticker_StubWithCallback(displayable_ticker_stub);
     char title[32] = {0};
     char body[64] = {0};
     ethQueryContractUI_t msg = {0};
@@ -363,6 +415,24 @@ void test_ui_amount_screen_uses_chain_ticker(void) {
     TEST_ASSERT_EQUAL_STRING(title, "Amount");
     TEST_ASSERT_EQUAL_STRING(body, "32 ETH");
     TEST_ASSERT_EQUAL(g_amount_to_string_calls, 1);
+}
+
+void test_ui_amount_screen_uses_tx_chain_ticker(void) {
+    eth2_deposit_parameters_t ctx = {0};
+    get_displayable_ticker_StubWithCallback(displayable_ticker_stub);
+    char title[32] = {0};
+    char body[64] = {0};
+    ethQueryContractUI_t msg = {0};
+    msg.pluginContext = (uint8_t *) &ctx;
+    msg.title = title;
+    msg.titleLength = sizeof(title);
+    msg.msg = body;
+    msg.msgLength = sizeof(body);
+    msg.screenIndex = 0;
+    s_tx_chain_id = 560048;  // Hoodi
+    eth2_plugin_call(ETH_PLUGIN_QUERY_CONTRACT_UI, &msg);
+    TEST_ASSERT_EQUAL(msg.result, ETH_PLUGIN_RESULT_OK);
+    TEST_ASSERT_EQUAL_STRING(body, "32 HoodiETH");
 }
 
 void test_ui_validator_screen_renders_pubkey_hex(void) {
@@ -536,6 +606,7 @@ void test_withdrawal_index_changed_after_init_ignored(void) {
 void setUp(void) {
     Mocknetwork_Init();
     get_tx_chain_id_StubWithCallback(get_tx_chain_id_stub);
+    chain_has_ethereum_staking_StubWithCallback(chain_has_ethereum_staking_stub);
     reset();
 }
 void tearDown(void) {
@@ -560,9 +631,13 @@ int main(void) {
     RUN_TEST(test_finalize_root_mismatch_rejected);
     RUN_TEST(test_finalize_incomplete_calldata_rejected);
     RUN_TEST(test_finalize_invalid_returns_error);
-    RUN_TEST(test_finalize_non_mainnet_rejected);
+    RUN_TEST(test_finalize_non_staking_chain_falls_back);
+    RUN_TEST(test_finalize_invalid_non_staking_chain_falls_back);
+    RUN_TEST(test_misaligned_offset_flips_valid);
+    RUN_TEST(test_finalize_hoodi_accepted);
     RUN_TEST(test_query_contract_id_eth2_deposit);
     RUN_TEST(test_ui_amount_screen_uses_chain_ticker);
+    RUN_TEST(test_ui_amount_screen_uses_tx_chain_ticker);
     RUN_TEST(test_ui_validator_screen_renders_pubkey_hex);
     RUN_TEST(test_ui_validator_screen_msg_too_small_rejected);
     RUN_TEST(test_null_parameters_short_circuit);

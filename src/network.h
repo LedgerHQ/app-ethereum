@@ -48,6 +48,14 @@ bool chain_is_ethereum_compatible(const uint64_t *chain_id);
  */
 bool chain_id_is_signable(uint64_t chain_id);
 
+/**
+ * @brief Checks whether the given chain carries the Ethereum staking contracts
+ *
+ * @param[in] chain_id The chain ID to check
+ * @return whether the deposit contract and the EIP-7002/EIP-7251 predeploys are live on that chain
+ */
+bool chain_has_ethereum_staking(uint64_t chain_id);
+
 uint64_t get_tx_chain_id(void);
 
 const char *get_displayable_ticker(const uint64_t *chain_id,

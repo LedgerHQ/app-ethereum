@@ -2,8 +2,7 @@
 #include "eth_swap_utils.h"
 #include "apdu_constants.h"
 
-void handle_get_printable_amount(get_printable_amount_parameters_t *params,
-                                 chain_config_t *config) {
+void handle_get_printable_amount(get_printable_amount_parameters_t *params) {
     swap_context_t context = {0};
     char *ticker = NULL;
     uint8_t decimals = 0;
@@ -21,7 +20,7 @@ void handle_get_printable_amount(get_printable_amount_parameters_t *params,
         return;
     }
     // If the amount is a fee, the ticker should be the chain's native currency
-    get_asset_info_on_network(params->is_fee, &context, config, &ticker, &decimals);
+    get_asset_info_on_network(params->is_fee, &context, &ticker, &decimals);
 
     if (!amountToString(params->amount,
                         params->amount_length,

@@ -267,7 +267,7 @@ void test_wrong_key_id_rejected(void) {
                    .version = 0x01,
                    .name = "ERC721",
                    .chain_id = 1,
-                   .key_id = 0x00,  // TEST key not allowed without HAVE_NFT_STAGING_KEY
+                   .key_id = 0x00,  // only the PROD key id is accepted
                    .algo_id = 0x01,
                    .sig_len = 70};
     size_t len = build_payload(payload, sizeof(payload), opts);
@@ -398,10 +398,6 @@ void test_data_too_short_for_sig_length_byte_rejected(void) {
     // payloadSize complete (43 bytes). dataLength = 43, no room for sig_len.
     TEST_ASSERT_EQUAL(handle_set_plugin(payload, (uint8_t) off), SWO_INCORRECT_DATA);
 }
-
-// EXTERNAL-plugin BEGIN_TRY block is covered by a dedicated target
-// test_cmd_set_plugin_staging (HAVE_NFT_STAGING_KEY defined so the
-// non-PROD key is accepted -- the PROD key forbids non-NFT plugins).
 
 void test_rejected_when_app_not_idle(void) {
     uint8_t payload[8] = {0x01, 0x01, 0x06};

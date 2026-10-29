@@ -12,13 +12,6 @@ ifneq ($(CHALLENGE_NO_CHECK),0)
     DEFINES += HAVE_CHALLENGE_NO_CHECK
 endif
 
-# NFTs
-NFT_STAGING_KEY ?= 0
-ifneq ($(NFT_STAGING_KEY),0)
-    # Expect the staging key ids in NFT and SET_PLUGIN descriptors
-    DEFINES += HAVE_NFT_STAGING_KEY
-endif
-
 # Transaction Checks
 # TODO: remove this check once the Transaction checks are implemented on all targets
 ifeq ($(TARGET_NAME),$(filter $(TARGET_NAME),TARGET_STAX TARGET_FLEX TARGET_APEX_M TARGET_APEX_P))

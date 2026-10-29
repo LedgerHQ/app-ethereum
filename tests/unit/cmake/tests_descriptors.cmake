@@ -364,27 +364,6 @@ ledger_unit_tests_add_test(NAME test_cmd_set_plugin
     ${COMMON_LINK_OPTIONS}
 )
 
-ledger_unit_tests_add_test(NAME test_cmd_set_plugin_staging
-  SOURCES
-    ${COMMON_SOURCES_WITH_GLOBALS}
-    ${APP_DIR}/features/set_plugin/cmd_set_plugin.c
-    ${APP_DIR}/utils/utils.c
-    ${APP_DIR}/uint128.c
-    ${APP_DIR}/uint256.c
-    ${PLUGIN_DIR}/common_utils.c
-  MOCK_HEADERS
-    ${APP_DIR}/utils/signature_check.h
-  INCLUDE_DIRS
-    ${COMMON_INCLUDE_DIRS}
-    ${APP_DIR}/features/set_plugin
-    ${APP_DIR}/plugins
-  COMPILE_DEFS
-    ${COMMON_COMPILE_DEFS}
-    HAVE_NFT_STAGING_KEY
-  LINK_OPTIONS
-    ${COMMON_LINK_OPTIONS}
-)
-
 ledger_unit_tests_add_test(NAME test_cmd_set_external_plugin
   SOURCES
     ${COMMON_SOURCES_WITH_GLOBALS}

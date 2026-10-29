@@ -33,7 +33,6 @@ typedef enum Version {
 } Version;
 
 typedef enum KeyId {
-    TEST_PLUGIN_KEY = 0x00,
     // Must ONLY be used with ERC721 and ERC1155 plugin
     PROD_PLUGIN_KEY = 0x02,
 } KeyId;
@@ -79,11 +78,6 @@ uint16_t handle_set_plugin(const uint8_t *workBuffer, uint8_t dataLength) {
     size_t payloadSize = 0;
     uint64_t chain_id = 0;
     uint8_t signatureLen = 0;
-#ifdef HAVE_NFT_STAGING_KEY
-    enum KeyId valid_keyId = TEST_PLUGIN_KEY;
-#else
-    enum KeyId valid_keyId = PROD_PLUGIN_KEY;
-#endif
     enum KeyId keyId;
     uint32_t params[2];
 
@@ -157,7 +151,7 @@ uint16_t handle_set_plugin(const uint8_t *workBuffer, uint8_t dataLength) {
     offset += CHAIN_ID_SIZE;
 
     keyId = workBuffer[offset];
-    if (keyId != valid_keyId) {
+    if (keyId != PROD_PLUGIN_KEY) {
         PRINTF("Unsupported KeyID %d\n", keyId);
         return SWO_INCORRECT_DATA;
     }

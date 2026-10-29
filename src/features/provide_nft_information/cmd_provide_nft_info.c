@@ -5,13 +5,7 @@
 #include "os_pki.h"
 #include "nft_info.h"
 
-#define STAGING_NFT_METADATA_KEY 0
-#define PROD_NFT_METADATA_KEY    1
-#ifdef HAVE_NFT_STAGING_KEY
-#define KEY_ID STAGING_NFT_METADATA_KEY
-#else
-#define KEY_ID PROD_NFT_METADATA_KEY
-#endif
+#define PROD_NFT_METADATA_KEY 1
 
 #define ALGORITHM_ID_1 1
 
@@ -124,7 +118,7 @@ uint16_t handle_provide_nft_information(uint8_t p1,
         return SWO_INCORRECT_DATA;
     }
     key_id = data[offset];
-    if (key_id != KEY_ID) {
+    if (key_id != PROD_NFT_METADATA_KEY) {
         return SWO_INCORRECT_DATA;
     }
     offset += sizeof(key_id);

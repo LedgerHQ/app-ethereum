@@ -239,7 +239,7 @@ void test_unsupported_chain_id_rejected(void) {
 void test_unexpected_key_id_rejected(void) {
     uint8_t apdu[200];
     s_opts opts = default_opts();
-    opts.key_id = 0x05;  // not STAGING (0) or PROD (1)
+    opts.key_id = 0x05;  // not PROD (1)
     size_t len = build_apdu(apdu, sizeof(apdu), &opts);
     unsigned int tx = 0;
     uint16_t sw = handle_provide_nft_information(0, 0, (uint8_t) len, apdu, &tx);

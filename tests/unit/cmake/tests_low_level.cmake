@@ -129,7 +129,7 @@ ledger_unit_tests_add_test(NAME test_calldata
     ${COMMON_SOURCES}
     ${APP_DIR}/features/generic_tx_parser/calldata.c
     ${APP_DIR}/utils/mem_utils.c
-    ${BOLOS_SDK}/lib_lists/lists.c
+    ${SDK_DIR}/lib_lists/lists.c
   INCLUDE_DIRS
     ${COMMON_INCLUDE_DIRS}
   COMPILE_DEFS
@@ -143,7 +143,7 @@ ledger_unit_tests_add_test(NAME test_token_info
     ${COMMON_SOURCES}
     ${APP_DIR}/features/provide_erc20_token_information/token_info.c
     ${APP_DIR}/utils/mem_utils.c
-    ${BOLOS_SDK}/lib_lists/lists.c
+    ${SDK_DIR}/lib_lists/lists.c
   INCLUDE_DIRS
     ${COMMON_INCLUDE_DIRS}
   COMPILE_DEFS
@@ -196,7 +196,7 @@ ledger_unit_tests_add_test(NAME test_typed_data_domain
     ${APP_DIR}/features/sign_message_eip712/typed_data.c
     ${APP_DIR}/features/sign_message_eip712/sol_typenames.c
     ${APP_DIR}/utils/mem_utils.c
-    ${BOLOS_SDK}/lib_lists/lists.c
+    ${SDK_DIR}/lib_lists/lists.c
   INCLUDE_DIRS
     ${COMMON_INCLUDE_DIRS}
   COMPILE_DEFS

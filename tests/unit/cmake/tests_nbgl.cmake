@@ -10,8 +10,8 @@ ledger_unit_tests_add_test(NAME test_network_icons
     ${APP_DIR}/nbgl
     ${APP_DIR}/features/provide_network_info
     ${APP_DIR}/plugins
-    ${BOLOS_SDK}/lib_nbgl/include
-    ${BOLOS_SDK}/lib_ux_nbgl
+    ${SDK_DIR}/lib_nbgl/include
+    ${SDK_DIR}/lib_ux_nbgl
   COMPILE_DEFS
     ${COMMON_COMPILE_DEFS}
     HAVE_NBGL
@@ -33,8 +33,8 @@ ledger_unit_tests_add_test(NAME test_ui_icons
     ${APP_DIR}/nbgl
     ${APP_DIR}/features/provide_network_info
     ${APP_DIR}/plugins
-    ${BOLOS_SDK}/lib_nbgl/include
-    ${BOLOS_SDK}/lib_ux_nbgl
+    ${SDK_DIR}/lib_nbgl/include
+    ${SDK_DIR}/lib_ux_nbgl
   COMPILE_DEFS
     ${COMMON_COMPILE_DEFS}
     HAVE_NBGL
@@ -51,9 +51,9 @@ ledger_unit_tests_add_test(NAME test_ui_utils
   INCLUDE_DIRS
     ${COMMON_INCLUDE_DIRS}
     ${APP_DIR}/nbgl
-    ${BOLOS_SDK}/lib_nbgl/include
-    ${BOLOS_SDK}/lib_ux_nbgl
-    ${BOLOS_SDK}/lib_alloc
+    ${SDK_DIR}/lib_nbgl/include
+    ${SDK_DIR}/lib_ux_nbgl
+    ${SDK_DIR}/lib_alloc
   COMPILE_DEFS
     ${COMMON_COMPILE_DEFS}
     HAVE_NBGL
@@ -71,8 +71,8 @@ ledger_unit_tests_add_test(NAME test_common_712
     ${COMMON_INCLUDE_DIRS}
     ${APP_DIR}/features/sign_message_eip712_common
     ${APP_DIR}/features/provide_tx_simulation
-    ${BOLOS_SDK}/lib_tlv/use_cases
-    ${BOLOS_SDK}/io_legacy/include
+    ${SDK_DIR}/lib_tlv/use_cases
+    ${SDK_DIR}/io_legacy/include
   COMPILE_DEFS
     ${COMMON_COMPILE_DEFS}
     HAVE_NBGL

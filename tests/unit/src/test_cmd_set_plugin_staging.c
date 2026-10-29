@@ -121,12 +121,8 @@ void test_external_plugin_check_presence_succeeds(void) {
                                         /*key_id*/ 0x00,
                                         /*sig_len*/ 70);
     uint16_t sw = handle_set_plugin(payload, (uint8_t) len);
-    // The BEGIN_TRY / os_lib_call body uses the BOLOS exception stack.
-    // Under our mock.c stubs (try_context_set/get -> NULL, os_lib_call ->
-    // no-op), the TRY runs to completion -> SWO_SUCCESS. If a future
-    // hardening of the exception machinery makes the os_lib_call throw,
-    // CATCH_OTHER will fire and return SWO_FILE_NOT_FOUND. Accept either,
-    // the important thing is that the EXTERNAL block is traversed.
+    // os_lib_call is a no-op stub, so the TRY runs to completion -> SWO_SUCCESS;
+    // a throwing os_lib_call would hit CATCH_OTHER -> SWO_FILE_NOT_FOUND.
     TEST_ASSERT_TRUE(sw == SWO_SUCCESS || sw == SWO_FILE_NOT_FOUND);
     TEST_ASSERT_EQUAL(pluginType, PLUGIN_TYPE_EXTERNAL);
 }

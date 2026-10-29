@@ -57,7 +57,7 @@ ledger_unit_tests_add_test(NAME test_param_raw
     ${APP_DIR}/uint128.c
     ${APP_DIR}/utils/utils.c
     ${PLUGIN_DIR}/common_utils.c
-    ${BOLOS_SDK}/src/os_printf.c
+    ${SDK_DIR}/src/os_printf.c
   INCLUDE_DIRS
     ${COMMON_INCLUDE_DIRS}
   COMPILE_DEFS
@@ -78,7 +78,7 @@ ledger_unit_tests_add_test(NAME test_param_group
     ${APP_DIR}/uint256.c
     ${APP_DIR}/uint128.c
     ${PLUGIN_DIR}/common_utils.c
-    ${BOLOS_SDK}/lib_lists/lists.c
+    ${SDK_DIR}/lib_lists/lists.c
   INCLUDE_DIRS
     ${COMMON_INCLUDE_DIRS}
   COMPILE_DEFS
@@ -98,8 +98,8 @@ ledger_unit_tests_add_test(NAME test_param_token_amount
     ${APP_DIR}/uint128.c
     ${APP_DIR}/utils/utils.c
     ${PLUGIN_DIR}/common_utils.c
-    ${BOLOS_SDK}/src/os_printf.c
-    ${BOLOS_SDK}/lib_lists/lists.c
+    ${SDK_DIR}/src/os_printf.c
+    ${SDK_DIR}/lib_lists/lists.c
   INCLUDE_DIRS
     ${COMMON_INCLUDE_DIRS}
   COMPILE_DEFS
@@ -237,7 +237,7 @@ ledger_unit_tests_add_test(NAME test_param_token
     ${APP_DIR}/uint128.c
     ${APP_DIR}/uint256.c
     ${PLUGIN_DIR}/common_utils.c
-    ${BOLOS_SDK}/lib_lists/lists.c
+    ${SDK_DIR}/lib_lists/lists.c
   INCLUDE_DIRS
     ${COMMON_INCLUDE_DIRS}
   COMPILE_DEFS
@@ -278,7 +278,7 @@ ledger_unit_tests_add_test(NAME test_field_validation
     ${APP_DIR}/uint128.c
     ${PLUGIN_DIR}/common_utils.c
     ${CMAKE_CURRENT_SOURCE_DIR}/test_field_validation_stubs.c
-    ${BOLOS_SDK}/lib_lists/lists.c
+    ${SDK_DIR}/lib_lists/lists.c
   INCLUDE_DIRS
     ${COMMON_INCLUDE_DIRS}
   COMPILE_DEFS
@@ -293,13 +293,13 @@ ledger_unit_tests_add_test(NAME test_field_table
   SOURCES
     ${COMMON_SOURCES_WITH_GLOBALS}
     ${APP_DIR}/features/generic_tx_parser/gtp_field_table.c
-    ${BOLOS_SDK}/lib_lists/lists.c
+    ${SDK_DIR}/lib_lists/lists.c
   INCLUDE_DIRS
     ${COMMON_INCLUDE_DIRS}
     ${APP_DIR}/features/sign_message_eip712
     ${APP_DIR}/features/provide_trusted_name
     ${APP_DIR}/features/address_book
-    ${BOLOS_SDK}/app_features/address_book/include
+    ${SDK_DIR}/app_features/address_book/include
   COMPILE_DEFS
     ${COMMON_COMPILE_DEFS}
     HAVE_ADDRESS_BOOK
@@ -319,7 +319,7 @@ ledger_unit_tests_add_test(NAME test_tx_info
     ${APP_DIR}/uint256.c
     ${APP_DIR}/utils/time_format.c
     ${PLUGIN_DIR}/common_utils.c
-    ${BOLOS_SDK}/lib_lists/lists.c
+    ${SDK_DIR}/lib_lists/lists.c
   MOCK_HEADERS
     ${APP_DIR}/public_keys.h
     ${APP_DIR}/utils/hash_bytes.h
@@ -339,7 +339,7 @@ ledger_unit_tests_add_test(NAME test_tx_ctx
     ${APP_DIR}/features/generic_tx_parser/tx_ctx.c
     ${APP_DIR}/features/generic_tx_parser/calldata.c
     ${APP_DIR}/utils/mem_utils.c
-    ${BOLOS_SDK}/lib_lists/lists.c
+    ${SDK_DIR}/lib_lists/lists.c
   INCLUDE_DIRS
     ${COMMON_INCLUDE_DIRS}
     ${APP_DIR}/features/provide_proxy_info
@@ -404,8 +404,8 @@ ledger_unit_tests_add_test(NAME test_provide_map_entry
     ${APP_DIR}/uint256.c
     ${APP_DIR}/uint128.c
     ${PLUGIN_DIR}/common_utils.c
-    ${BOLOS_SDK}/lib_lists/lists.c
-    ${BOLOS_SDK}/src/os_printf.c
+    ${SDK_DIR}/lib_lists/lists.c
+    ${SDK_DIR}/src/os_printf.c
   INCLUDE_DIRS
     ${COMMON_INCLUDE_DIRS}
   COMPILE_DEFS
@@ -423,7 +423,7 @@ ledger_unit_tests_add_test(NAME test_enum_value
     ${APP_DIR}/uint128.c
     ${APP_DIR}/uint256.c
     ${PLUGIN_DIR}/common_utils.c
-    ${BOLOS_SDK}/lib_lists/lists.c
+    ${SDK_DIR}/lib_lists/lists.c
   MOCK_HEADERS
     ${APP_DIR}/public_keys.h
     ${APP_DIR}/utils/hash_bytes.h

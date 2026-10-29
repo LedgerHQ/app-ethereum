@@ -9,7 +9,7 @@
 // Cap on nested PARAM_TYPE_GROUP levels. It bounds both the parse-time recursion
 // (handle_pg_field -> handle_field_struct) and the format-time recursion
 // (format_param_group -> format_field) on hostile descriptors.
-#define MAX_PARAM_GROUP_DEPTH 8
+#define MAX_PARAM_GROUP_DEPTH 4
 
 #define PARAM_GROUP_STRUCT_VERSION 0x01
 

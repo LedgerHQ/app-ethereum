@@ -54,7 +54,7 @@ bool handle_param_nft_struct(const buffer_t *buf, s_param_nft_context *context) 
     return true;
 }
 
-bool format_param_nft(const s_param_nft *param, const char *name) {
+__attribute__((noinline)) bool format_param_nft(const s_param_nft *param, const char *name) {
     bool ret;
     s_parsed_value_collection collections = {0};
     s_parsed_value_collection ids = {0};

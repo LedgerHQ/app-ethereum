@@ -394,7 +394,7 @@ static bool format_separator(const char *tmpl, int idx) {
     return add_to_field_table(PARAM_TYPE_SEPARATOR, buf, "", NULL);
 }
 
-bool format_param_raw(const s_field *field) {
+__attribute__((noinline)) bool format_param_raw(const s_field *field) {
     bool ret = false;
     s_parsed_value_collection collec = {0};
     char *buf = strings.tmp.tmp;

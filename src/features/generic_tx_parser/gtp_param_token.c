@@ -76,7 +76,7 @@ static bool match_native(const uint8_t *addr, const s_param_token *param) {
     return false;
 }
 
-bool format_param_token(const s_param_token *param, const char *name) {
+__attribute__((noinline)) bool format_param_token(const s_param_token *param, const char *name) {
     bool ret;
     s_parsed_value_collection collec = {0};
     uint8_t addr[ADDRESS_LENGTH];

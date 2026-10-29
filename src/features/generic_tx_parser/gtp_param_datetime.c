@@ -62,7 +62,8 @@ bool handle_param_datetime_struct(const buffer_t *buf, s_param_datetime_context 
     return true;
 }
 
-bool format_param_datetime(const s_param_datetime *param, const char *name) {
+__attribute__((noinline)) bool format_param_datetime(const s_param_datetime *param,
+                                                     const char *name) {
     bool ret;
     s_parsed_value_collection collec = {0};
     char *buf = strings.tmp.tmp;

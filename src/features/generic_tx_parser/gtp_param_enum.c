@@ -50,7 +50,7 @@ bool handle_param_enum_struct(const buffer_t *buf, s_param_enum_context *context
     return true;
 }
 
-bool format_param_enum(const s_param_enum *param, const char *name) {
+__attribute__((noinline)) bool format_param_enum(const s_param_enum *param, const char *name) {
     bool ret;
     uint64_t chain_id;
     s_parsed_value_collection collec = {0};

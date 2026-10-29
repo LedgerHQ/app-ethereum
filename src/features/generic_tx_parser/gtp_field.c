@@ -295,6 +295,8 @@ bool verify_field_struct(const s_field_ctx *context) {
     return true;
 }
 
+// The formatters are noinline: inlined, their locals would take stack in every
+// level of the nested group recursion.
 bool format_field(s_field *field, uint8_t depth) {
     bool ret;
 

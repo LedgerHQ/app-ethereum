@@ -44,7 +44,7 @@ bool handle_param_amount_struct(const buffer_t *buf, s_param_amount_context *con
     return true;
 }
 
-bool format_param_amount(const s_param_amount *param, const char *name) {
+__attribute__((noinline)) bool format_param_amount(const s_param_amount *param, const char *name) {
     bool ret;
     uint64_t chain_id;
     const char *ticker;

@@ -4,7 +4,7 @@
 #include "hash_bytes.h"
 #include "app_mem_utils.h"
 #include "mem_utils.h"
-#include "public_keys.h"
+#include "signature_check.h"
 #include "lcx_ecdsa.h"
 #include "tlv_library.h"
 #include "tlv_utils.h"
@@ -163,8 +163,6 @@ static bool verify_signature(const s_signer_ctx *context) {
 
     if (check_signature_with_pubkey(hash,
                                     sizeof(hash),
-                                    NULL,
-                                    0,
                                     CERTIFICATE_PUBLIC_KEY_USAGE_LES_MULTISIG,
                                     (uint8_t *) context->sig,
                                     context->sig_size) != true) {

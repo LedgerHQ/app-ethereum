@@ -31,7 +31,7 @@
 #include "shared_context.h"
 #include "apdu_constants.h"  // handle_set_plugin
 #include "cmd_set_plugin.h"
-#include "Mockpublic_keys.h"
+#include "Mocksignature_check.h"
 
 // =============================================================================
 // Globals
@@ -47,22 +47,18 @@ bool chain_id_is_signable(uint64_t chain_id) {
     return g_chain_compatible_ret;
 }
 
-// check_signature_with_pubkey is mocked via Mockpublic_keys.h (CMock).
+// check_signature_with_pubkey is mocked via Mocksignature_check.h (CMock).
 // s_sig_check_ret controls the return value; use the callback stub so it
 // can be reconfigured per-test without double-queuing IgnoreAndReturn.
 static bool s_sig_check_ret = true;
 static bool sig_check_stub(uint8_t *buffer,
                            const uint8_t bufLen,
-                           const uint8_t *PubKey,
-                           const uint8_t keyLen,
                            const uint8_t keyUsageExp,
                            const uint8_t *signature,
                            const uint8_t sigLen,
                            int num_calls) {
     (void) buffer;
     (void) bufLen;
-    (void) PubKey;
-    (void) keyLen;
     (void) keyUsageExp;
     (void) signature;
     (void) sigLen;
@@ -420,13 +416,13 @@ void test_rejected_when_app_not_idle(void) {
 // =============================================================================
 
 void setUp(void) {
-    Mockpublic_keys_Init();
+    Mocksignature_check_Init();
     check_signature_with_pubkey_StubWithCallback(sig_check_stub);
     reset();
 }
 void tearDown(void) {
-    Mockpublic_keys_Verify();
-    Mockpublic_keys_Destroy();
+    Mocksignature_check_Verify();
+    Mocksignature_check_Destroy();
 }
 
 int main(void) {

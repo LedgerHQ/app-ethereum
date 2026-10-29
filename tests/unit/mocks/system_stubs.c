@@ -43,20 +43,16 @@ bool g_noreturn_armed = false;
 int g_noreturn_calls = 0;
 
 // =============================================================================
-// app/src/ledger_pki.c (via public_keys.h)
+// app/src/utils/signature_check.c
 // =============================================================================
 
 __attribute__((weak)) bool check_signature_with_pubkey(uint8_t *buffer,
                                                        const uint8_t bufLen,
-                                                       const uint8_t *PubKey,
-                                                       const uint8_t keyLen,
                                                        const uint8_t keyUsageExp,
                                                        const uint8_t *signature,
                                                        const uint8_t sigLen) {
     (void) buffer;
     (void) bufLen;
-    (void) PubKey;
-    (void) keyLen;
     (void) keyUsageExp;
     (void) signature;
     (void) sigLen;

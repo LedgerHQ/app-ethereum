@@ -1,5 +1,5 @@
 #include "apdu_constants.h"
-#include "public_keys.h"
+#include "signature_check.h"
 #include "eth_plugin_interface.h"
 #include "eth_plugin_internal.h"
 #include "plugin_utils.h"
@@ -47,8 +47,6 @@ uint16_t handle_set_external_plugin(const uint8_t *workBuffer, uint8_t dataLengt
 
     if (check_signature_with_pubkey(hash,
                                     sizeof(hash),
-                                    LEDGER_SIGNATURE_PUBLIC_KEY,
-                                    sizeof(LEDGER_SIGNATURE_PUBLIC_KEY),
                                     CERTIFICATE_PUBLIC_KEY_USAGE_COIN_META,
                                     (uint8_t *) (workBuffer + payload_size),
                                     dataLength - payload_size) != true) {

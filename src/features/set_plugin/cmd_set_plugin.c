@@ -3,7 +3,7 @@
 #include "eth_plugin_internal.h"
 #include "plugin_utils.h"
 #include "network.h"
-#include "public_keys.h"
+#include "signature_check.h"
 #include "os_pki.h"
 #include "os_lib.h"
 
@@ -195,8 +195,6 @@ uint16_t handle_set_plugin(const uint8_t *workBuffer, uint8_t dataLength) {
 
     if (check_signature_with_pubkey(hash,
                                     sizeof(hash),
-                                    LEDGER_NFT_SELECTOR_PUBLIC_KEY,
-                                    sizeof(LEDGER_NFT_SELECTOR_PUBLIC_KEY),
                                     CERTIFICATE_PUBLIC_KEY_USAGE_PLUGIN_METADATA,
                                     (uint8_t *) (workBuffer + offset),
                                     signatureLen) != true) {

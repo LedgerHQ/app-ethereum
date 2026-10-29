@@ -1,7 +1,7 @@
 #include "read.h"
 #include "apdu_constants.h"
 #include "network.h"
-#include "public_keys.h"
+#include "signature_check.h"
 #include "os_pki.h"
 #include "nft_info.h"
 
@@ -159,8 +159,6 @@ uint16_t handle_provide_nft_information(uint8_t p1,
 
     if (check_signature_with_pubkey(hash,
                                     sizeof(hash),
-                                    LEDGER_NFT_METADATA_PUBLIC_KEY,
-                                    sizeof(LEDGER_NFT_METADATA_PUBLIC_KEY),
                                     CERTIFICATE_PUBLIC_KEY_USAGE_NFT_METADATA,
                                     sig,
                                     sig_length) != true) {

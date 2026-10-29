@@ -1,5 +1,5 @@
 #include "eip712_v1_filtering.h"
-#include "public_keys.h"
+#include "signature_check.h"
 #include "manage_asset_info.h"
 #include "eip712_v1_context.h"
 #include "typed_data.h"
@@ -156,8 +156,6 @@ static bool sig_verif_end(cx_sha256_t *hash_ctx, const uint8_t *sig, uint8_t sig
 
     if (check_signature_with_pubkey(hash,
                                     sizeof(hash),
-                                    LEDGER_SIGNATURE_PUBLIC_KEY,
-                                    sizeof(LEDGER_SIGNATURE_PUBLIC_KEY),
                                     CERTIFICATE_PUBLIC_KEY_USAGE_COIN_META,
                                     (uint8_t *) sig,
                                     sig_length) != true) {

@@ -12,33 +12,11 @@ ifneq ($(CHALLENGE_NO_CHECK),0)
     DEFINES += HAVE_CHALLENGE_NO_CHECK
 endif
 
-# Enable the SET_PLUGIN test key
-SET_PLUGIN_TEST_KEY ?= 0
-ifneq ($(SET_PLUGIN_TEST_KEY),0)
-    DEFINES += HAVE_SET_PLUGIN_TEST_KEY
-endif
-
 # NFTs
-NFT_TEST_KEY ?= 0
-ifneq ($(NFT_TEST_KEY),0)
-    DEFINES += HAVE_NFT_TEST_KEY
-endif
 NFT_STAGING_KEY ?= 0
 ifneq ($(NFT_STAGING_KEY),0)
-    # Key used by the staging backend
+    # Expect the staging key ids in NFT and SET_PLUGIN descriptors
     DEFINES += HAVE_NFT_STAGING_KEY
-endif
-
-# CryptoAssetsList key
-CAL_TEST_KEY ?= 0
-ifneq ($(CAL_TEST_KEY),0)
-    # Key used in our test framework
-    DEFINES += HAVE_CAL_TEST_KEY
-endif
-CAL_STAGING_KEY ?= 0
-ifneq ($(CAL_STAGING_KEY),0)
-    # Key used by the staging CAL
-    DEFINES += HAVE_CAL_STAGING_KEY
 endif
 
 # Transaction Checks
@@ -73,20 +51,5 @@ endif
 ifneq ($(EIP7702_TEST_WHITELIST),0)
     ifeq ($(EIP7702_SUPPORT),0)
         $(error EIP7702_TEST_WHITELIST requires EIP7702_SUPPORT=1)
-    endif
-endif
-
-# NFTs
-ifneq (,$(filter $(DEFINES),HAVE_NFT_TEST_KEY))
-    ifneq (, $(filter $(DEFINES),HAVE_NFT_STAGING_KEY))
-        $(error Multiple alternative NFT keys set at once)
-    endif
-endif
-
-# CryptoAssetsList key
-ifneq (,$(filter $(DEFINES),HAVE_CAL_TEST_KEY))
-    ifneq (, $(filter $(DEFINES),HAVE_CAL_STAGING_KEY))
-        # Can't use both the staging and testing keys
-        $(error Multiple alternative CAL keys set at once)
     endif
 endif

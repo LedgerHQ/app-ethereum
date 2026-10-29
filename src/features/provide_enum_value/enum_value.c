@@ -1,5 +1,5 @@
 #include "enum_value.h"
-#include "public_keys.h"
+#include "signature_check.h"
 #include "utils.h"
 #include "ui_utils.h"
 #include "app_mem_utils.h"
@@ -178,8 +178,6 @@ static bool verify_signature(const s_enum_value_ctx *context) {
 
     if (check_signature_with_pubkey(hash,
                                     sizeof(hash),
-                                    NULL,
-                                    0,
                                     CERTIFICATE_PUBLIC_KEY_USAGE_CALLDATA,
                                     (uint8_t *) context->sig,
                                     context->sig_size) != true) {

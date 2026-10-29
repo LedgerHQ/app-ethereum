@@ -13,7 +13,7 @@
 #include "map_entry.h"
 
 // Headers for mocked functions
-#include "public_keys.h"
+#include "signature_check.h"
 #include "hash_bytes.h"
 #include "shared_context.h"
 #include "eth_ustream.h"
@@ -54,15 +54,11 @@ bool finalize_hash(cx_hash_t *hash_ctx, uint8_t *out, size_t out_len) {
 
 bool check_signature_with_pubkey(uint8_t *buffer,
                                  const uint8_t bufLen,
-                                 const uint8_t *PubKey,
-                                 const uint8_t keyLen,
                                  const uint8_t keyUsageExp,
                                  const uint8_t *signature,
                                  const uint8_t sigLen) {
     (void) buffer;
     (void) bufLen;
-    (void) PubKey;
-    (void) keyLen;
     (void) keyUsageExp;
     (void) signature;
     (void) sigLen;

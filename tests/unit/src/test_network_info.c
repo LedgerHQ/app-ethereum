@@ -23,7 +23,7 @@
 
 #include "shared_context.h"
 #include "network_info.h"
-#include "Mockpublic_keys.h"
+#include "Mocksignature_check.h"
 #include "Mockhash_bytes.h"
 
 // =============================================================================
@@ -39,16 +39,12 @@
 static bool s_sig_check_ret = true;
 static bool sig_check_stub(uint8_t *buffer,
                            const uint8_t bufLen,
-                           const uint8_t *PubKey,
-                           const uint8_t keyLen,
                            const uint8_t keyUsageExp,
                            const uint8_t *signature,
                            const uint8_t sigLen,
                            int num_calls) {
     (void) buffer;
     (void) bufLen;
-    (void) PubKey;
-    (void) keyLen;
     (void) keyUsageExp;
     (void) signature;
     (void) sigLen;
@@ -434,7 +430,7 @@ void test_network_info_cleanup_releases_all(void) {
 // =============================================================================
 
 void setUp(void) {
-    Mockpublic_keys_Init();
+    Mocksignature_check_Init();
     check_signature_with_pubkey_StubWithCallback(sig_check_stub);
     Mockhash_bytes_Init();
     finalize_hash_StubWithCallback(finalize_hash_stub);
@@ -444,8 +440,8 @@ void setUp(void) {
 }
 
 void tearDown(void) {
-    Mockpublic_keys_Verify();
-    Mockpublic_keys_Destroy();
+    Mocksignature_check_Verify();
+    Mocksignature_check_Destroy();
     Mockhash_bytes_Verify();
     Mockhash_bytes_Destroy();
 }

@@ -20,7 +20,7 @@
 #include "app_mem_utils.h"
 #include "apdu_constants.h"
 #include "hash_bytes.h"
-#include "public_keys.h"
+#include "signature_check.h"
 #include "get_public_key.h"
 #include "tlv_library.h"
 #include "tlv_apdu.h"
@@ -286,8 +286,6 @@ static bool verify_signature(s_gating_ctx *context) {
 
     if (check_signature_with_pubkey(hash,
                                     sizeof(hash),
-                                    NULL,
-                                    0,
                                     CERTIFICATE_PUBLIC_KEY_USAGE_GATED_SIGNING,
                                     (uint8_t *) context->sig,
                                     context->sig_size) != true) {

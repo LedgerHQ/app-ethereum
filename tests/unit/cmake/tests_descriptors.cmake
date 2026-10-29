@@ -1,9 +1,9 @@
 # tests_descriptors.cmake
 
-ledger_unit_tests_add_test(NAME test_ledger_pki
+ledger_unit_tests_add_test(NAME test_signature_check
   SOURCES
     ${COMMON_SOURCES_WITH_GLOBALS}
-    ${APP_DIR}/ledger_pki.c
+    ${APP_DIR}/utils/signature_check.c
   INCLUDE_DIRS
     ${COMMON_INCLUDE_DIRS}
     ${SDK_DIR}/lib_pki
@@ -161,7 +161,7 @@ ledger_unit_tests_add_test(NAME test_network_info
     ${PLUGIN_DIR}/common_utils.c
     ${SDK_DIR}/lib_lists/lists.c
   MOCK_HEADERS
-    ${APP_DIR}/public_keys.h
+    ${APP_DIR}/utils/signature_check.h
     ${APP_DIR}/utils/hash_bytes.h
   INCLUDE_DIRS
     ${COMMON_INCLUDE_DIRS}
@@ -182,7 +182,7 @@ ledger_unit_tests_add_test(NAME test_proxy_info
     ${APP_DIR}/uint256.c
     ${PLUGIN_DIR}/common_utils.c
   MOCK_HEADERS
-    ${APP_DIR}/public_keys.h
+    ${APP_DIR}/utils/signature_check.h
     ${APP_DIR}/utils/hash_bytes.h
   INCLUDE_DIRS
     ${COMMON_INCLUDE_DIRS}
@@ -205,7 +205,7 @@ ledger_unit_tests_add_test(NAME test_trusted_name
     ${SDK_DIR}/lib_standard_app/bip32.c
     ${SDK_DIR}/lib_lists/lists.c
   MOCK_HEADERS
-    ${APP_DIR}/public_keys.h
+    ${APP_DIR}/utils/signature_check.h
     ${APP_DIR}/utils/hash_bytes.h
   INCLUDE_DIRS
     ${COMMON_INCLUDE_DIRS}
@@ -228,7 +228,7 @@ ledger_unit_tests_add_test(NAME test_safe_descriptors
     ${APP_DIR}/uint256.c
     ${PLUGIN_DIR}/common_utils.c
   MOCK_HEADERS
-    ${APP_DIR}/public_keys.h
+    ${APP_DIR}/utils/signature_check.h
     ${APP_DIR}/utils/hash_bytes.h
   INCLUDE_DIRS
     ${COMMON_INCLUDE_DIRS}
@@ -310,7 +310,7 @@ ledger_unit_tests_add_test(NAME test_cmd_provide_nft_info
     ${PLUGIN_DIR}/common_utils.c
     ${SDK_DIR}/lib_lists/lists.c
   MOCK_HEADERS
-    ${APP_DIR}/public_keys.h
+    ${APP_DIR}/utils/signature_check.h
   INCLUDE_DIRS
     ${COMMON_INCLUDE_DIRS}
     ${APP_DIR}/features/provide_nft_information
@@ -333,7 +333,7 @@ ledger_unit_tests_add_test(NAME test_cmd_provide_token_info
     ${PLUGIN_DIR}/common_utils.c
     ${SDK_DIR}/lib_lists/lists.c
   MOCK_HEADERS
-    ${APP_DIR}/public_keys.h
+    ${APP_DIR}/utils/signature_check.h
   INCLUDE_DIRS
     ${COMMON_INCLUDE_DIRS}
     ${APP_DIR}/features/provide_erc20_token_information
@@ -353,7 +353,7 @@ ledger_unit_tests_add_test(NAME test_cmd_set_plugin
     ${APP_DIR}/uint256.c
     ${PLUGIN_DIR}/common_utils.c
   MOCK_HEADERS
-    ${APP_DIR}/public_keys.h
+    ${APP_DIR}/utils/signature_check.h
   INCLUDE_DIRS
     ${COMMON_INCLUDE_DIRS}
     ${APP_DIR}/features/set_plugin
@@ -373,7 +373,7 @@ ledger_unit_tests_add_test(NAME test_cmd_set_plugin_staging
     ${APP_DIR}/uint256.c
     ${PLUGIN_DIR}/common_utils.c
   MOCK_HEADERS
-    ${APP_DIR}/public_keys.h
+    ${APP_DIR}/utils/signature_check.h
   INCLUDE_DIRS
     ${COMMON_INCLUDE_DIRS}
     ${APP_DIR}/features/set_plugin
@@ -394,7 +394,7 @@ ledger_unit_tests_add_test(NAME test_cmd_set_external_plugin
     ${APP_DIR}/uint256.c
     ${PLUGIN_DIR}/common_utils.c
   MOCK_HEADERS
-    ${APP_DIR}/public_keys.h
+    ${APP_DIR}/utils/signature_check.h
   INCLUDE_DIRS
     ${COMMON_INCLUDE_DIRS}
     ${APP_DIR}/features/set_external_plugin

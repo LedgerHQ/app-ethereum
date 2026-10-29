@@ -67,15 +67,11 @@ const nbgl_icon_details_t C_Ledger_14px;
 static bool s_sig_check_ret = true;
 bool check_signature_with_pubkey(uint8_t *buffer,
                                  const uint8_t bufLen,
-                                 const uint8_t *PubKey,
-                                 const uint8_t keyLen,
                                  const uint8_t keyUsageExp,
                                  const uint8_t *signature,
                                  const uint8_t sigLen) {
     (void) buffer;
     (void) bufLen;
-    (void) PubKey;
-    (void) keyLen;
     (void) keyUsageExp;
     (void) signature;
     (void) sigLen;

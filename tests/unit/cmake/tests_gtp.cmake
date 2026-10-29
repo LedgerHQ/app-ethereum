@@ -321,7 +321,7 @@ ledger_unit_tests_add_test(NAME test_tx_info
     ${PLUGIN_DIR}/common_utils.c
     ${SDK_DIR}/lib_lists/lists.c
   MOCK_HEADERS
-    ${APP_DIR}/public_keys.h
+    ${APP_DIR}/utils/signature_check.h
     ${APP_DIR}/utils/hash_bytes.h
   INCLUDE_DIRS
     ${COMMON_INCLUDE_DIRS}
@@ -425,7 +425,7 @@ ledger_unit_tests_add_test(NAME test_enum_value
     ${PLUGIN_DIR}/common_utils.c
     ${SDK_DIR}/lib_lists/lists.c
   MOCK_HEADERS
-    ${APP_DIR}/public_keys.h
+    ${APP_DIR}/utils/signature_check.h
     ${APP_DIR}/utils/hash_bytes.h
   INCLUDE_DIRS
     ${COMMON_INCLUDE_DIRS}

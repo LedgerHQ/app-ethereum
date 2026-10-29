@@ -1,6 +1,6 @@
 #include "tlv_use_case_dynamic_descriptor.h"
 #include "apdu_constants.h"
-#include "public_keys.h"
+#include "signature_check.h"
 #include "network.h"
 #include "os_pki.h"
 #include "token_info.h"
@@ -102,8 +102,6 @@ static bool erc20_token_info_handler_legacy(uint8_t lc, const uint8_t *data) {
                    CX_SHA256_SIZE);
     if (check_signature_with_pubkey(hash,
                                     sizeof(hash),
-                                    LEDGER_SIGNATURE_PUBLIC_KEY,
-                                    sizeof(LEDGER_SIGNATURE_PUBLIC_KEY),
                                     CERTIFICATE_PUBLIC_KEY_USAGE_COIN_META,
                                     &data[offset],
                                     lc - offset) != true) {

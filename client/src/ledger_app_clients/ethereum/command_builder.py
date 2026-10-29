@@ -211,6 +211,13 @@ class CommandBuilder:
             p2l=[P2Type.EIP712_V2_IMPLEM],
         )
 
+    def eip712_v2_field_desc(self, tlv_payload: bytes) -> list[bytes]:
+        return self.common_tlv_serialize(
+            InsType.PROVIDE_TRANSACTION_FIELD_DESC,
+            tlv_payload,
+            p2l=[P2Type.EIP712_V2_IMPLEM],
+        )
+
     def eip712_v2_sign(self) -> bytes:
         # the derivation path came with the values, so this only triggers the signature
         return self._serialize(InsType.EIP712_SIGN, P1Type.COMPLETE_SEND, P2Type.EIP712_V2_IMPLEM)

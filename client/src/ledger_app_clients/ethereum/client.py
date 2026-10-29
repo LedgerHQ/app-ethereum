@@ -139,6 +139,12 @@ class EthAppClient:
             self._exchange(chunk)
         return self._exchange(chunks[-1])
 
+    def eip712_v2_send_field_desc(self, payload: bytes) -> RAPDU:
+        chunks = self._cmd_builder.eip712_v2_field_desc(payload)
+        for chunk in chunks[:-1]:
+            self._exchange(chunk)
+        return self._exchange(chunks[-1])
+
     def eip712_v2_sign(self):
         return self._exchange_async(self._cmd_builder.eip712_v2_sign())
 

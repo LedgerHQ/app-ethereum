@@ -1,3 +1,4 @@
+import hashlib
 import struct
 from enum import IntEnum
 
@@ -311,6 +312,55 @@ class ContainerPath(IntEnum):
     CHAIN_ID = 0x03
 
 
+class Eip712PathField(TlvSerializable):
+    """Step into a field of a struct, given its index in the type definition."""
+
+    index: int
+
+    def __init__(self, index: int):
+        self.index = index
+
+    def serialize(self) -> bytes:
+        return struct.pack("B", self.index)
+
+
+class Eip712PathArray(PathSlice):
+    """Step into the elements of an array, all of them or the ones a slice selects."""
+
+
+class Eip712PathLeafSlice(PathSlice):
+    """Keep a range of the bytes of a bytes, bytesN or string leaf."""
+
+
+class Eip712Path(TlvSerializable):
+    """EIP712_PATH: where a descriptor reads in the values of an EIP-712 V2 message.
+
+    Same tag as DataPath in a VALUE: which one it is depends on what is being described.
+    """
+
+    version: int
+    path: list[TlvSerializable]
+
+    def __init__(self, version: int, path: list[TlvSerializable]):
+        self.version = version
+        self.path = path
+
+    def serialize(self) -> bytes:
+        payload = bytearray()
+        payload += self.serialize_field(0x00, self.version)
+        for node in self.path:
+            if isinstance(node, Eip712PathField):
+                tag = 0x01
+            elif isinstance(node, Eip712PathArray):
+                tag = 0x02
+            elif isinstance(node, Eip712PathLeafSlice):
+                tag = 0x03
+            else:
+                raise AssertionError(f"Unknown path node type : {type(node)}")
+            payload += self.serialize_field(tag, node.serialize())
+        return bytes(payload)
+
+
 class MapRef(TlvSerializable):
     version: int
     id: int
@@ -334,6 +384,7 @@ class Value(TlvSerializable):
     type_family: TypeFamily
     type_size: int | None
     data_path: DataPath | None
+    eip712_path: Eip712Path | None
     container_path: ContainerPath | None
     constant: bytes | None
     map_ref: MapRef | None
@@ -347,11 +398,15 @@ class Value(TlvSerializable):
         container_path: ContainerPath | None = None,
         constant: bytes | None = None,
         map_ref: MapRef | None = None,
+        eip712_path: Eip712Path | None = None,
     ):
+        # both are the tag 0x03 on the wire: which one is meant depends on what is being described
+        assert data_path is None or eip712_path is None, "a value has one path"
         self.version = version
         self.type_family = type_family
         self.type_size = type_size
         self.data_path = data_path
+        self.eip712_path = eip712_path
         self.container_path = container_path
         self.constant = constant
         self.map_ref = map_ref
@@ -364,6 +419,8 @@ class Value(TlvSerializable):
             payload += self.serialize_field(0x02, self.type_size)
         if self.data_path is not None:
             payload += self.serialize_field(0x03, self.data_path.serialize())
+        if self.eip712_path is not None:
+            payload += self.serialize_field(0x03, self.eip712_path.serialize())
         if self.container_path is not None:
             payload += self.serialize_field(0x04, self.container_path)
         if self.constant is not None:
@@ -774,3 +831,11 @@ class ParamGroup(FieldParam):
         for field in self.fields:
             payload += self.serialize_field(0x02, field.serialize())
         return bytes(payload)
+
+
+def fields_hash(fields: list[Field]) -> bytes:
+    """What a TRANSACTION_INFO or an EIP712_MESSAGE_INFO announces for the descriptors it names."""
+    digest = hashlib.sha3_256()
+    for field in fields:
+        digest.update(field.serialize())
+    return digest.digest()

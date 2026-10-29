@@ -31,37 +31,40 @@ typedef struct {
         };
     };
     uint8_t received;
+    bool malformed;
 } eip7002_context_t;
 
 static void eip7002_plugin_init_contract(ethPluginInitContract_t *param) {
     eip7002_context_t *context = (eip7002_context_t *) param->pluginContext;
 
     explicit_bzero(context, sizeof(*context));
+    // The chain may only be known at finalize, which decides how a malformed request ends
     if ((param->dataSize != sizeof(context->withdrawal_request)) ||
         ((size_t) context->received + CALLDATA_SELECTOR_SIZE >
          sizeof(context->withdrawal_request))) {
-        param->result = ETH_PLUGIN_RESULT_ERROR;
+        context->malformed = true;
     } else {
         memcpy(&context->withdrawal_request[context->received],
                param->selector,
                CALLDATA_SELECTOR_SIZE);
         context->received += CALLDATA_SELECTOR_SIZE;
-        param->result = ETH_PLUGIN_RESULT_OK;
     }
+    param->result = ETH_PLUGIN_RESULT_OK;
 }
 
 static void eip7002_plugin_provider_parameter(ethPluginProvideParameter_t *param) {
     eip7002_context_t *context = (eip7002_context_t *) param->pluginContext;
 
-    if ((context->received + param->parameter_size) > sizeof(context->withdrawal_request)) {
-        param->result = ETH_PLUGIN_RESULT_ERROR;
+    if (context->malformed ||
+        ((context->received + param->parameter_size) > sizeof(context->withdrawal_request))) {
+        context->malformed = true;
     } else {
         memcpy(&context->withdrawal_request[context->received],
                param->parameter,
                param->parameter_size);
         context->received += param->parameter_size;
-        param->result = ETH_PLUGIN_RESULT_OK;
     }
+    param->result = ETH_PLUGIN_RESULT_OK;
 }
 
 // EIP-7002 charges a dynamic per-request fee paid in native value. In normal
@@ -94,9 +97,9 @@ static bool has_tx_value(const txContent_t *txContent) {
 static void eip7002_plugin_finalize(ethPluginFinalize_t *param) {
     eip7002_context_t *context = (eip7002_context_t *) param->pluginContext;
 
-    if (get_tx_chain_id() != ETHEREUM_MAINNET_CHAINID) {
-        PRINTF("eip7002: withdrawal predeploy only valid on Ethereum mainnet\n");
-        param->result = ETH_PLUGIN_RESULT_ERROR;
+    if (!chain_has_ethereum_staking(get_tx_chain_id())) {
+        PRINTF("eip7002: no withdrawal predeploy on this chain, falling back to blind signing\n");
+        param->result = ETH_PLUGIN_RESULT_FALLBACK;
         return;
     }
     param->uiType = ETH_UI_TYPE_GENERIC;
@@ -111,9 +114,10 @@ static void eip7002_plugin_finalize(ethPluginFinalize_t *param) {
     if (!is_zeroes_buffer(context->raw_amount, sizeof(context->raw_amount))) {
         param->numScreens++;
     }
-    param->result = (context->received == sizeof(context->withdrawal_request))
-                        ? ETH_PLUGIN_RESULT_OK
-                        : ETH_PLUGIN_RESULT_ERROR;
+    param->result =
+        (!context->malformed && (context->received == sizeof(context->withdrawal_request)))
+            ? ETH_PLUGIN_RESULT_OK
+            : ETH_PLUGIN_RESULT_ERROR;
 }
 
 static void eip7002_plugin_query_contract_id(ethQueryContractID_t *param) {

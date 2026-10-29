@@ -95,8 +95,6 @@ static void check_offset_or_length(ethPluginProvideParameter_t *msg,
                check,
                index);
         context->valid = 0;
-        msg->result = ETH_PLUGIN_RESULT_ERROR;
-        return;
     }
     msg->result = ETH_PLUGIN_RESULT_OK;
 }
@@ -114,7 +112,7 @@ static void check_withdrawal_credentials(ethPluginProvideParameter_t *msg,
         PRINTF("Got %u which is higher than INDEX_MAX (%u)\n",
                context->withdrawal_index,
                INDEX_MAX);
-        msg->result = ETH_PLUGIN_RESULT_ERROR;
+        msg->result = ETH_PLUGIN_RESULT_OK;
         context->valid = 0;
         return;
     }
@@ -138,11 +136,9 @@ static void check_withdrawal_credentials(ethPluginProvideParameter_t *msg,
         PRINTF("eth2 plugin invalid withdrawal credentials\n");
         PRINTF("Got %.*H\n", INT256_LENGTH, msg->parameter);
         PRINTF("Expected %.*H\n", INT256_LENGTH, tmp);
-        msg->result = ETH_PLUGIN_RESULT_ERROR;
         context->valid = 0;
-    } else {
-        msg->result = ETH_PLUGIN_RESULT_OK;
     }
+    msg->result = ETH_PLUGIN_RESULT_OK;
 }
 
 // The deposit value is committed to the deposit_data_root in whole Gwei
@@ -292,6 +288,8 @@ void eth2_plugin_call(eth_plugin_msg_t message, void *parameters) {
             eth2_deposit_parameters_t *context = (eth2_deposit_parameters_t *) msg->pluginContext;
             uint32_t word;
 
+            // Calldata errors only clear context->valid: the chain may only be known at
+            // finalize, which decides between a rejection and the blind-signing fallback
             PRINTF("eth2 plugin provide parameter %d %.*H\n",
                    msg->parameterOffset,
                    PARAMETER_LENGTH,
@@ -300,7 +298,7 @@ void eth2_plugin_call(eth_plugin_msg_t message, void *parameters) {
                 (((msg->parameterOffset - SELECTOR_SIZE) % PARAMETER_LENGTH) != 0)) {
                 PRINTF("eth2 plugin: misaligned parameter offset %d\n", msg->parameterOffset);
                 context->valid = 0;
-                msg->result = ETH_PLUGIN_RESULT_ERROR;
+                msg->result = ETH_PLUGIN_RESULT_OK;
                 return;
             }
             // Record which word this is, so that FINALIZE can require the whole
@@ -368,9 +366,9 @@ void eth2_plugin_call(eth_plugin_msg_t message, void *parameters) {
             ethPluginFinalize_t *msg = (ethPluginFinalize_t *) parameters;
             eth2_deposit_parameters_t *context = (eth2_deposit_parameters_t *) msg->pluginContext;
             PRINTF("eth2 plugin finalize\n");
-            if (get_tx_chain_id() != ETHEREUM_MAINNET_CHAINID) {
-                PRINTF("eth2: deposit contract only valid on Ethereum mainnet\n");
-                msg->result = ETH_PLUGIN_RESULT_ERROR;
+            if (!chain_has_ethereum_staking(get_tx_chain_id())) {
+                PRINTF("eth2: no deposit contract on this chain, falling back to blind signing\n");
+                msg->result = ETH_PLUGIN_RESULT_FALLBACK;
                 break;
             }
             if (!context->valid) {
@@ -413,7 +411,8 @@ void eth2_plugin_call(eth_plugin_msg_t message, void *parameters) {
             switch (msg->screenIndex) {
                 case 0: {  // Amount screen
                     uint8_t decimals = WEI_TO_ETHER;
-                    const char *ticker = g_chain_config->ticker;
+                    uint64_t chain_id = get_tx_chain_id();
+                    const char *ticker = get_displayable_ticker(&chain_id, g_chain_config, true);
                     strlcpy(msg->title, "Amount", msg->titleLength);
                     if (!amountToString(tmpContent.txContent.value.value,
                                         tmpContent.txContent.value.length,

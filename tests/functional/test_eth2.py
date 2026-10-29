@@ -4,13 +4,16 @@ from pathlib import Path
 
 import client.response_parser as ResponseParser
 from client.client import EthAppClient
+from client.dynamic_networks import DynamicNetwork
 from client.status_word import StatusWord
 from client.utils import recover_transaction
 from constants import ABIS_FOLDER
+from dynamic_networks_cfg import get_network_config
 from ragger.navigator.navigation_scenario import NavigateWithScenario
 from web3 import Web3
 
 BEACON_DEPOSIT_CONTRACT_ADDR = bytes.fromhex("00000000219ab540356cBB839Cbe05303d7705Fa")
+HOODI_CHAIN_ID = 560048
 BLS_WITHDRAWAL_PREFIX = 0x00
 WEI_PER_GWEI = 10**9
 
@@ -35,7 +38,7 @@ def deposit_data_root(pubkey: bytes, credentials: bytes, amount_gwei: int, signa
 BIP32_PATH = "m/44'/60'/0'/0/0"
 
 
-def test_eth2_deposit(scenario_navigator: NavigateWithScenario) -> None:
+def common_deposit(scenario_navigator: NavigateWithScenario, chain_id: int) -> None:
     app_client = EthAppClient(scenario_navigator.backend)
     with app_client.get_eth2_public_addr(display=False):
         pass
@@ -61,8 +64,11 @@ def test_eth2_deposit(scenario_navigator: NavigateWithScenario) -> None:
             root,
         ],
     )
+    if chain_id == HOODI_CHAIN_ID:
+        name, ticker, icon = get_network_config(scenario_navigator.backend.device.type, HOODI_CHAIN_ID)
+        app_client.provide_network_info(DynamicNetwork(name, ticker, HOODI_CHAIN_ID, icon))
     tx_params = {
-        "chainId": 1,
+        "chainId": chain_id,
         "nonce": 27,
         "maxPriorityFeePerGas": Web3.to_wei(0.292821186, "gwei"),
         "maxFeePerGas": Web3.to_wei(0.292821186, "gwei"),
@@ -83,6 +89,14 @@ def test_eth2_deposit(scenario_navigator: NavigateWithScenario) -> None:
 
     addr = recover_transaction(tx_params, vrs)
     assert addr == device_addr
+
+
+def test_eth2_deposit(scenario_navigator: NavigateWithScenario) -> None:
+    common_deposit(scenario_navigator, 1)
+
+
+def test_eth2_deposit_hoodi(scenario_navigator: NavigateWithScenario) -> None:
+    common_deposit(scenario_navigator, HOODI_CHAIN_ID)
 
 
 def test_eth2_deposit_non_default_withdrawal_index(scenario_navigator: NavigateWithScenario) -> None:

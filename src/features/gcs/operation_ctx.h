@@ -119,6 +119,15 @@ bool operation_ctx_has_message(void);
  * @return whether the message info announces descriptors, which are still to be checked
  */
 bool operation_ctx_message_has_pending_fields(void);
+/**
+ * Whether the descriptors received are the ones the message info announces
+ *
+ * The announcement is the hash over every descriptor, in the order they came: neither a missing,
+ * an additional, a reordered nor an altered descriptor matches it.
+ *
+ * @return whether the message info announces descriptors, and the ones received are them
+ */
+bool operation_ctx_message_fields_match(void);
 bool operation_ctx_init(s_calldata *calldata,
                         const uint8_t *from,
                         const uint8_t *to,

@@ -1,12 +1,7 @@
 #include "cmd_field.h"
 #include "cx.h"
-#include "apdu_constants.h"
-#include "tlv_apdu.h"
 #include "gcs_field.h"
-#include "cmd_tx_info.h"
-#include "operation_info.h"
 #include "operation_ctx.h"
-#include "call_description.h"
 #include "app_mem_utils.h"
 
 static bool process_field(const buffer_t *buf, s_field *field) {
@@ -31,7 +26,8 @@ static bool process_field(const buffer_t *buf, s_field *field) {
     // rejected data leaves no trace in the signed digest.
     cx_sha3_t *hash_ctx_backup;
     cx_hash_t *hash_ctx = get_current_operation_fields_hash_ctx();
-    if (APP_MEM_CALLOC((void **) &hash_ctx_backup, sizeof(*hash_ctx_backup)) == false) {
+    if ((hash_ctx == NULL) ||
+        (APP_MEM_CALLOC((void **) &hash_ctx_backup, sizeof(*hash_ctx_backup)) == false)) {
         cleanup_field(field);
         return false;
     }
@@ -48,15 +44,10 @@ static bool process_field(const buffer_t *buf, s_field *field) {
         return false;
     }
     APP_MEM_FREE(hash_ctx_backup);
-    while (call_description_is_nested() && validate_instruction_hash()) {
-        if (!process_empty_calls_after() || !operation_ctx_pop()) {
-            return false;
-        }
-    }
     return true;
 }
 
-static bool handle_tlv_payload(const buffer_t *buf) {
+bool handle_field_tlv_payload(const buffer_t *buf) {
     s_field *field = NULL;
     bool ret;
 
@@ -67,26 +58,4 @@ static bool handle_tlv_payload(const buffer_t *buf) {
     ret = process_field(buf, field);
     APP_MEM_FREE(field);
     return ret;
-}
-
-uint16_t handle_field(uint8_t p1, uint8_t p2, uint8_t lc, const uint8_t *payload) {
-    (void) p2;
-    if ((appState != APP_STATE_SIGNING_TX) && (appState != APP_STATE_SIGNING_EIP712)) {
-        PRINTF("App not in TX signing mode!\n");
-        return SWO_COMMAND_NOT_ALLOWED;
-    }
-
-    if (get_current_operation_info() == NULL) {
-        // Do NOT call gcs_cleanup() here: if a GCS review is currently shown,
-        // gcs_cleanup() frees g_pairs/g_pairsList while NBGL still holds
-        // pointers to them, causing a crash.
-        // Cleanup is handled in the approve/reject callbacks and in reset_app_context().
-        PRINTF("Error: Field received without a TX info!\n");
-        return SWO_COMMAND_NOT_ALLOWED;
-    }
-
-    if (!tlv_from_apdu(p1 == P1_FIRST_CHUNK, lc, payload, &handle_tlv_payload)) {
-        return SWO_INCORRECT_DATA;
-    }
-    return SWO_SUCCESS;
 }

@@ -1,12 +1,13 @@
 /**
  * @file test_cmd_field_tx_info.c
- * @brief Unit tests for the two GCS APDU command entry points at
- *        src/features/generic_tx_parser/cmd_field.c and
+ * @brief Unit tests for the two transaction APDU command entry points at
+ *        src/features/generic_tx_parser/cmd_tx_field.c (with the shared
+ *        src/features/gcs/cmd_field.c) and
  *        src/features/generic_tx_parser/cmd_tx_info.c.
  *
  * Both commands are thin wrappers around the deeper parsing layers:
  * each one gates on appState (must be SIGNING_TX or SIGNING_EIP712),
- * cmd_field additionally requires that a current tx_info has been
+ * handle_tx_field additionally requires that a current tx_info has been
  * registered, then both delegate to tlv_from_apdu() which streams the
  * TLV payload into the static handle_tlv_payload.
  *
@@ -22,6 +23,7 @@
 #include <stdbool.h>
 
 #include "cmd_field.h"
+#include "cmd_tx_field.h"
 #include "cmd_tx_info.h"
 #include "operation_info.h"
 #include "gcs_field.h"
@@ -73,7 +75,7 @@ const s_operation_info *get_current_operation_info(void) {
     return s_tx_info_ret;
 }
 
-// cmd_field calls gcs_cleanup on the no-tx-info path — count calls.
+// handle_tx_field calls gcs_cleanup on the no-tx-info path — count calls.
 static int g_gcs_cleanup_calls = 0;
 void gcs_cleanup(void) {
     g_gcs_cleanup_calls++;
@@ -87,7 +89,7 @@ static bool g_verify_field_struct_ret = true;
 static bool g_format_field_ret = true;
 static cx_err_t g_cx_hash_ret = CX_OK;
 // validate_instruction_hash is consumed inside a `while (...)` loop in
-// cmd_field's static handle_tlv_payload, so an unconditional `true`
+// cmd_tx_field's static handle_tlv_payload, so an unconditional `true`
 // stub would loop forever. Drive it with a budget instead: each call
 // decrements the counter; when it reaches zero the stub returns false
 // and the loop exits.
@@ -247,35 +249,35 @@ static void reset(void) {
 }
 
 // =============================================================================
-// handle_field — appState guard
+// handle_tx_field — appState guard
 // =============================================================================
 
 void test_field_wrong_appstate_rejected(void) {
     appState = APP_STATE_IDLE;  // not SIGNING_TX / SIGNING_EIP712
-    TEST_ASSERT_EQUAL(handle_field(P1_FIRST_CHUNK, 0, 0, NULL), SWO_COMMAND_NOT_ALLOWED);
+    TEST_ASSERT_EQUAL(handle_tx_field(P1_FIRST_CHUNK, 0, 0, NULL), SWO_COMMAND_NOT_ALLOWED);
 }
 
 void test_field_signing_message_state_rejected(void) {
     // Other signing states (MESSAGE, EIP7702) also do not allow field cmds.
     appState = APP_STATE_SIGNING_MESSAGE;
-    TEST_ASSERT_EQUAL(handle_field(P1_FIRST_CHUNK, 0, 0, NULL), SWO_COMMAND_NOT_ALLOWED);
+    TEST_ASSERT_EQUAL(handle_tx_field(P1_FIRST_CHUNK, 0, 0, NULL), SWO_COMMAND_NOT_ALLOWED);
 }
 
 // =============================================================================
-// handle_field — no current tx_info
+// handle_tx_field — no current tx_info
 // =============================================================================
 
 void test_field_no_tx_info_triggers_cleanup(void) {
     appState = APP_STATE_SIGNING_TX;
     s_tx_info_ret = NULL;
-    TEST_ASSERT_EQUAL(handle_field(P1_FIRST_CHUNK, 0, 0, NULL), SWO_COMMAND_NOT_ALLOWED);
+    TEST_ASSERT_EQUAL(handle_tx_field(P1_FIRST_CHUNK, 0, 0, NULL), SWO_COMMAND_NOT_ALLOWED);
     // gcs_cleanup must NOT be called here: if a GCS review is on-screen,
     // calling it would free buffers that NBGL still holds, causing a crash.
     TEST_ASSERT_EQUAL(g_gcs_cleanup_calls, 0);
 }
 
 // =============================================================================
-// handle_field — happy path delegates to tlv_from_apdu
+// handle_tx_field — happy path delegates to tlv_from_apdu
 // =============================================================================
 
 void test_field_tlv_failure_returns_incorrect_data(void) {
@@ -283,7 +285,7 @@ void test_field_tlv_failure_returns_incorrect_data(void) {
     s_tx_info_ret = &dummy;
     appState = APP_STATE_SIGNING_TX;
     g_field_tlv_from_apdu_ret = TLV_APDU_ERROR;
-    TEST_ASSERT_EQUAL(handle_field(P1_FIRST_CHUNK, 0, 0, NULL), SWO_INCORRECT_DATA);
+    TEST_ASSERT_EQUAL(handle_tx_field(P1_FIRST_CHUNK, 0, 0, NULL), SWO_INCORRECT_DATA);
     // gcs_cleanup is NOT called on this path — only on the no-tx-info
     // branch.
     TEST_ASSERT_EQUAL(g_gcs_cleanup_calls, 0);
@@ -294,7 +296,7 @@ void test_field_tlv_success_returns_success(void) {
     s_tx_info_ret = &dummy;
     appState = APP_STATE_SIGNING_TX;
     g_field_tlv_from_apdu_ret = TLV_APDU_SUCCESS;
-    TEST_ASSERT_EQUAL(handle_field(P1_FIRST_CHUNK, 0, 0, NULL), SWO_SUCCESS);
+    TEST_ASSERT_EQUAL(handle_tx_field(P1_FIRST_CHUNK, 0, 0, NULL), SWO_SUCCESS);
 }
 
 void test_field_signing_eip712_allowed(void) {
@@ -302,7 +304,7 @@ void test_field_signing_eip712_allowed(void) {
     s_tx_info_ret = &dummy;
     appState = APP_STATE_SIGNING_EIP712;
     g_field_tlv_from_apdu_ret = TLV_APDU_SUCCESS;
-    TEST_ASSERT_EQUAL(handle_field(P1_FIRST_CHUNK, 0, 0, NULL), SWO_SUCCESS);
+    TEST_ASSERT_EQUAL(handle_tx_field(P1_FIRST_CHUNK, 0, 0, NULL), SWO_SUCCESS);
 }
 
 // =============================================================================
@@ -351,10 +353,10 @@ void test_tx_info_eip712_signing_allowed(void) {
 
 // =============================================================================
 // Internal handle_tlv_payload — invoked through the wrap so we can hit
-// the static helpers' branches in cmd_field.c / cmd_tx_info.c.
+// the static helpers' branches in cmd_tx_field.c / cmd_tx_info.c.
 // =============================================================================
 
-// --- cmd_field internal handler ---
+// --- cmd_tx_field internal handler ---
 
 void test_field_handler_happy_path(void) {
     static const s_operation_info dummy = {0};
@@ -364,7 +366,7 @@ void test_field_handler_happy_path(void) {
     g_operation_ctx_is_root_ret = true;  // not signing EIP-712 & at root → exit while loop
     g_validate_instruction_hash_budget = 0;
 
-    TEST_ASSERT_EQUAL(handle_field(P1_FIRST_CHUNK, 0, 0, NULL), SWO_SUCCESS);
+    TEST_ASSERT_EQUAL(handle_tx_field(P1_FIRST_CHUNK, 0, 0, NULL), SWO_SUCCESS);
     TEST_ASSERT_TRUE(g_field_tlv_handler_returned);
     // cleanup_field is NOT called on happy path
     TEST_ASSERT_EQUAL(g_cleanup_field_calls, 0);
@@ -377,7 +379,7 @@ void test_field_handler_handle_field_struct_failure(void) {
     g_field_tlv_invoke_handler = true;
     g_handle_field_struct_ret = false;
 
-    handle_field(P1_FIRST_CHUNK, 0, 0, NULL);
+    handle_tx_field(P1_FIRST_CHUNK, 0, 0, NULL);
     TEST_ASSERT_FALSE(g_field_tlv_handler_returned);
     // cleanup_field must be called to release any half-built state
     TEST_ASSERT_EQUAL(g_cleanup_field_calls, 1);
@@ -390,7 +392,7 @@ void test_field_handler_hash_failure(void) {
     g_field_tlv_invoke_handler = true;
     g_cx_hash_ret = 0x1234;  // not CX_OK
 
-    handle_field(P1_FIRST_CHUNK, 0, 0, NULL);
+    handle_tx_field(P1_FIRST_CHUNK, 0, 0, NULL);
     TEST_ASSERT_FALSE(g_field_tlv_handler_returned);
     TEST_ASSERT_EQUAL(g_cleanup_field_calls, 1);
 }
@@ -402,7 +404,7 @@ void test_field_handler_verify_failure(void) {
     g_field_tlv_invoke_handler = true;
     g_verify_field_struct_ret = false;
 
-    handle_field(P1_FIRST_CHUNK, 0, 0, NULL);
+    handle_tx_field(P1_FIRST_CHUNK, 0, 0, NULL);
     TEST_ASSERT_FALSE(g_field_tlv_handler_returned);
     TEST_ASSERT_EQUAL(g_cleanup_field_calls, 1);
 }
@@ -414,7 +416,7 @@ void test_field_handler_format_failure(void) {
     g_field_tlv_invoke_handler = true;
     g_format_field_ret = false;
 
-    handle_field(P1_FIRST_CHUNK, 0, 0, NULL);
+    handle_tx_field(P1_FIRST_CHUNK, 0, 0, NULL);
     TEST_ASSERT_FALSE(g_field_tlv_handler_returned);
     // format_field failure does NOT trigger cleanup_field (different path)
     TEST_ASSERT_EQUAL(g_cleanup_field_calls, 0);
@@ -428,7 +430,7 @@ void test_field_handler_eip712_pop_loop_runs(void) {
     // The validator returns true twice then false → two pops, then exit.
     g_validate_instruction_hash_budget = 2;
 
-    handle_field(P1_FIRST_CHUNK, 0, 0, NULL);
+    handle_tx_field(P1_FIRST_CHUNK, 0, 0, NULL);
     TEST_ASSERT_EQUAL(g_operation_ctx_pop_calls, 2);
 }
 
@@ -441,7 +443,7 @@ void test_field_handler_pop_failure_propagates(void) {
     g_validate_instruction_hash_budget = 2;
     g_operation_ctx_pop_ret = false;
 
-    handle_field(P1_FIRST_CHUNK, 0, 0, NULL);
+    handle_tx_field(P1_FIRST_CHUNK, 0, 0, NULL);
     TEST_ASSERT_FALSE(g_field_tlv_handler_returned);
     TEST_ASSERT_EQUAL(g_operation_ctx_pop_calls, 1);
 }
@@ -454,7 +456,7 @@ void test_field_handler_process_empty_failure_propagates(void) {
     g_validate_instruction_hash_budget = 1;   // first iter true, then false
     g_process_empty_calls_after_ret = false;  // bail out of while loop
 
-    handle_field(P1_FIRST_CHUNK, 0, 0, NULL);
+    handle_tx_field(P1_FIRST_CHUNK, 0, 0, NULL);
     TEST_ASSERT_FALSE(g_field_tlv_handler_returned);
 }
 

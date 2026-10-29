@@ -465,7 +465,8 @@ ledger_unit_tests_add_test(NAME test_eip712_session
 ledger_unit_tests_add_test(NAME test_cmd_field_tx_info
   SOURCES
     ${COMMON_SOURCES_WITH_GLOBALS}
-    ${APP_DIR}/features/generic_tx_parser/cmd_field.c
+    ${APP_DIR}/features/gcs/cmd_field.c
+    ${APP_DIR}/features/generic_tx_parser/cmd_tx_field.c
     ${APP_DIR}/features/generic_tx_parser/cmd_tx_info.c
   MOCK_HEADERS
     ${APP_DIR}/tlv_apdu.h

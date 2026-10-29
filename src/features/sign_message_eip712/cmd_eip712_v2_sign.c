@@ -6,6 +6,7 @@
 #include "typed_data.h"
 #include "common_ui.h"  // ui_712_v2_review, ui_error_blind_signing
 #include "eip712_session.h"
+#include "operation_ctx.h"
 
 #ifdef HAVE_PRINTF
 // Debug-only trace of the value trees, compiled out of release builds
@@ -92,6 +93,11 @@ uint16_t handle_eip712_v2_sign(uint8_t p1, uint8_t p2, uint8_t lc) {
     if (!td_has_domain() || !td_has_message()) {
         PRINTF("EIP712 v2: no message to sign\n");
         return SWO_COMMAND_NOT_ALLOWED;
+    }
+    // the message info attests the descriptors it announces, which all have to be there
+    if (operation_ctx_message_has_pending_fields() && !operation_ctx_message_fields_match()) {
+        PRINTF("EIP712 v2: the descriptors are not the announced ones\n");
+        return SWO_INCORRECT_DATA;
     }
     if (!td_hash_pass()) {
         PRINTF("EIP712 v2: hash pass failed\n");

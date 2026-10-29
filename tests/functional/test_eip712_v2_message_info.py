@@ -128,8 +128,6 @@ ACCEPTED = {
             "deploy_date": 1700000000,
         },
     ),
-    # a struct announcing descriptors is kept, but no command accepts the descriptors yet
-    "fields_announced": (message(1), {"fields_hash": SOME_FIELDS_HASH}),
 }
 
 

@@ -133,6 +133,11 @@ bool operation_ctx_message_has_pending_fields(void) {
     return operation_ctx_has_message() && g_message_has_fields;
 }
 
+bool operation_ctx_message_fields_match(void) {
+    return operation_ctx_message_has_pending_fields() &&
+           validate_inst_hash_on(g_operation_ctx_message);
+}
+
 static void delete_operation_ctx(s_operation_ctx *node) {
     if (node->info != NULL) {
         delete_operation_info(node->info);

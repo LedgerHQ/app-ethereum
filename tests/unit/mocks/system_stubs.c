@@ -350,6 +350,29 @@ __attribute__((weak)) bool operation_ctx_message_has_pending_fields(void) {
     return false;
 }
 
+__attribute__((weak)) bool operation_ctx_message_fields_match(void) {
+    return false;
+}
+
+// =============================================================================
+// app/src/features/sign_message_eip712/eip712_v2_path.c
+// =============================================================================
+
+struct s_eip712_path_context;
+
+__attribute__((weak)) bool handle_eip712_path_struct(const void *buf,
+                                                     struct s_eip712_path_context *context) {
+    (void) buf;
+    (void) context;
+    return false;
+}
+
+__attribute__((weak)) bool eip712_path_get(const void *path, void *collection) {
+    (void) path;
+    (void) collection;
+    return false;
+}
+
 // =============================================================================
 // app/src/features/gcs/gcs_value.c
 // =============================================================================

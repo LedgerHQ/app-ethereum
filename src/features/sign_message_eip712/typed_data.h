@@ -211,6 +211,16 @@ const s_struct_712_field *td_value_expected_field(const s_struct_712_value *node
 uint16_t td_value_child_count(const s_struct_712_value *node);
 
 /**
+ * Get one of the values attached to a struct or array value node
+ *
+ * @param[in] node VAL_STRUCT/VAL_ARRAY node
+ * @param[in] index position of the value, in the order the values were attached (the declared
+ *                  field order for a struct)
+ * @return the value, NULL if there is none at that position or @p node is a VAL_ATOMIC
+ */
+const s_struct_712_value *td_value_child(const s_struct_712_value *node, uint16_t index);
+
+/**
  * Write raw bytes into a leaf's value, one chunk at a time
  *
  * @param[in,out] leaf VAL_ATOMIC node to write into
@@ -362,6 +372,11 @@ bool td_has_schema(void);
  * @return the name of the struct type the message is an instance of, NULL if there is no message
  */
 const char *td_get_message_type_name(void);
+
+/**
+ * @return the root value of the message (a VAL_STRUCT), NULL if there is no message
+ */
+const s_struct_712_value *td_get_message_root(void);
 
 /**
  * Initialize the typed data context

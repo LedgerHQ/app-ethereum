@@ -4,6 +4,7 @@
 #include <stdbool.h>
 #include "buffer.h"
 #include "gtp_data_path.h"
+#include "eip712_v2_path.h"
 #include "calldata.h"
 
 typedef enum {
@@ -29,6 +30,7 @@ typedef enum {
     SOURCE_RLP,
     SOURCE_CONSTANT,
     SOURCE_MAP_REF,
+    SOURCE_EIP712,
 } e_value_source;
 
 typedef struct {
@@ -51,6 +53,7 @@ typedef struct {
     uint8_t type_size;
     union {
         s_data_path data_path;
+        s_eip712_path eip712_path;
         e_container_path container_path;
         s_constant constant;
         s_map_ref map_ref;

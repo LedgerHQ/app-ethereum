@@ -133,6 +133,19 @@ uint16_t td_value_child_count(const s_struct_712_value *node) {
     return count;
 }
 
+const s_struct_712_value *td_value_child(const s_struct_712_value *node, uint16_t index) {
+    const s_struct_712_value *child;
+
+    if ((node == NULL) || (node->kind == VAL_ATOMIC)) {
+        return NULL;
+    }
+    child = node->children;
+    for (uint16_t i = 0; (child != NULL) && (i < index); ++i) {
+        child = (const s_struct_712_value *) ((const flist_node_t *) child)->next;
+    }
+    return child;
+}
+
 const s_struct_712_field *td_value_expected_field(const s_struct_712_value *node) {
     const s_struct_712_field *field;
     const s_struct_712_value *child;
@@ -409,6 +422,10 @@ const char *td_get_message_type_name(void) {
         return NULL;
     }
     return g_impl.message->struct_type->name;
+}
+
+const s_struct_712_value *td_get_message_root(void) {
+    return g_impl.message;
 }
 
 bool td_get_domain_chain_id(uint64_t *chain_id) {

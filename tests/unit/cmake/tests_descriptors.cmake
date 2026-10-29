@@ -6,7 +6,7 @@ ledger_unit_tests_add_test(NAME test_ledger_pki
     ${APP_DIR}/ledger_pki.c
   INCLUDE_DIRS
     ${COMMON_INCLUDE_DIRS}
-    ${BOLOS_SDK}/lib_pki
+    ${SDK_DIR}/lib_pki
   COMPILE_DEFS
     ${COMMON_COMPILE_DEFS}
   LINK_OPTIONS
@@ -159,7 +159,7 @@ ledger_unit_tests_add_test(NAME test_network_info
     ${APP_DIR}/uint128.c
     ${APP_DIR}/uint256.c
     ${PLUGIN_DIR}/common_utils.c
-    ${BOLOS_SDK}/lib_lists/lists.c
+    ${SDK_DIR}/lib_lists/lists.c
   MOCK_HEADERS
     ${APP_DIR}/public_keys.h
     ${APP_DIR}/utils/hash_bytes.h
@@ -202,8 +202,8 @@ ledger_unit_tests_add_test(NAME test_trusted_name
     ${APP_DIR}/uint128.c
     ${APP_DIR}/uint256.c
     ${PLUGIN_DIR}/common_utils.c
-    ${BOLOS_SDK}/lib_standard_app/bip32.c
-    ${BOLOS_SDK}/lib_lists/lists.c
+    ${SDK_DIR}/lib_standard_app/bip32.c
+    ${SDK_DIR}/lib_lists/lists.c
   MOCK_HEADERS
     ${APP_DIR}/public_keys.h
     ${APP_DIR}/utils/hash_bytes.h
@@ -254,7 +254,7 @@ ledger_unit_tests_add_test(NAME test_cmd_get_tx_simulation
   INCLUDE_DIRS
     ${COMMON_INCLUDE_DIRS}
     ${APP_DIR}/features/provide_tx_simulation
-    ${BOLOS_SDK}/lib_tlv/use_cases
+    ${SDK_DIR}/lib_tlv/use_cases
   COMPILE_DEFS
     ${COMMON_COMPILE_DEFS}
   LINK_OPTIONS
@@ -291,7 +291,7 @@ ledger_unit_tests_add_test(NAME test_cmd_get_challenge
   INCLUDE_DIRS
     ${COMMON_INCLUDE_DIRS}
     ${APP_DIR}/features/get_challenge
-    ${BOLOS_SDK}/io_legacy/include
+    ${SDK_DIR}/io_legacy/include
   COMPILE_DEFS
     ${COMMON_COMPILE_DEFS}
     CUSTOM_IO_APDU_BUFFER_SIZE=272
@@ -308,7 +308,7 @@ ledger_unit_tests_add_test(NAME test_cmd_provide_nft_info
     ${APP_DIR}/uint128.c
     ${APP_DIR}/uint256.c
     ${PLUGIN_DIR}/common_utils.c
-    ${BOLOS_SDK}/lib_lists/lists.c
+    ${SDK_DIR}/lib_lists/lists.c
   MOCK_HEADERS
     ${APP_DIR}/public_keys.h
   INCLUDE_DIRS
@@ -331,13 +331,13 @@ ledger_unit_tests_add_test(NAME test_cmd_provide_token_info
     ${APP_DIR}/uint128.c
     ${APP_DIR}/uint256.c
     ${PLUGIN_DIR}/common_utils.c
-    ${BOLOS_SDK}/lib_lists/lists.c
+    ${SDK_DIR}/lib_lists/lists.c
   MOCK_HEADERS
     ${APP_DIR}/public_keys.h
   INCLUDE_DIRS
     ${COMMON_INCLUDE_DIRS}
     ${APP_DIR}/features/provide_erc20_token_information
-    ${BOLOS_SDK}/lib_tlv/use_cases
+    ${SDK_DIR}/lib_tlv/use_cases
   COMPILE_DEFS
     ${COMMON_COMPILE_DEFS}
   LINK_OPTIONS

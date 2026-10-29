@@ -2766,6 +2766,10 @@ def batch_empty_tx_common(
         creator_name="Ledger Multisig",
         creator_legal_name="Ledger",
     )
+    if nested_chain_id is not None:
+        name, ticker, icon = get_network_config(backend.device.type, nested_chain_id)
+        if name and ticker:
+            app_client.provide_network_info(DynamicNetwork(name, ticker, nested_chain_id, icon))
     app_client.provide_transaction_info(tx_info.serialize())
     for field in fields:
         app_client.provide_transaction_field_desc(field.serialize())

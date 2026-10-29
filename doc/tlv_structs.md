@@ -83,7 +83,8 @@ structs, which attests of the authenticity, order and completeness of all FIELD 
 > - `VISIBLE` defaults to `ALWAYS` (0x00) if not present
 > - `VISIBLE` can be present only once and should be served before any `CONSTRAINT`
 > - `CONSTRAINT` is only present when `VISIBLE` is `MUST_BE` or `IF_NOT_IN`
-> - `CONSTRAINT` tag can appear multiple times for multiple allowed/excluded values (OR semantics). There is no fixed limit; the number of constraints is bounded by the FIELD payload size.
+> - `CONSTRAINT` tag can appear multiple times for multiple allowed/excluded values (OR semantics).
+>   There is no fixed limit; the number of constraints is bounded by the FIELD payload size.
 > - `SEPARATOR` is optional and only meaningful for array-typed fields;
 >   `{index}` in the string is replaced with the 1-based element index at display time
 >   (e.g. `"Token {index}"` → `"Token 1"`, `"Token 2"`, ...)
@@ -116,28 +117,28 @@ structs, which attests of the authenticity, order and completeness of all FIELD 
 
 ### PARAM_RAW
 
-| Name    | Tag  | Payload type | Description                   | Optional | Source / value                                           |
-|---------|------|--------------|-------------------------------|----------|----------------------------------------------------------|
-| VERSION | 0x00 | uint8        | struct version                |          | constant: `0x1`                                          |
-| VALUE   | 0x01 | [VALUE](#value)        | reference to value to display |          | `$.display.formats.<format id>.fields.[<field id>].path` |
+| Name    | Tag  | Payload type    | Description                   | Optional | Source / value                                           |
+|---------|------|-----------------|-------------------------------|----------|----------------------------------------------------------|
+| VERSION | 0x00 | uint8           | struct version                |          | constant: `0x1`                                          |
+| VALUE   | 0x01 | [VALUE](#value) | reference to value to display |          | `$.display.formats.<format id>.fields.[<field id>].path` |
 
 ### PARAM_AMOUNT
 
-| Name    | Tag  | Payload type | Description                   | Optional | Source / value                                           |
-|---------|------|--------------|-------------------------------|----------|----------------------------------------------------------|
-| VERSION | 0x00 | uint8        | struct version                |          | constant: `0x1`                                          |
-| VALUE   | 0x01 | [VALUE](#value)        | reference to value to display |          | `$.display.formats.<format id>.fields.[<field id>].path` |
+| Name    | Tag  | Payload type    | Description                   | Optional | Source / value                                           |
+|---------|------|-----------------|-------------------------------|----------|----------------------------------------------------------|
+| VERSION | 0x00 | uint8           | struct version                |          | constant: `0x1`                                          |
+| VALUE   | 0x01 | [VALUE](#value) | reference to value to display |          | `$.display.formats.<format id>.fields.[<field id>].path` |
 
 ### PARAM_TOKEN_AMOUNT
 
-| Name                | Tag  | Payload type | Description                               | Optional | Source / value                                                                   |
-|---------------------|------|--------------|-------------------------------------------|----------|----------------------------------------------------------------------------------|
-| VERSION             | 0x00 | uint8        | struct version                            |          | constant: `0x1`                                                                  |
-| VALUE               | 0x01 | [VALUE](#value)        | reference to value to display             |          | `$.display.formats.<format id>.fields.[<field id>].path`                         |
-| TOKEN               | 0x02 | [VALUE](#value)        | reference to token address                | x        | `$.display.formats.<format id>.fields.[<field id>].params.tokenPath`             |
-| NATIVE_CURRENCY     | 0x03 | uint8[20]    | address to interpret as native currency   | x        | `$.display.formats.<format id>.fields.[<field id>].params.nativeCurrencyAddress` |
-| THRESHOLD           | 0x04 | uint256      | unlimited amount threshold                | x        | `$.display.formats.<format id>.fields.[<field id>].params.threshold`             |
-| ABOVE_THRESHOLD_MSG | 0x05 | char[]       | unlimited amount label                    | x        | `$.display.formats.<format id>.fields.[<field id>].params.message`               |
+| Name                | Tag  | Payload type    | Description                             | Optional | Source / value                                                                   |
+|---------------------|------|-----------------|-----------------------------------------|----------|----------------------------------------------------------------------------------|
+| VERSION             | 0x00 | uint8           | struct version                          |          | constant: `0x1`                                                                  |
+| VALUE               | 0x01 | [VALUE](#value) | reference to value to display           |          | `$.display.formats.<format id>.fields.[<field id>].path`                         |
+| TOKEN               | 0x02 | [VALUE](#value) | reference to token address              | x        | `$.display.formats.<format id>.fields.[<field id>].params.tokenPath`             |
+| NATIVE_CURRENCY     | 0x03 | uint8[20]       | address to interpret as native currency | x        | `$.display.formats.<format id>.fields.[<field id>].params.nativeCurrencyAddress` |
+| THRESHOLD           | 0x04 | uint256         | unlimited amount threshold              | x        | `$.display.formats.<format id>.fields.[<field id>].params.threshold`             |
+| ABOVE_THRESHOLD_MSG | 0x05 | char[]          | unlimited amount label                  | x        | `$.display.formats.<format id>.fields.[<field id>].params.message`               |
 
 This struct can contain `NATIVE_CURRENCY` multiple times for multiple addresses.
 
@@ -152,36 +153,36 @@ This struct can contain `NATIVE_CURRENCY` multiple times for multiple addresses.
 
 ### PARAM_NFT
 
-| Name       | Tag  | Payload type | Description                         | Optional | Source / value                                                            |
-|------------|------|--------------|-------------------------------------|----------|---------------------------------------------------------------------------|
-| VERSION    | 0x00 | uint8        | struct version                      |          | constant: `0x1`                                                           |
-| VALUE      | 0x01 | [VALUE](#value)        | reference to value to display       |          | `$.display.formats.<format id>.fields.[<field id>].path`                  |
-| COLLECTION | 0x02 | [VALUE](#value)        | reference to the collection address |          | `$.display.formats.<format id>.fields.[<field id>].params.collectionPath` |
+| Name       | Tag  | Payload type    | Description                         | Optional | Source / value                                                            |
+|------------|------|-----------------|-------------------------------------|----------|---------------------------------------------------------------------------|
+| VERSION    | 0x00 | uint8           | struct version                      |          | constant: `0x1`                                                           |
+| VALUE      | 0x01 | [VALUE](#value) | reference to value to display       |          | `$.display.formats.<format id>.fields.[<field id>].path`                  |
+| COLLECTION | 0x02 | [VALUE](#value) | reference to the collection address |          | `$.display.formats.<format id>.fields.[<field id>].params.collectionPath` |
 
 ### PARAM_DATETIME
 
-| Name    | Tag  | Payload type | Description                         | Optional | Source / value                                                      |
-|---------|------|--------------|-------------------------------------|----------|---------------------------------------------------------------------|
-| VERSION | 0x00 | uint8        | struct version                      |          | constant: `0x1`                                                     |
-| VALUE   | 0x01 | [VALUE](#value)        | reference to value to display       |          | `$.display.formats.<format id>.fields.[<field id>].path`            |
-| TYPE    | 0x02 | uint8        | 0 for unix time, 1 for block height |          | `$.display.formats.<format id>.fields.[<field id>].params.encoding` |
+| Name    | Tag  | Payload type    | Description                         | Optional | Source / value                                                      |
+|---------|------|-----------------|-------------------------------------|----------|---------------------------------------------------------------------|
+| VERSION | 0x00 | uint8           | struct version                      |          | constant: `0x1`                                                     |
+| VALUE   | 0x01 | [VALUE](#value) | reference to value to display       |          | `$.display.formats.<format id>.fields.[<field id>].path`            |
+| TYPE    | 0x02 | uint8           | 0 for unix time, 1 for block height |          | `$.display.formats.<format id>.fields.[<field id>].params.encoding` |
 
 ### PARAM_DURATION
 
-| Name    | Tag  | Payload type | Description                   | Optional | Source / value                                           |
-|---------|------|--------------|-------------------------------|----------|----------------------------------------------------------|
-| VERSION | 0x00 | uint8        | struct version                |          | constant: `0x1`                                          |
-| VALUE   | 0x01 | [VALUE](#value)        | reference to value to display |          | `$.display.formats.<format id>.fields.[<field id>].path` |
+| Name    | Tag  | Payload type    | Description                   | Optional | Source / value                                           |
+|---------|------|-----------------|-------------------------------|----------|----------------------------------------------------------|
+| VERSION | 0x00 | uint8           | struct version                |          | constant: `0x1`                                          |
+| VALUE   | 0x01 | [VALUE](#value) | reference to value to display |          | `$.display.formats.<format id>.fields.[<field id>].path` |
 
 ### PARAM_UNIT
 
-| Name     | Tag  | Payload type | Description                   | Optional | Source / value                                                      |
-|----------|------|--------------|-------------------------------|----------|---------------------------------------------------------------------|
-| VERSION  | 0x00 | uint8        | struct version                |          | constant: `0x1`                                                     |
-| VALUE    | 0x01 | [VALUE](#value)        | reference to value to display |          | `$.display.formats.<format id>.fields.[<field id>].path`            |
-| BASE     | 0x02 | char[]       |                               |          | `$.display.formats.<format id>.fields.[<field id>].params.base`     |
-| DECIMALS | 0x03 | uint8        | defaults to 0                 | x        | `$.display.formats.<format id>.fields.[<field id>].params.decimals` |
-| PREFIX   | 0x04 | bool         | defaults to false             | x        | `$.display.formats.<format id>.fields.[<field id>].params.prefix`   |
+| Name     | Tag  | Payload type    | Description                   | Optional | Source / value                                                      |
+|----------|------|-----------------|-------------------------------|----------|---------------------------------------------------------------------|
+| VERSION  | 0x00 | uint8           | struct version                |          | constant: `0x1`                                                     |
+| VALUE    | 0x01 | [VALUE](#value) | reference to value to display |          | `$.display.formats.<format id>.fields.[<field id>].path`            |
+| BASE     | 0x02 | char[]          |                               |          | `$.display.formats.<format id>.fields.[<field id>].params.base`     |
+| DECIMALS | 0x03 | uint8           | defaults to 0                 | x        | `$.display.formats.<format id>.fields.[<field id>].params.decimals` |
+| PREFIX   | 0x04 | bool            | defaults to false             | x        | `$.display.formats.<format id>.fields.[<field id>].params.prefix`   |
 
 `PREFIX` has to be false: the device does not apply a prefix to the value, and it refuses a descriptor
 that asks for one (`true`).
@@ -196,14 +197,14 @@ that asks for one (`true`).
 
 ### PARAM_TRUSTED_NAME
 
-| Name           | Tag  | Payload type        | Description                                | Optional | Source / value                                                           |
-|----------------|------|---------------------|--------------------------------------------|----------|--------------------------------------------------------------------------|
-| VERSION        | 0x00 | uint8               | struct version                             |          | constant: `0x1`                                                          |
-| VALUE          | 0x01 | [VALUE](#value)               | reference to value to display              |          | `$.display.formats.<format id>.fields.[<field id>].path`                 |
-| TYPES          | 0x02 | [TrustedNameType](#trustednametype-enum)[]   | allowed types for types for trusted name   |          | `$.display.formats.<format id>.fields.[<field id>].params.types`         |
-| SOURCES        | 0x03 | [TrustedNameSource](#trustednamesource-enum)[] | allowed sources for types for trusted name |          | `$.display.formats.<format id>.fields.[<field id>].params.sources`       |
-| SENDER_ADDRESS | 0x04 | uint8[20]           | address to interpret as the sender         | x        | `$.display.formats.<format id>.fields.[<field id>].params.senderAddress` |
-| VALUE_TYPE     | 0x05 | [TrustedNameValueType](#trustednamevaluetype-enum) | default: STANDARD | x        | `$.display.formats.<format id>.fields.[<field id>].params.valueType`     |
+| Name           | Tag  | Payload type                                       | Description                                | Optional | Source / value                                                           |
+|----------------|------|----------------------------------------------------|--------------------------------------------|----------|--------------------------------------------------------------------------|
+| VERSION        | 0x00 | uint8                                              | struct version                             |          | constant: `0x1`                                                          |
+| VALUE          | 0x01 | [VALUE](#value)                                    | reference to value to display              |          | `$.display.formats.<format id>.fields.[<field id>].path`                 |
+| TYPES          | 0x02 | [TrustedNameType](#trustednametype-enum)[]         | allowed types for types for trusted name   |          | `$.display.formats.<format id>.fields.[<field id>].params.types`         |
+| SOURCES        | 0x03 | [TrustedNameSource](#trustednamesource-enum)[]     | allowed sources for types for trusted name |          | `$.display.formats.<format id>.fields.[<field id>].params.sources`       |
+| SENDER_ADDRESS | 0x04 | uint8[20]                                          | address to interpret as the sender         | x        | `$.display.formats.<format id>.fields.[<field id>].params.senderAddress` |
+| VALUE_TYPE     | 0x05 | [TrustedNameValueType](#trustednamevaluetype-enum) | default: STANDARD                          | x        | `$.display.formats.<format id>.fields.[<field id>].params.valueType`     |
 
 This struct can contain `SENDER_ADDRESS` multiple times for multiple addresses.
 
@@ -263,20 +264,20 @@ name suffix, and applies trusted name resolution to the address part.
 
 ### PARAM_TOKEN
 
-| Name            | Tag  | Payload type | Description                             | Optional | Source / value                                                                   |
-|-----------------|------|--------------|-----------------------------------------|----------|----------------------------------------------------------------------------------|
-| VERSION         | 0x00 | uint8        | struct version                          |          | constant: `0x1`                                                                  |
-| ADDRESS         | 0x01 | [VALUE](#value)        | reference to value to display           |          | `$.display.formats.<format id>.fields.[<field id>].path`                         |
-| NATIVE_CURRENCY | 0x02 | uint8[20]    | address to interpret as native currency | x        | `$.display.formats.<format id>.fields.[<field id>].params.nativeCurrencyAddress` |
+| Name            | Tag  | Payload type    | Description                             | Optional | Source / value                                                                   |
+|-----------------|------|-----------------|-----------------------------------------|----------|----------------------------------------------------------------------------------|
+| VERSION         | 0x00 | uint8           | struct version                          |          | constant: `0x1`                                                                  |
+| ADDRESS         | 0x01 | [VALUE](#value) | reference to value to display           |          | `$.display.formats.<format id>.fields.[<field id>].path`                         |
+| NATIVE_CURRENCY | 0x02 | uint8[20]       | address to interpret as native currency | x        | `$.display.formats.<format id>.fields.[<field id>].params.nativeCurrencyAddress` |
 
 This struct can contain `NATIVE_CURRENCY` multiple times for multiple addresses.
 
 ### PARAM_NETWORK
 
-| Name    | Tag  | Payload type | Description                 | Optional | Source / value                                           |
-|---------|------|--------------|-----------------------------|----------|----------------------------------------------------------|
-| VERSION | 0x00 | uint8        | struct version              |          | constant: `0x1`                                          |
-| VALUE   | 0x01 | [VALUE](#value)        | reference to chain ID value |          | `$.display.formats.<format id>.fields.[<field id>].path` |
+| Name    | Tag  | Payload type    | Description                 | Optional | Source / value                                           |
+|---------|------|-----------------|-----------------------------|----------|----------------------------------------------------------|
+| VERSION | 0x00 | uint8           | struct version              |          | constant: `0x1`                                          |
+| VALUE   | 0x01 | [VALUE](#value) | reference to chain ID value |          | `$.display.formats.<format id>.fields.[<field id>].path` |
 
 The device looks up the network name from the chain ID using:
 
@@ -287,11 +288,11 @@ If the network is not found, the device falls back to displaying the raw chain I
 
 ### PARAM_GROUP
 
-| Name           | Tag  | Payload type | Description                               | Optional | Source / value                                                           |
-|----------------|------|--------------|-------------------------------------------|----------|--------------------------------------------------------------------------|
-| VERSION        | 0x00 | uint8        | struct version                            |          | constant: `0x01`                                                         |
-| ITERATION_TYPE | 0x01 | [GroupIterationType](#groupiterationtype-enum) | iteration order    | x        | `$.display.formats.<format id>.fields.[<field id>].params.iterationType` |
-| FIELD          | 0x02 | [FIELD](#field)        | a sub-field within the group (repeatable) |          | `$.display.formats.<format id>.fields.[<field id>].params.fields`        |
+| Name           | Tag  | Payload type                                   | Description                               | Optional | Source / value                                                           |
+|----------------|------|------------------------------------------------|-------------------------------------------|----------|--------------------------------------------------------------------------|
+| VERSION        | 0x00 | uint8                                          | struct version                            |          | constant: `0x01`                                                         |
+| ITERATION_TYPE | 0x01 | [GroupIterationType](#groupiterationtype-enum) | iteration order                           | x        | `$.display.formats.<format id>.fields.[<field id>].params.iterationType` |
+| FIELD          | 0x02 | [FIELD](#field)                                | a sub-field within the group (repeatable) |          | `$.display.formats.<format id>.fields.[<field id>].params.fields`        |
 
 `FIELD` may appear multiple times (one per sub-field).
 
@@ -318,15 +319,15 @@ If the network is not found, the device falls back to displaying the raw chain I
 
 ### VALUE
 
-| Name           | Tag  | Payload type    | Description                             | Optional | Source / value                                            |
-|----------------|------|-----------------|-----------------------------------------|----------|-----------------------------------------------------------|
-| VERSION        | 0x00 | uint8           | struct version                          |          | constant: `0x1`                                           |
-| TYPE_FAMILY    | 0x01 | [TypeFamily](#typefamily-enum)    |                                         |          |                                                           |
-| TYPE_SIZE      | 0x02 | uint8           | size of values (in bytes)               | x        |                                                           |
-| DATA_PATH      | 0x03 | [DATA_PATH](#data_path)       | path to value in serialized transaction | x        | `$.display.formats.<format id>.fields.[<field id>].path`  |
+| Name           | Tag  | Payload type                         | Description                             | Optional | Source / value                                            |
+|----------------|------|--------------------------------------|-----------------------------------------|----------|-----------------------------------------------------------|
+| VERSION        | 0x00 | uint8                                | struct version                          |          | constant: `0x1`                                           |
+| TYPE_FAMILY    | 0x01 | [TypeFamily](#typefamily-enum)       |                                         |          |                                                           |
+| TYPE_SIZE      | 0x02 | uint8                                | size of values (in bytes)               | x        |                                                           |
+| DATA_PATH      | 0x03 | [DATA_PATH](#data_path)              | path to value in serialized transaction | x        | `$.display.formats.<format id>.fields.[<field id>].path`  |
 | CONTAINER_PATH | 0x04 | [ContainerPath](#containerpath-enum) | container value enum                    | x        | `$.display.formats.<format id>.fields.[<field id>].path`  |
-| CONSTANT       | 0x05 | uint8[]         | literal value                           | x        | `$.display.formats.<format id>.fields.[<field id>].value` |
-| MAP_REF        | 0x06 | [MAP_REF](#map_ref)         | reference to a map entry                | x        | `$.metadata.maps.<map id>`                                |
+| CONSTANT       | 0x05 | uint8[]                              | literal value                           | x        | `$.display.formats.<format id>.fields.[<field id>].value` |
+| MAP_REF        | 0x06 | [MAP_REF](#map_ref)                  | reference to a map entry                | x        | `$.metadata.maps.<map id>`                                |
 
 #### TypeFamily enum
 
@@ -356,14 +357,14 @@ If the network is not found, the device falls back to displaying the raw chain I
 
 ### DATA_PATH
 
-| Name    | Tag  | Payload type    | Description                                                                                                                               | Optional | Source / value  |
-|---------|------|-----------------|-------------------------------------------------------------------------------------------------------------------------------------------|----------|-----------------|
-| VERSION | 0x00 | uint8           | struct version                                                                                                                            |          | constant: `0x1` |
-| TUPLE   | 0x01 | uint16          | move by {value} slots from current slot                                                                                                   | x        |                 |
-| ARRAY   | 0x02 | [ARRAY_ELEMENT](#array_element)   | current slot is array length, added to offset if negative. multiple by item_size and move by result slots. payload unset => iterate array | x        |                 |
-| REF     | 0x03 |                 | read value of current slot. apply read value as offset from current slot                                                                  | x        |                 |
-| LEAF    | 0x04 | [PathLeafType](#pathleaftype-enum)  | current slot is a leaf type, specifying the type of path end                                                                              | x        |                 |
-| SLICE   | 0x05 | [SLICE_ELEMENT](#slice_element)   | specify slicing to apply to final leaf value as (start, end)                                                                              | x        |                 |
+| Name    | Tag  | Payload type                       | Description                                                                                                                               | Optional | Source / value  |
+|---------|------|------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------|----------|-----------------|
+| VERSION | 0x00 | uint8                              | struct version                                                                                                                            |          | constant: `0x1` |
+| TUPLE   | 0x01 | uint16                             | move by {value} slots from current slot                                                                                                   | x        |                 |
+| ARRAY   | 0x02 | [ARRAY_ELEMENT](#array_element)    | current slot is array length, added to offset if negative. multiple by item_size and move by result slots. payload unset => iterate array | x        |                 |
+| REF     | 0x03 |                                    | read value of current slot. apply read value as offset from current slot                                                                  | x        |                 |
+| LEAF    | 0x04 | [PathLeafType](#pathleaftype-enum) | current slot is a leaf type, specifying the type of path end                                                                              | x        |                 |
+| SLICE   | 0x05 | [SLICE_ELEMENT](#slice_element)    | specify slicing to apply to final leaf value as (start, end)                                                                              | x        |                 |
 
 #### PathLeafType enum
 
@@ -454,17 +455,17 @@ Embedded as VALUE tag `0x06`. References a stored MAP_ENTRY by ID and key.
 
 ## PROXY_INFO
 
-| Name            | Tag  | Payload type     | Description                     | Optional |
-|-----------------|------|------------------|---------------------------------|----------|
-| STRUCT_TYPE     | 0x01 | uint8            | structure type                  |          |
-| STRUCT_VERSION  | 0x02 | uint8            | structure version               |          |
-| CHALLENGE       | 0x12 | uint32           | challenge to ensure freshness   |          |
-| ADDRESS         | 0x22 | uint8[20]        | proxy contract address          |          |
-| CHAIN_ID        | 0x23 | uint64           | EVM chain identifier            |          |
-| SELECTOR        | 0x41 | uint[4]          | function selector               | x        |
-| IMPL_ADDRESS    | 0x42 | uint8[20]        | implementation contract address |          |
+| Name            | Tag  | Payload type                           | Description                     | Optional |
+|-----------------|------|----------------------------------------|---------------------------------|----------|
+| STRUCT_TYPE     | 0x01 | uint8                                  | structure type                  |          |
+| STRUCT_VERSION  | 0x02 | uint8                                  | structure version               |          |
+| CHALLENGE       | 0x12 | uint32                                 | challenge to ensure freshness   |          |
+| ADDRESS         | 0x22 | uint8[20]                              | proxy contract address          |          |
+| CHAIN_ID        | 0x23 | uint64                                 | EVM chain identifier            |          |
+| SELECTOR        | 0x41 | uint[4]                                | function selector               | x        |
+| IMPL_ADDRESS    | 0x42 | uint8[20]                              | implementation contract address |          |
 | DELEGATION_TYPE | 0x43 | [DelegationType](#delegationtype-enum) | type of delegation              |          |
-| SIGNATURE       | 0x15 | uint8[]          | signature of the structure      |          |
+| SIGNATURE       | 0x15 | uint8[]                                | signature of the structure      |          |
 
 ### DelegationType enum
 
@@ -591,16 +592,16 @@ The signature is computed on the full payload data, using `CX_CURVE_SECP256K1`.
 
 Parsed by the SDK `tlv_use_case_dynamic_descriptor` helper.
 
-| Name             | Tag  | Payload type | Description                                                         |
-|------------------|------|--------------|---------------------------------------------------------------------|
-| STRUCTURE_TYPE   | 0x01 | uint8        | Structure type, must be `0x90` (`TYPE_DYNAMIC_TOKEN`)               |
-| VERSION          | 0x02 | uint8        | Serialization format version, currently `0x01`                      |
-| COIN_TYPE        | 0x03 | uint32       | SLIP-44 coin type (e.g. `60` for Ethereum)                          |
-| APPLICATION_NAME | 0x04 | char[]       | Ledger application name this descriptor targets (e.g. `"Ethereum"`) |
-| TICKER           | 0x05 | char[]       | Token ticker symbol (without `'\0'`)                                |
-| MAGNITUDE        | 0x06 | uint8        | Number of decimals                                                  |
-| TUID             | 0x07 | [ETH_TUID](#eth_tuid)     | Token Unique ID — application-specific sub-TLV                      |
-| SIGNATURE        | 0x08 | uint8[]      | Signature of the SHA-256 hash of all fields except SIGNATURE        |
+| Name             | Tag  | Payload type          | Description                                                         |
+|------------------|------|-----------------------|---------------------------------------------------------------------|
+| STRUCTURE_TYPE   | 0x01 | uint8                 | Structure type, must be `0x90` (`TYPE_DYNAMIC_TOKEN`)               |
+| VERSION          | 0x02 | uint8                 | Serialization format version, currently `0x01`                      |
+| COIN_TYPE        | 0x03 | uint32                | SLIP-44 coin type (e.g. `60` for Ethereum)                          |
+| APPLICATION_NAME | 0x04 | char[]                | Ledger application name this descriptor targets (e.g. `"Ethereum"`) |
+| TICKER           | 0x05 | char[]                | Token ticker symbol (without `'\0'`)                                |
+| MAGNITUDE        | 0x06 | uint8                 | Number of decimals                                                  |
+| TUID             | 0x07 | [ETH_TUID](#eth_tuid) | Token Unique ID — application-specific sub-TLV                      |
+| SIGNATURE        | 0x08 | uint8[]               | Signature of the SHA-256 hash of all fields except SIGNATURE        |
 
 The signature is verified via the Ledger PKI with key usage `CERTIFICATE_PUBLIC_KEY_USAGE_COIN_META`.
 

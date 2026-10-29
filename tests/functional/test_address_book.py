@@ -4,6 +4,7 @@ from pathlib import Path
 
 import client.response_parser as ResponseParser
 from client.client import EthAppClient, SignMode
+from client.dynamic_networks import DynamicNetwork
 from client.gcs import (
     ContainerPath,
     DataPath,
@@ -19,6 +20,7 @@ from client.status_word import StatusWord
 from client.trusted_name import TrustedName, TrustedNameSource, TrustedNameType
 from client.utils import CoinType, get_selector_from_data
 from constants import ABIS_FOLDER
+from dynamic_networks_cfg import get_network_config
 from fields_utils import get_all_paths, get_all_tuple_array_paths
 from ragger.address_book import (
     GROUP_HANDLE_LENGTH,
@@ -919,6 +921,8 @@ def test_address_book_simple_tx_chain_id_mismatch(scenario_navigator: NavigateWi
     assert len(response.data) == 0
 
     # Step 3: Sign TX on chain_id=137 — stored contact has chain_id=1, so no match → raw
+    name, ticker, icon = get_network_config(backend.device.type, wrong_chain_id)
+    app_client.provide_network_info(DynamicNetwork(name, ticker, wrong_chain_id, icon))
     tx_params: dict = {
         "nonce": NONCE,
         "gasPrice": Web3.to_wei(GAS_PRICE, "gwei"),

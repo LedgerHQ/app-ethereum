@@ -155,16 +155,6 @@ __attribute__((noreturn)) void app_exit(void) {
     }
 }
 
-// os_longjmp is overridden locally (vs. the silent stub in mocks/mock.c)
-// to make any unexpected exception loud — the external-plugin path is
-// not exercised by these tests, so reaching it would be a bug.
-__attribute__((noreturn)) void os_longjmp(unsigned int e) {
-    (void) e;
-    TEST_FAIL_MESSAGE("os_longjmp() reached unexpectedly");
-    while (1) {
-    }
-}
-
 // Plugin selectors / addresses referenced by INTERNAL_ETH_PLUGINS.
 // Production code links these against the actual plugin .c files; here
 // we provide concrete byte arrays so the matching_selector /

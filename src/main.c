@@ -260,7 +260,7 @@ __attribute__((noreturn)) void library_main(eth_libargs_t *args) {
             }
             break;
         case GET_PRINTABLE_AMOUNT:
-            handle_get_printable_amount(args->get_printable_amount, args->chain_config);
+            handle_get_printable_amount(args->get_printable_amount);
             break;
         default:
             break;

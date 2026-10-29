@@ -11,7 +11,7 @@ ledger_unit_tests_add_test(NAME test_address_name_lookup
   INCLUDE_DIRS
     ${COMMON_INCLUDE_DIRS}
     ${APP_DIR}/features/address_book
-    ${BOLOS_SDK}/app_features/address_book/include
+    ${SDK_DIR}/app_features/address_book/include
   COMPILE_DEFS
     ${COMMON_COMPILE_DEFS}
     HAVE_ADDRESS_BOOK
@@ -27,7 +27,7 @@ ledger_unit_tests_add_test(NAME test_handle_identity
   INCLUDE_DIRS
     ${COMMON_INCLUDE_DIRS}
     ${APP_DIR}/features/address_book
-    ${BOLOS_SDK}/app_features/address_book/include
+    ${SDK_DIR}/app_features/address_book/include
   COMPILE_DEFS
     ${COMMON_COMPILE_DEFS}
     HAVE_ADDRESS_BOOK
@@ -42,11 +42,11 @@ ledger_unit_tests_add_test(NAME test_handle_contacts
   SOURCES
     ${COMMON_SOURCES}
     ${APP_DIR}/features/address_book/handle_contacts.c
-    ${BOLOS_SDK}/lib_lists/lists.c
+    ${SDK_DIR}/lib_lists/lists.c
   INCLUDE_DIRS
     ${COMMON_INCLUDE_DIRS}
     ${APP_DIR}/features/address_book
-    ${BOLOS_SDK}/app_features/address_book/include
+    ${SDK_DIR}/app_features/address_book/include
   COMPILE_DEFS
     ${COMMON_COMPILE_DEFS}
     HAVE_ADDRESS_BOOK
@@ -60,12 +60,12 @@ ledger_unit_tests_add_test(NAME test_handle_ledger_account
     ${APP_DIR}/features/address_book/handle_ledger_account.c
     ${APP_DIR}/features/address_book/handle_contacts.c
     ${APP_DIR}/features/address_book/address_book_ctx.c
-    ${BOLOS_SDK}/lib_lists/lists.c
+    ${SDK_DIR}/lib_lists/lists.c
   INCLUDE_DIRS
     ${COMMON_INCLUDE_DIRS}
     ${APP_DIR}/features/address_book
-    ${BOLOS_SDK}/app_features/address_book/include
-    ${BOLOS_SDK}/io_legacy/include
+    ${SDK_DIR}/app_features/address_book/include
+    ${SDK_DIR}/io_legacy/include
   COMPILE_DEFS
     ${COMMON_COMPILE_DEFS}
     HAVE_ADDRESS_BOOK

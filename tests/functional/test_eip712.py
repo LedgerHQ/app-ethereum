@@ -15,6 +15,7 @@ import client.response_parser as ResponseParser
 import pytest
 import web3
 from client.client import EIP712CalldataParamPresence, EIP712FieldType, EthAppClient
+from client.dynamic_networks import DynamicNetwork
 from client.eip712 import InputData
 from client.gating import Gating
 from client.gcs import (
@@ -38,6 +39,7 @@ from client.trusted_name import TrustedName, TrustedNameSource, TrustedNameType
 from client.tx_simu import TxSimu
 from client.utils import get_selector_from_data, recover_message
 from constants import ABIS_FOLDER
+from dynamic_networks_cfg import get_network_config
 from eth_account.messages import encode_typed_data
 from fields_utils import get_all_paths, get_all_tuple_array_paths
 from ragger.backend import BackendInterface
@@ -113,6 +115,14 @@ def eip712_new_common(
     nb_warnings: int = 0,
 ) -> None:
     app_client = EthAppClient(scenario_navigator.backend)
+
+    # Provide the network info. Must happen before process_data, which streams the
+    # message root and freezes the "Network" review value.
+    chain_id = data.get("domain", {}).get("chainId")
+    if chain_id is not None:
+        name, ticker, icon = get_network_config(scenario_navigator.backend.device.type, chain_id)
+        if name and ticker:
+            app_client.provide_network_info(DynamicNetwork(name, ticker, chain_id, icon))
 
     InputData.process_data(app_client, data, filters)
     do_compare = snapshots_dirname is not None

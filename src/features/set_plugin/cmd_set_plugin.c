@@ -145,7 +145,7 @@ uint16_t handle_set_plugin(const uint8_t *workBuffer, uint8_t dataLength) {
 
     chain_id = u64_from_BE(workBuffer + offset, CHAIN_ID_SIZE);
     PRINTF("ChainID: %llu\n", chain_id);
-    if (!app_compatible_with_chain_id(&chain_id)) {
+    if (!chain_id_is_signable(chain_id)) {
         UNSUPPORTED_CHAIN_ID_MSG(chain_id);
         return SWO_INCORRECT_DATA;
     }

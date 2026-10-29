@@ -56,7 +56,7 @@ ledger_unit_tests_add_test(NAME test_eth_swap_utils
     ${COMMON_INCLUDE_DIRS}
     ${APP_DIR}/swap
     ${APP_DIR}/features/sign_tx
-    ${BOLOS_SDK}/io_legacy/include
+    ${SDK_DIR}/io_legacy/include
   COMPILE_DEFS
     ${COMMON_COMPILE_DEFS}
     CUSTOM_IO_APDU_BUFFER_SIZE=272
@@ -81,7 +81,7 @@ ledger_unit_tests_add_test(NAME test_logic_sign_tx_fee
     ${APP_DIR}/features/provide_proxy_info
     ${APP_DIR}/plugins
     ${APP_DIR}/swap
-    ${BOLOS_SDK}/io_legacy/include
+    ${SDK_DIR}/io_legacy/include
   COMPILE_DEFS
     ${COMMON_COMPILE_DEFS}
     CUSTOM_IO_APDU_BUFFER_SIZE=272
@@ -108,7 +108,7 @@ ledger_unit_tests_add_test(NAME test_logic_sign_tx_finalize
     ${APP_DIR}/features/provide_proxy_info
     ${APP_DIR}/plugins
     ${APP_DIR}/swap
-    ${BOLOS_SDK}/io_legacy/include
+    ${SDK_DIR}/io_legacy/include
   COMPILE_DEFS
     ${COMMON_COMPILE_DEFS}
     CUSTOM_IO_APDU_BUFFER_SIZE=272
@@ -134,7 +134,7 @@ ledger_unit_tests_add_test(NAME test_cmd_sign_tx
     ${APP_DIR}/features/generic_tx_parser
     ${APP_DIR}/features/provide_network_info
     ${APP_DIR}/plugins
-    ${BOLOS_SDK}/io_legacy/include
+    ${SDK_DIR}/io_legacy/include
   COMPILE_DEFS
     ${COMMON_COMPILE_DEFS}
     CUSTOM_IO_APDU_BUFFER_SIZE=272
@@ -184,7 +184,7 @@ ledger_unit_tests_add_test(NAME test_cmd_get_public_key
   INCLUDE_DIRS
     ${COMMON_INCLUDE_DIRS}
     ${APP_DIR}/features/get_public_key
-    ${BOLOS_SDK}/io_legacy/include
+    ${SDK_DIR}/io_legacy/include
   COMPILE_DEFS
     ${COMMON_COMPILE_DEFS}
     CUSTOM_IO_APDU_BUFFER_SIZE=272
@@ -204,7 +204,7 @@ ledger_unit_tests_add_test(NAME test_cmd_perform_privacy_operation
   INCLUDE_DIRS
     ${COMMON_INCLUDE_DIRS}
     ${APP_DIR}/features/perform_privacy_operation
-    ${BOLOS_SDK}/io_legacy/include
+    ${SDK_DIR}/io_legacy/include
   COMPILE_DEFS
     ${COMMON_COMPILE_DEFS}
     CUSTOM_IO_APDU_BUFFER_SIZE=272
@@ -247,7 +247,7 @@ ledger_unit_tests_add_test(NAME test_cmd_get_eth2_public_key
   INCLUDE_DIRS
     ${COMMON_INCLUDE_DIRS}
     ${APP_DIR}/features/get_eth2_public_key
-    ${BOLOS_SDK}/io_legacy/include
+    ${SDK_DIR}/io_legacy/include
   COMPILE_DEFS
     ${COMMON_COMPILE_DEFS}
     HAVE_ETH2

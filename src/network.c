@@ -245,18 +245,6 @@ const char *get_displayable_ticker(const uint64_t *chain_id,
     return ticker;
 }
 
-/**
- * Checks whether the app can support the given chain ID
- *
- * - If the given chain ID is the same as the app's one
- * - If both chain IDs are present in the array of Ethereum-compatible networks
- */
-bool app_compatible_with_chain_id(const uint64_t *chain_id) {
-    return ((g_chain_config->chain_id == *chain_id) ||
-            (chain_is_ethereum_compatible(&g_chain_config->chain_id) &&
-             chain_is_ethereum_compatible(chain_id)));
-}
-
 const char *get_clone_network_name(const caller_app_t *caller_app) {
     if ((caller_app == NULL) || (caller_app->type != CALLER_TYPE_CLONE)) {
         return NULL;
@@ -272,9 +260,8 @@ const char *get_clone_network_name(const caller_app_t *caller_app) {
  * also signs every network the device knows (registered dynamically or from
  * the hardcoded mapping above).
  *
- * Unlike app_compatible_with_chain_id() this does not widen a clone's scope to
- * the whole set of known networks, which is what signed-metadata loaders need:
- * metadata for a chain the app would refuse to sign is of no use to them.
+ * Signed-metadata loaders rely on it: metadata for a chain the app would refuse
+ * to sign is of no use to them.
  */
 bool chain_id_is_signable(uint64_t chain_id) {
     if (g_chain_config->chain_id == chain_id) {

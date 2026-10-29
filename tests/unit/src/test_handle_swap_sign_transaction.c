@@ -100,11 +100,9 @@ void *mem_utils_alloc(size_t size, bool permanent, const char *file, int line) {
 
 void get_asset_info_on_network(bool is_fee,
                                swap_context_t *context,
-                               chain_config_t *chain_config,
                                char **ticker,
                                uint8_t *decimals) {
     (void) is_fee;
-    (void) chain_config;
     (void) decimals;
     // For these tests we always point ticker at the fees-asset ticker
     // (which is what production code does for is_fee=true).

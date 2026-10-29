@@ -31,7 +31,6 @@
 typedef struct cx_sha256_s cx_sha256_t;
 typedef struct cx_sha3_s cx_sha3_t;
 typedef struct cx_hash_header_s cx_hash_t;
-typedef struct try_context_s try_context_t;
 
 // =============================================================================
 // g_keccak_init_ret — only configurable crypto return value here
@@ -141,23 +140,8 @@ __attribute__((noreturn)) void assert_exit(bool confirm) {
 }
 
 // =============================================================================
-// BOLOS_SDK -- include/exceptions.h + include/os_lib.h
+// BOLOS_SDK -- include/os_lib.h
 // =============================================================================
-
-__attribute__((weak)) try_context_t *try_context_set(try_context_t *ctx) {
-    (void) ctx;
-    return NULL;
-}
-
-__attribute__((weak)) try_context_t *try_context_get(void) {
-    return NULL;
-}
-
-__attribute__((weak)) __attribute__((noreturn)) void os_longjmp(unsigned int exception) {
-    (void) exception;
-    while (1) {
-    }
-}
 
 __attribute__((weak)) void os_lib_call(unsigned int *call_parameters) {
     (void) call_parameters;

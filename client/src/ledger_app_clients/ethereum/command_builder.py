@@ -29,8 +29,8 @@ class InsType(IntEnum):
     GET_CHALLENGE = 0x20
     PROVIDE_TRUSTED_NAME = 0x22
     PROVIDE_ENUM_VALUE = 0x24
-    PROVIDE_TRANSACTION_INFO = 0x26
-    PROVIDE_TRANSACTION_FIELD_DESC = 0x28
+    PROVIDE_OPERATION_INFO = 0x26
+    PROVIDE_OPERATION_FIELD_DESC = 0x28
     PROVIDE_PROXY_INFO = 0x2A
     PROVIDE_NETWORK_INFO = 0x30
     PROVIDE_TX_SIMULATION = 0x32
@@ -206,14 +206,14 @@ class CommandBuilder:
 
     def eip712_v2_message_info(self, tlv_payload: bytes) -> list[bytes]:
         return self.common_tlv_serialize(
-            InsType.PROVIDE_TRANSACTION_INFO,
+            InsType.PROVIDE_OPERATION_INFO,
             tlv_payload,
             p2l=[P2Type.EIP712_V2_IMPLEM],
         )
 
     def eip712_v2_field_desc(self, tlv_payload: bytes) -> list[bytes]:
         return self.common_tlv_serialize(
-            InsType.PROVIDE_TRANSACTION_FIELD_DESC,
+            InsType.PROVIDE_OPERATION_FIELD_DESC,
             tlv_payload,
             p2l=[P2Type.EIP712_V2_IMPLEM],
         )
@@ -634,11 +634,11 @@ class CommandBuilder:
     def provide_map_entry(self, tlv_payload: bytes) -> list[bytes]:
         return self.common_tlv_serialize(InsType.PROVIDE_MAP_ENTRY, tlv_payload)
 
-    def provide_transaction_info(self, tlv_payload: bytes) -> list[bytes]:
-        return self.common_tlv_serialize(InsType.PROVIDE_TRANSACTION_INFO, tlv_payload)
+    def provide_operation_info(self, tlv_payload: bytes) -> list[bytes]:
+        return self.common_tlv_serialize(InsType.PROVIDE_OPERATION_INFO, tlv_payload)
 
-    def provide_transaction_field_desc(self, tlv_payload: bytes) -> list[bytes]:
-        return self.common_tlv_serialize(InsType.PROVIDE_TRANSACTION_FIELD_DESC, tlv_payload)
+    def provide_operation_field_desc(self, tlv_payload: bytes) -> list[bytes]:
+        return self.common_tlv_serialize(InsType.PROVIDE_OPERATION_FIELD_DESC, tlv_payload)
 
     def opt_in_tx_simulation(self) -> bytes:
         # Serialize the payload

@@ -1242,10 +1242,10 @@ def gcs_handler(app_client: EthAppClient, json_data: dict) -> None:
     assert tx_info.contract_name is not None
     app_client.provide_token_metadata(tx_info.contract_name, tx_info.contract_addr, 6, tx_info.chain_id)
 
-    app_client.provide_transaction_info(tx_info.serialize())
+    app_client.provide_operation_info(tx_info.serialize())
 
     for field in fields:
-        app_client.provide_transaction_field_desc(field.serialize())
+        app_client.provide_operation_field_desc(field.serialize())
 
 
 def gcs_handler_batch(app_client: EthAppClient, json_data: dict) -> None:
@@ -1410,15 +1410,15 @@ def gcs_handler_batch(app_client: EthAppClient, json_data: dict) -> None:
     app_client.provide_proxy_info(proxy_info.serialize())
 
     # Send intermediate execTransaction info description
-    app_client.provide_transaction_info(L0_tx_info.serialize())
+    app_client.provide_operation_info(L0_tx_info.serialize())
     for f0 in L0_fields:
         # Send intermediate execTransaction fields description
-        app_client.provide_transaction_field_desc(f0.serialize())
+        app_client.provide_operation_field_desc(f0.serialize())
 
     # Lower batchExecute description
     for idx, i1 in enumerate(L1_tx_info):
         # Send lower batchExecute info description
-        app_client.provide_transaction_info(i1.serialize())
+        app_client.provide_operation_info(i1.serialize())
         app_client.provide_token_metadata(
             tokens[idx]["ticker"],
             tokens[idx]["address"],
@@ -1427,7 +1427,7 @@ def gcs_handler_batch(app_client: EthAppClient, json_data: dict) -> None:
         )
         for f1 in L1_fields:
             # Send lower batchExecute fields description
-            app_client.provide_transaction_field_desc(f1.serialize())
+            app_client.provide_operation_field_desc(f1.serialize())
 
 
 def gcs_handler_no_param(app_client: EthAppClient, json_data: dict) -> None:
@@ -1443,7 +1443,7 @@ def gcs_handler_no_param(app_client: EthAppClient, json_data: dict) -> None:
         creator_url="weth.io",
     )
 
-    app_client.provide_transaction_info(tx_info.serialize())
+    app_client.provide_operation_info(tx_info.serialize())
 
 
 def eip712_calldata_common(

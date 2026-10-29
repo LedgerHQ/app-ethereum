@@ -313,19 +313,19 @@ def test_eip712_v2_message_info_unknown_p1(scenario_navigator: NavigateWithScena
     json_to_tlv.process_data(app_client, message(1), BIP32_PATH)
     expect_status(
         StatusWord.SWO_INCORRECT_P1_P2,
-        lambda: app_client.send_raw(CLA, InsType.PROVIDE_TRANSACTION_INFO, P1_UNKNOWN, P2Type.EIP712_V2_IMPLEM, b""),
+        lambda: app_client.send_raw(CLA, InsType.PROVIDE_OPERATION_INFO, P1_UNKNOWN, P2Type.EIP712_V2_IMPLEM, b""),
     )
     assert_recovers(app_client)
 
 
 @pytest.mark.parametrize("p2", [0x01, 0x03, 0x0F, 0xFF])
-def test_eip712_v2_transaction_info_other_p2(scenario_navigator: NavigateWithScenario, p2: int):
-    """TRANSACTION INFO is P2 = 00 for a transaction and P2 = 02 for a message: nothing else."""
+def test_eip712_v2_operation_info_other_p2(scenario_navigator: NavigateWithScenario, p2: int):
+    """PROVIDE OPERATION INFO is P2 = 00 for a transaction and P2 = 02 for a message: nothing else."""
     app_client = EthAppClient(scenario_navigator.backend)
 
     expect_status(
         StatusWord.SWO_INCORRECT_P1_P2,
-        lambda: app_client.send_raw(CLA, InsType.PROVIDE_TRANSACTION_INFO, 0x01, p2, b""),
+        lambda: app_client.send_raw(CLA, InsType.PROVIDE_OPERATION_INFO, 0x01, p2, b""),
     )
 
 

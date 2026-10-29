@@ -443,17 +443,17 @@ class EthAppClient:
             self._exchange(chunk)
         return self._exchange(chunks[-1])
 
-    def provide_transaction_info(self, payload: bytes) -> RAPDU:
+    def provide_operation_info(self, payload: bytes) -> RAPDU:
         # Send ledgerPKI certificate
         self.send_pki_certificate(CALLDATA_PARTNER)
 
-        chunks = self._cmd_builder.provide_transaction_info(payload)
+        chunks = self._cmd_builder.provide_operation_info(payload)
         for chunk in chunks[:-1]:
             self._exchange(chunk)
         return self._exchange(chunks[-1])
 
-    def provide_transaction_field_desc(self, payload: bytes) -> RAPDU:
-        chunks = self._cmd_builder.provide_transaction_field_desc(payload)
+    def provide_operation_field_desc(self, payload: bytes) -> RAPDU:
+        chunks = self._cmd_builder.provide_operation_field_desc(payload)
         for chunk in chunks[:-1]:
             self._exchange(chunk)
         return self._exchange(chunks[-1])

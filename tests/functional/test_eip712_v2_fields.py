@@ -798,7 +798,7 @@ def test_eip712_v2_fields_unknown_p2_refused(scenario_navigator: NavigateWithSce
 
     start(app_client, data, announced())
     chunk = app_client._cmd_builder.common_tlv_serialize(
-        InsType.PROVIDE_TRANSACTION_FIELD_DESC, announced()[0].serialize(), p2l=[p2]
+        InsType.PROVIDE_OPERATION_FIELD_DESC, announced()[0].serialize(), p2l=[p2]
     )[0]
     expect_status(StatusWord.SWO_INCORRECT_P1_P2, lambda: app_client._exchange(chunk))
     assert_recovers(app_client)
@@ -810,7 +810,7 @@ def test_eip712_v2_fields_unknown_p1_refused(scenario_navigator: NavigateWithSce
     start(app_client, order(), announced())
     expect_status(
         StatusWord.SWO_INCORRECT_P1_P2,
-        lambda: app_client.send_raw(0xE0, InsType.PROVIDE_TRANSACTION_FIELD_DESC, 0x02, P2Type.EIP712_V2_IMPLEM, b"\x00\x00"),
+        lambda: app_client.send_raw(0xE0, InsType.PROVIDE_OPERATION_FIELD_DESC, 0x02, P2Type.EIP712_V2_IMPLEM, b"\x00\x00"),
     )
     assert_recovers(app_client)
 
@@ -940,9 +940,9 @@ def transfer_info(fields: list[Field], **overrides) -> TxInfo:
 def describe_call(app_client: EthAppClient, fields: list[Field] | None = None, **overrides) -> None:
     """Describe a call: its TRANSACTION_INFO, then its FIELDs."""
     fields = transfer_fields() if fields is None else fields
-    assert app_client.provide_transaction_info(transfer_info(fields, **overrides).serialize()).status == (StatusWord.SWO_SUCCESS)
+    assert app_client.provide_operation_info(transfer_info(fields, **overrides).serialize()).status == (StatusWord.SWO_SUCCESS)
     for field in fields:
-        assert app_client.provide_transaction_field_desc(field.serialize()).status == StatusWord.SWO_SUCCESS
+        assert app_client.provide_operation_field_desc(field.serialize()).status == StatusWord.SWO_SUCCESS
 
 
 def test_eip712_v2_fields_call(scenario_navigator: NavigateWithScenario):
@@ -1041,7 +1041,7 @@ def test_eip712_v2_fields_a_call_info_when_no_call_is_named_refused(scenario_nav
     prepare(app_client, data, announced())
     expect_status(
         StatusWord.SWO_COMMAND_NOT_ALLOWED,
-        lambda: app_client.provide_transaction_info(transfer_info(transfer_fields()).serialize()),
+        lambda: app_client.provide_operation_info(transfer_info(transfer_fields()).serialize()),
     )
     assert_recovers(app_client)
 
@@ -1052,7 +1052,7 @@ def test_eip712_v2_fields_a_call_field_without_its_info_refused(scenario_navigat
     prepare(app_client, transfer_message(), [call_field()])
     expect_status(
         StatusWord.SWO_COMMAND_NOT_ALLOWED,
-        lambda: app_client.provide_transaction_field_desc(transfer_fields()[0].serialize()),
+        lambda: app_client.provide_operation_field_desc(transfer_fields()[0].serialize()),
     )
     assert_recovers(app_client)
 
@@ -1065,7 +1065,7 @@ def test_eip712_v2_fields_a_message_descriptor_while_a_call_is_described_refused
 
     start(app_client, transfer_message(), [call_field(), call_field()])
     describe(app_client, [call_field()])
-    assert app_client.provide_transaction_info(transfer_info(transfer_fields()).serialize()).status == (StatusWord.SWO_SUCCESS)
+    assert app_client.provide_operation_info(transfer_info(transfer_fields()).serialize()).status == (StatusWord.SWO_SUCCESS)
     expect_status(StatusWord.SWO_COMMAND_NOT_ALLOWED, lambda: send_field(app_client, call_field()))
     assert_recovers(app_client)
 
@@ -1085,7 +1085,7 @@ def test_eip712_v2_fields_a_call_info_for_another_call_refused(scenario_navigato
     prepare(app_client, transfer_message(), [call_field()])
     expect_status(
         StatusWord.SWO_INCORRECT_DATA,
-        lambda: app_client.provide_transaction_info(transfer_info(transfer_fields(), **overrides).serialize()),
+        lambda: app_client.provide_operation_info(transfer_info(transfer_fields(), **overrides).serialize()),
     )
     assert_recovers(app_client)
 
@@ -1103,8 +1103,8 @@ def test_eip712_v2_fields_a_call_that_is_half_described_refused(scenario_navigat
     fields = transfer_fields()
 
     prepare(app_client, transfer_message(), [call_field()])
-    assert app_client.provide_transaction_info(transfer_info(fields).serialize()).status == StatusWord.SWO_SUCCESS
-    assert app_client.provide_transaction_field_desc(fields[0].serialize()).status == StatusWord.SWO_SUCCESS
+    assert app_client.provide_operation_info(transfer_info(fields).serialize()).status == StatusWord.SWO_SUCCESS
+    assert app_client.provide_operation_field_desc(fields[0].serialize()).status == StatusWord.SWO_SUCCESS
     expect_status(StatusWord.SWO_REFERENCED_DATA_NOT_FOUND, lambda: sign_attempt(app_client))
     assert_recovers(app_client)
 
@@ -1118,9 +1118,9 @@ def test_eip712_v2_fields_a_call_with_other_descriptors_than_announced_refused(
     other = transfer_info(fields, fields_hash=hashlib.sha3_256(b"other").digest())
 
     prepare(app_client, transfer_message(), [call_field()])
-    assert app_client.provide_transaction_info(other.serialize()).status == StatusWord.SWO_SUCCESS
+    assert app_client.provide_operation_info(other.serialize()).status == StatusWord.SWO_SUCCESS
     for field in fields:
-        assert app_client.provide_transaction_field_desc(field.serialize()).status == StatusWord.SWO_SUCCESS
+        assert app_client.provide_operation_field_desc(field.serialize()).status == StatusWord.SWO_SUCCESS
     expect_status(StatusWord.SWO_REFERENCED_DATA_NOT_FOUND, lambda: sign_attempt(app_client))
     assert_recovers(app_client)
 
@@ -1134,11 +1134,11 @@ def test_eip712_v2_fields_a_call_with_more_descriptors_than_announced_refused(
 
     prepare(app_client, transfer_message(), [call_field()])
     assert (
-        app_client.provide_transaction_info(transfer_info(fields, fields_hash=fields_hash(fields[:1])).serialize()).status
+        app_client.provide_operation_info(transfer_info(fields, fields_hash=fields_hash(fields[:1])).serialize()).status
         == StatusWord.SWO_SUCCESS
     )
-    assert app_client.provide_transaction_field_desc(fields[0].serialize()).status == StatusWord.SWO_SUCCESS
-    expect_status(StatusWord.SWO_COMMAND_NOT_ALLOWED, lambda: app_client.provide_transaction_field_desc(fields[1].serialize()))
+    assert app_client.provide_operation_field_desc(fields[0].serialize()).status == StatusWord.SWO_SUCCESS
+    expect_status(StatusWord.SWO_COMMAND_NOT_ALLOWED, lambda: app_client.provide_operation_field_desc(fields[1].serialize()))
     assert_recovers(app_client)
 
 
@@ -1406,9 +1406,9 @@ def test_eip712_v2_fields_a_call_map_entry(scenario_navigator: NavigateWithScena
     prepare(app_client, data, [call_field()])
     if entry_first:
         assert app_client.provide_map_entry(call_card().serialize()).status == StatusWord.SWO_SUCCESS
-    assert app_client.provide_transaction_info(transfer_info(fields).serialize()).status == StatusWord.SWO_SUCCESS
+    assert app_client.provide_operation_info(transfer_info(fields).serialize()).status == StatusWord.SWO_SUCCESS
     if not entry_first:
         assert app_client.provide_map_entry(call_card().serialize()).status == StatusWord.SWO_SUCCESS
     for field in fields:
-        assert app_client.provide_transaction_field_desc(field.serialize()).status == StatusWord.SWO_SUCCESS
+        assert app_client.provide_operation_field_desc(field.serialize()).status == StatusWord.SWO_SUCCESS
     sign(scenario_navigator, app_client, data)

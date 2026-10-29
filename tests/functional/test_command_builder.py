@@ -67,7 +67,7 @@ def test_eip712_v2_field_desc_uses_the_field_instruction_with_the_v2_p2():
     assert len(chunks) > 1
     for position, chunk in enumerate(chunks):
         _cla, ins, p1, p2, lc = chunk[:5]
-        assert ins == InsType.PROVIDE_TRANSACTION_FIELD_DESC
+        assert ins == InsType.PROVIDE_OPERATION_FIELD_DESC
         assert p1 == (P1Type.FIRST_CHUNK if position == 0 else P1Type.FOLLOWING_CHUNK)
         assert p2 == P2Type.EIP712_V2_IMPLEM
         assert lc == len(chunk) - 5
@@ -75,9 +75,9 @@ def test_eip712_v2_field_desc_uses_the_field_instruction_with_the_v2_p2():
     assert b"".join(chunk[5:] for chunk in chunks) == len(payload).to_bytes(2, "big") + payload
 
 
-def test_transaction_field_desc_keeps_the_transaction_p2():
+def test_operation_field_desc_keeps_the_transaction_p2():
     """The calls a typed message names are described as transactions, with P2 = 00."""
-    chunk = CommandBuilder().provide_transaction_field_desc(b"\x00")[0]
+    chunk = CommandBuilder().provide_operation_field_desc(b"\x00")[0]
     assert chunk[3] == 0x00
 
 

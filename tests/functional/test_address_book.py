@@ -1404,9 +1404,9 @@ def test_address_book_gcs_empty_tx(scenario_navigator: NavigateWithScenario) -> 
         creator_name="Ledger Multisig",
         creator_legal_name="Ledger",
     )
-    app_client.provide_transaction_info(tx_info.serialize())
+    app_client.provide_operation_info(tx_info.serialize())
     for field in fields:
-        app_client.provide_transaction_field_desc(field.serialize())
+        app_client.provide_operation_field_desc(field.serialize())
 
     with app_client.sign(mode=SignMode.START_FLOW):
         scenario_navigator.review_approve()
@@ -1493,9 +1493,9 @@ def test_address_book_gcs_edit_scope_before_review(scenario_navigator: NavigateW
         "Transfer USDT",
         creator_name="Tether",
     )
-    app_client.provide_transaction_info(tx_info.serialize())
+    app_client.provide_operation_info(tx_info.serialize())
     for field in fields:
-        app_client.provide_transaction_field_desc(field.serialize())
+        app_client.provide_operation_field_desc(field.serialize())
 
     apdu = EditScope(
         old_scope=DEFAULT_SCOPE,
@@ -1612,9 +1612,9 @@ def _common_gcs_trusted_name_field(
         "Transfer USDT",
         creator_name="Tether",
     )
-    app_client.provide_transaction_info(tx_info.serialize())
+    app_client.provide_operation_info(tx_info.serialize())
     for field in fields:
-        app_client.provide_transaction_field_desc(field.serialize())
+        app_client.provide_operation_field_desc(field.serialize())
 
     with app_client.sign(mode=SignMode.START_FLOW):
         scenario_navigator.review_approve()
@@ -1736,9 +1736,9 @@ def test_address_book_gcs_combined_ab_and_tn(scenario_navigator: NavigateWithSce
         "Transfer USDT",
         creator_name="Tether",
     )
-    app_client.provide_transaction_info(tx_info.serialize())
+    app_client.provide_operation_info(tx_info.serialize())
     for field in fields:
-        app_client.provide_transaction_field_desc(field.serialize())
+        app_client.provide_operation_field_desc(field.serialize())
 
     with app_client.sign(mode=SignMode.START_FLOW):
         scenario_navigator.review_approve()

@@ -156,6 +156,14 @@ bool operation_ctx_pop(void) {
     g_operation_ctx_pop_calls++;
     return g_operation_ctx_pop_ret;
 }
+// whether the flow is in a state to be told about a call, and what the command brings to its
+// description
+static bool g_can_describe_call_ret = true;
+static e_call_description g_described_part = CALL_DESCRIPTION_INFO;
+bool call_description_is_allowed(e_call_description part) {
+    g_described_part = part;
+    return g_can_describe_call_ret;
+}
 // every call but the root of a transaction is nested in another operation
 bool call_description_is_nested(void) {
     return !g_operation_ctx_is_root_ret || (appState == APP_STATE_SIGNING_EIP712);
@@ -231,6 +239,7 @@ static void reset(void) {
     g_cx_hash_ret = CX_OK;
     g_fields_hash_ctx_none = false;
     g_validate_instruction_hash_budget = 0;
+    g_can_describe_call_ret = true;
     g_operation_ctx_is_root_ret = true;
     g_process_empty_calls_after_ret = true;
     g_process_empty_calls_before_ret = true;
@@ -262,15 +271,19 @@ void test_field_p2_rejected(void) {
                       SWO_INCORRECT_P1_P2);
 }
 
-void test_field_wrong_appstate_rejected(void) {
-    appState = APP_STATE_IDLE;  // not SIGNING_TX / SIGNING_EIP712
+void test_field_refused_when_the_flow_cannot_describe_a_call(void) {
+    g_can_describe_call_ret = false;
     TEST_ASSERT_EQUAL(handle_tx_field(P1_FIRST_CHUNK, 0, 0, NULL), SWO_COMMAND_NOT_ALLOWED);
 }
 
-void test_field_signing_message_state_rejected(void) {
-    // Other signing states (MESSAGE, EIP7702) also do not allow field cmds.
-    appState = APP_STATE_SIGNING_MESSAGE;
-    TEST_ASSERT_EQUAL(handle_tx_field(P1_FIRST_CHUNK, 0, 0, NULL), SWO_COMMAND_NOT_ALLOWED);
+// it brings the descriptors of a call, which a typed message only takes for the call it matched
+void test_field_asks_about_the_descriptors_of_a_call(void) {
+    static const s_operation_info dummy = {0};
+
+    s_tx_info_ret = &dummy;
+    g_described_part = CALL_DESCRIPTION_INFO;
+    TEST_ASSERT_EQUAL(handle_tx_field(P1_FIRST_CHUNK, 0, 0, NULL), SWO_SUCCESS);
+    TEST_ASSERT_EQUAL(CALL_DESCRIPTION_FIELD, g_described_part);
 }
 
 // =============================================================================
@@ -309,21 +322,20 @@ void test_field_tlv_success_returns_success(void) {
     TEST_ASSERT_EQUAL(handle_tx_field(P1_FIRST_CHUNK, 0, 0, NULL), SWO_SUCCESS);
 }
 
-void test_field_signing_eip712_allowed(void) {
-    static const s_operation_info dummy = {0};
-    s_tx_info_ret = &dummy;
-    appState = APP_STATE_SIGNING_EIP712;
-    g_field_tlv_from_apdu_ret = TLV_APDU_SUCCESS;
-    TEST_ASSERT_EQUAL(handle_tx_field(P1_FIRST_CHUNK, 0, 0, NULL), SWO_SUCCESS);
-}
-
 // =============================================================================
 // handle_tx_info — appState guard
 // =============================================================================
 
-void test_tx_info_wrong_appstate_rejected(void) {
-    appState = APP_STATE_IDLE;
+void test_tx_info_refused_when_the_flow_cannot_describe_a_call(void) {
+    g_can_describe_call_ret = false;
     TEST_ASSERT_EQUAL(handle_tx_info(P1_FIRST_CHUNK, 0, 0, NULL), SWO_COMMAND_NOT_ALLOWED);
+}
+
+// it brings the info of a call, which a typed message only takes once its descriptors named some
+void test_tx_info_asks_about_the_info_of_a_call(void) {
+    g_described_part = CALL_DESCRIPTION_FIELD;
+    TEST_ASSERT_EQUAL(handle_tx_info(P1_FIRST_CHUNK, 0, 0, NULL), SWO_SUCCESS);
+    TEST_ASSERT_EQUAL(CALL_DESCRIPTION_INFO, g_described_part);
 }
 
 void test_tx_info_p2_rejected(void) {
@@ -332,11 +344,6 @@ void test_tx_info_p2_rejected(void) {
     TEST_ASSERT_EQUAL(handle_tx_info(P1_FIRST_CHUNK, 1, 0, NULL), SWO_INCORRECT_P1_P2);
     TEST_ASSERT_EQUAL(handle_tx_info(P1_FIRST_CHUNK, P2_EIP712_V2_IMPLEM, 0, NULL),
                       SWO_INCORRECT_P1_P2);
-}
-
-void test_tx_info_signing_message_state_rejected(void) {
-    appState = APP_STATE_SIGNING_MESSAGE;
-    TEST_ASSERT_EQUAL(handle_tx_info(P1_FIRST_CHUNK, 0, 0, NULL), SWO_COMMAND_NOT_ALLOWED);
 }
 
 // =============================================================================
@@ -351,12 +358,6 @@ void test_tx_info_tlv_failure_returns_incorrect_data(void) {
 
 void test_tx_info_tlv_success_returns_success(void) {
     appState = APP_STATE_SIGNING_TX;
-    g_field_tlv_from_apdu_ret = TLV_APDU_SUCCESS;
-    TEST_ASSERT_EQUAL(handle_tx_info(P1_FIRST_CHUNK, 0, 0, NULL), SWO_SUCCESS);
-}
-
-void test_tx_info_eip712_signing_allowed(void) {
-    appState = APP_STATE_SIGNING_EIP712;
     g_field_tlv_from_apdu_ret = TLV_APDU_SUCCESS;
     TEST_ASSERT_EQUAL(handle_tx_info(P1_FIRST_CHUNK, 0, 0, NULL), SWO_SUCCESS);
 }
@@ -470,6 +471,10 @@ void test_field_handler_pop_failure_propagates(void) {
     TEST_ASSERT_FALSE(g_field_tlv_handler_returned);
     TEST_ASSERT_EQUAL(g_operation_ctx_pop_calls, 1);
 }
+
+// =============================================================================
+// The calls a typed message names
+// =============================================================================
 
 void test_field_handler_process_empty_failure_propagates(void) {
     static const s_operation_info dummy = {0};
@@ -680,18 +685,16 @@ void tearDown(void) {
 int main(void) {
     UNITY_BEGIN();
     RUN_TEST(test_field_p2_rejected);
-    RUN_TEST(test_field_wrong_appstate_rejected);
-    RUN_TEST(test_field_signing_message_state_rejected);
+    RUN_TEST(test_field_refused_when_the_flow_cannot_describe_a_call);
+    RUN_TEST(test_field_asks_about_the_descriptors_of_a_call);
     RUN_TEST(test_field_no_tx_info_triggers_cleanup);
     RUN_TEST(test_field_tlv_failure_returns_incorrect_data);
     RUN_TEST(test_field_tlv_success_returns_success);
-    RUN_TEST(test_field_signing_eip712_allowed);
-    RUN_TEST(test_tx_info_wrong_appstate_rejected);
+    RUN_TEST(test_tx_info_refused_when_the_flow_cannot_describe_a_call);
+    RUN_TEST(test_tx_info_asks_about_the_info_of_a_call);
     RUN_TEST(test_tx_info_p2_rejected);
-    RUN_TEST(test_tx_info_signing_message_state_rejected);
     RUN_TEST(test_tx_info_tlv_failure_returns_incorrect_data);
     RUN_TEST(test_tx_info_tlv_success_returns_success);
-    RUN_TEST(test_tx_info_eip712_signing_allowed);
     RUN_TEST(test_field_handler_happy_path);
     RUN_TEST(test_field_handler_handle_field_struct_failure);
     RUN_TEST(test_field_handler_without_a_fields_hash_refused);

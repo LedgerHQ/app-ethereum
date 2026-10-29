@@ -69,6 +69,23 @@ bool ui_712_v2_review(void) {
     return g_review_ret;
 }
 
+static bool g_described_review_ret = true;
+static int g_described_review_calls = 0;
+bool ui_gcs_message(void) {
+    g_described_review_calls++;
+    return g_described_review_ret;
+}
+
+// the calls the descriptors named
+static bool g_remaining_empty_ret = true;
+static size_t g_operation_ctx_count = 0;
+bool process_remaining_empty_calls(void) {
+    return g_remaining_empty_ret;
+}
+size_t get_operation_ctx_count(void) {
+    return g_operation_ctx_count;
+}
+
 static int g_blind_signing_errors = 0;
 void ui_error_blind_signing(void) {
     g_blind_signing_errors++;
@@ -146,7 +163,7 @@ void test_the_announced_descriptors_let_it_go_on(void) {
     g_fields_pending = true;
     g_fields_match = true;
     TEST_ASSERT_EQUAL(SWO_NO_RESPONSE, sign());
-    TEST_ASSERT_EQUAL(1, g_review_calls);
+    TEST_ASSERT_EQUAL(1, g_described_review_calls);
 }
 
 // nothing is hashed, nothing is shown
@@ -207,7 +224,12 @@ void setUp(void) {
     g_fields_match = true;
     g_review_ret = true;
     g_review_calls = 0;
+    g_described_review_ret = true;
+    g_described_review_calls = 0;
+    g_remaining_empty_ret = true;
+    g_operation_ctx_count = 0;
     g_blind_signing_errors = 0;
+    g_held_error_screens = 0;
     g_n_storage_writable.dataAllowed = true;
     g_n_storage_writable.verbose_eip712 = false;
 }

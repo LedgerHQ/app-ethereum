@@ -86,8 +86,8 @@ uint16_t handle_tx_info(uint8_t p1, uint8_t p2, uint8_t lc, const uint8_t *paylo
     if (p2 != 0) {
         return SWO_INCORRECT_P1_P2;
     }
-    if ((appState != APP_STATE_SIGNING_TX) && (appState != APP_STATE_SIGNING_EIP712)) {
-        PRINTF("App not in TX signing mode!\n");
+    if (!call_description_is_allowed(CALL_DESCRIPTION_INFO)) {
+        PRINTF("Error: no call can be described now!\n");
         return SWO_COMMAND_NOT_ALLOWED;
     }
     if (!tlv_from_apdu(p1 == P1_FIRST_CHUNK, lc, payload, &handle_tlv_payload)) {

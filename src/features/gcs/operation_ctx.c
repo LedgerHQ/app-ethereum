@@ -173,6 +173,15 @@ bool operation_ctx_pop(void) {
                        (f_list_node_del) &delete_operation_ctx);
 }
 
+// Whether a call is on the chain of the root of the operations: the transaction's, or the message's
+static bool is_on_root_chain(const s_operation_ctx *call) {
+    const s_operation_ctx *root = get_root();
+
+    // a message whose domain has no chain is on none
+    return (root != NULL) && root->has_chain_id && call->has_chain_id &&
+           (call->chain_id == root->chain_id);
+}
+
 static bool process_empty_call(const s_operation_ctx *operation_ctx) {
     const char *ticker;
     uint8_t decimals;
@@ -245,7 +254,7 @@ static bool process_empty_call(const s_operation_ctx *operation_ctx) {
         return false;
     }
     // A call on another chain than the root one is told apart by its network
-    if ((get_root() == NULL) || (operation_ctx->chain_id != get_root()->chain_id)) {
+    if (!is_on_root_chain(operation_ctx)) {
         if (!get_network_as_string_from_chain_id(buf, buf_size, operation_ctx->chain_id) ||
             !add_to_field_table(PARAM_TYPE_RAW, "Network", buf, NULL)) {
             return false;
@@ -289,6 +298,22 @@ bool process_empty_calls_after(void) {
     return true;
 }
 
+bool process_remaining_empty_calls(void) {
+    s_operation_ctx *call;
+
+    while ((call = g_operation_ctx_list) != NULL) {
+        // a call with calldata is waiting for its description
+        if (call->calldata != NULL) {
+            return false;
+        }
+        // process_empty_call removes the context it processes
+        if (!process_empty_call(call)) {
+            return false;
+        }
+    }
+    return true;
+}
+
 bool find_matching_operation_ctx(const uint8_t *contract_addr,
                                  const uint8_t *selector,
                                  const uint64_t *chain_id) {
@@ -321,7 +346,7 @@ bool find_matching_operation_ctx(const uint8_t *contract_addr,
     return false;
 }
 
-static void operation_ctx_cleanup(void) {
+void operation_ctx_cleanup(void) {
     list_clear((list_node_t **) &g_operation_ctx_list, (f_list_node_del) &delete_operation_ctx);
     if (g_operation_ctx_message != NULL) {
         delete_operation_ctx(g_operation_ctx_message);
@@ -329,6 +354,8 @@ static void operation_ctx_cleanup(void) {
     }
     g_message_has_fields = false;
     g_operation_ctx_current = NULL;
+    g_root_value_shown = false;
+    g_root_from_shown = false;
 }
 
 bool operation_ctx_set_info(s_operation_info *info) {
@@ -405,8 +432,12 @@ bool operation_ctx_init(s_calldata *calldata,
     }
     node->calldata = calldata;
     node->has_to = true;
-    if (get_operation_ctx_count() == 0) {
-        get_public_key(node->from, ADDRESS_LENGTH);
+    if ((get_operation_ctx_count() == 0) && !operation_ctx_has_message()) {
+        // a root call that names no sender is sent by the signer
+        if ((from == NULL) && (get_public_key(node->from, ADDRESS_LENGTH) != SWO_SUCCESS)) {
+            APP_MEM_FREE(node);
+            return false;
+        }
     } else {
         const s_operation_ctx *parent = get_parent_of_new_call();
 
@@ -474,8 +505,6 @@ void gcs_cleanup(void) {
     ui_gcs_cleanup();
     field_table_cleanup();
     operation_ctx_cleanup();
-    g_root_value_shown = false;
-    g_root_from_shown = false;
     // just in case
     if (g_parked_calldata != NULL) {
         calldata_delete(g_parked_calldata);

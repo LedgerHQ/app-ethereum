@@ -59,6 +59,13 @@ void ui_712_review_choice(bool confirm);
 bool ui_gcs(void);
 void ui_gcs_cleanup(void);
 
+/**
+ * Show the review of a typed message whose FIELD descriptors were verified
+ *
+ * @return whether the review was started
+ */
+bool ui_gcs_message(void);
+
 #ifdef HAVE_7702_SUPPORT
 // EIP-7702
 bool ui_sign_7702_auth(void);

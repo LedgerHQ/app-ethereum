@@ -85,6 +85,12 @@ bool validate_instruction_hash(void);
 bool operation_ctx_pop(void);
 bool process_empty_calls_before(void);
 bool process_empty_calls_after(void);
+/**
+ * Process every call left, when none of them has calldata to be described
+ *
+ * @return false if a call is left that waits for its description, or on failure
+ */
+bool process_remaining_empty_calls(void);
 bool find_matching_operation_ctx(const uint8_t *contract_addr,
                                  const uint8_t *selector,
                                  const uint64_t *chain_id);
@@ -134,6 +140,10 @@ bool operation_ctx_init(s_calldata *calldata,
                         const uint8_t *amount,
                         const uint64_t *chain_id);
 void gcs_cleanup(void);
+/**
+ * Forget the operations, along with what describes them
+ */
+void operation_ctx_cleanup(void);
 void operation_ctx_set_root_value_shown(void);
 bool operation_ctx_is_root_value_shown(void);
 void operation_ctx_set_root_from_shown(void);

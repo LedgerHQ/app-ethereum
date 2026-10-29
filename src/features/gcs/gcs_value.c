@@ -207,9 +207,10 @@ static bool value_get_rlp(const s_value *value, s_parsed_value_collection *colle
             }
             collection->value[0].length = ADDRESS_LENGTH;
             collection->size = 1;
+            // The descriptor already shows the sender of the root operation: the review must
+            // not add its own row for it. The calls a typed message names do not count, the
+            // review of a message shows the sender of the message.
             if (operation_ctx_is_root()) {
-                // The descriptor already shows the root sender; the GCS
-                // review must not add its own duplicate row for it.
                 operation_ctx_set_root_from_shown();
             }
             break;

@@ -206,7 +206,6 @@ static bool check_param(const s_param_calldata *param,
 
 __attribute__((noinline)) bool format_param_calldata(const s_param_calldata *param,
                                                      const char *name) {
-    const s_operation_info *info = get_current_operation_info();
     bool ret;
     s_parsed_value_collection calldatas = {0};
     s_parsed_value_collection contract_addrs = {0};
@@ -216,10 +215,6 @@ __attribute__((noinline)) bool format_param_calldata(const s_param_calldata *par
     s_parsed_value_collection spenders = {0};
 
     (void) name;
-    // the calls nested in a typed message are not handled
-    if ((info != NULL) && (info->context == OPERATION_INFO_CTX_EIP712)) {
-        return false;
-    }
     if ((ret = check_param(param,
                            &calldatas,
                            &contract_addrs,

@@ -4,7 +4,7 @@
 #include "apdu_constants.h"
 #include "shared_context.h"
 #include "typed_data.h"
-#include "common_ui.h"  // ui_712_v2_review, ui_error_blind_signing
+#include "common_ui.h"  // ui_712_v2_review, ui_gcs_message, ui_error_blind_signing, ui_hold_error_screen
 #include "eip712_session.h"
 #include "operation_ctx.h"
 
@@ -99,6 +99,11 @@ uint16_t handle_eip712_v2_sign(uint8_t p1, uint8_t p2, uint8_t lc) {
         PRINTF("EIP712 v2: the descriptors are not the announced ones\n");
         return SWO_INCORRECT_DATA;
     }
+    // and so have the calls they name, which only have to be empty ones to be left
+    if (!process_remaining_empty_calls() || (get_operation_ctx_count() != 0)) {
+        PRINTF("EIP712 v2: calls are left without their description\n");
+        return SWO_REFERENCED_DATA_NOT_FOUND;
+    }
     if (!td_hash_pass()) {
         PRINTF("EIP712 v2: hash pass failed\n");
         return SWO_INCORRECT_DATA;
@@ -107,6 +112,15 @@ uint16_t handle_eip712_v2_sign(uint8_t p1, uint8_t p2, uint8_t lc) {
     dump_tree(td_traverse_domain);
     dump_tree(td_traverse_message);
 #endif
+    // the descriptors the message info attests were all received: the review is the one they
+    // describe, which is not blind signing
+    if (operation_ctx_message_has_pending_fields()) {
+        if (!ui_gcs_message()) {
+            PRINTF("EIP712 v2: could not build the described review\n");
+            return SWO_INCORRECT_DATA;
+        }
+        return SWO_NO_RESPONSE;
+    }
     // every value is shown raw, which is blind signing whatever the protocol version
     if (!N_storage.dataAllowed && !N_storage.verbose_eip712) {
         ui_error_blind_signing();

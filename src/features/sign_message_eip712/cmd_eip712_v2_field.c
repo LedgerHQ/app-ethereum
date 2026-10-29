@@ -13,9 +13,10 @@ uint16_t handle_eip712_v2_field(uint8_t p1, uint8_t p2, uint8_t lc, const uint8_
         return SWO_INCORRECT_P1_P2;
     }
     // the descriptors come with a message info, and only the ones it announces are accepted; and
-    // they are not allowed once the review has started
+    // they are not allowed once the review has started, nor in the middle of the description of a
+    // call they named
     if (!eip712_session_is_preparing(EIP712_SESSION_V2) ||
-        !operation_ctx_message_has_pending_fields()) {
+        !operation_ctx_message_has_pending_fields() || operation_ctx_is_describing_call()) {
         return SWO_COMMAND_NOT_ALLOWED;
     }
     if (!tlv_from_apdu(first_chunk, lc, payload, &handle_field_tlv_payload)) {

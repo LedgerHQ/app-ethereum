@@ -22,15 +22,30 @@
 // =============================================================================
 
 static bool g_is_root = false;
+static bool g_has_message = false;
+static bool g_is_describing_call = false;
+static size_t g_call_count = 0;
 
 bool operation_ctx_is_root(void) {
     return g_is_root;
+}
+bool operation_ctx_has_message(void) {
+    return g_has_message;
+}
+bool operation_ctx_is_describing_call(void) {
+    return g_is_describing_call;
+}
+size_t get_operation_ctx_count(void) {
+    return g_call_count;
 }
 
 static void reset(void) {
     appState = APP_STATE_IDLE;
     eip712_session_close();
     g_is_root = false;
+    g_has_message = false;
+    g_is_describing_call = false;
+    g_call_count = 0;
 }
 
 // the state a typed message of the given version is in once its review started

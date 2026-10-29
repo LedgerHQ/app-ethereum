@@ -236,6 +236,7 @@ void test_getters_on_empty_list_return_null_or_zero(void) {
     TEST_ASSERT_NULL(get_current_operation_amount());
     TEST_ASSERT_NULL(get_current_operation_fields_hash_ctx());
     TEST_ASSERT_FALSE(get_current_operation_chain_id(&chain_id));
+    TEST_ASSERT_FALSE(operation_ctx_is_describing_call());
     TEST_ASSERT_FALSE(operation_ctx_has_message());
 }
 
@@ -708,6 +709,7 @@ void test_a_message_is_the_root_and_the_operation_being_described(void) {
     TEST_ASSERT_EQUAL_PTR(info, get_current_operation_info());
     TEST_ASSERT_EQUAL_PTR(info, get_root_operation_info());
     // it is not a call
+    TEST_ASSERT_FALSE(operation_ctx_is_describing_call());
     TEST_ASSERT_EQUAL(0, get_operation_ctx_count());
     TEST_ASSERT_NULL(get_root_calldata());
     // what it is evaluated against: its signer, its contract, its chain, no amount
@@ -731,6 +733,19 @@ void test_a_message_with_no_chain_is_on_none(void) {
 
     TEST_ASSERT_TRUE(operation_ctx_init_message(make_message_info(false), g_self_addr, NULL, NULL));
     TEST_ASSERT_FALSE(get_current_operation_chain_id(&chain_id));
+}
+
+// a call stays a call, whatever the info it is described with
+void test_a_call_is_not_taken_for_a_message_by_its_info(void) {
+    uint64_t chain = 1;
+    s_calldata *cd = make_complete_calldata(g_match_selector);
+
+    TEST_ASSERT_TRUE(operation_ctx_init(cd, g_addr_a, g_addr_b, NULL, &chain));
+    TEST_ASSERT_TRUE(find_matching_operation_ctx(g_addr_b, g_match_selector, &chain));
+    TEST_ASSERT_TRUE(operation_ctx_set_info(make_message_info(true)));
+    TEST_ASSERT_FALSE(operation_ctx_has_message());
+    TEST_ASSERT_TRUE(operation_ctx_is_describing_call());
+    TEST_ASSERT_EQUAL(1, get_operation_ctx_count());
 }
 
 // the message is only started first, and by an info that can be told what it announces
@@ -782,7 +797,7 @@ void test_set_info_is_refused_when_no_call_is_being_described(void) {
 void test_cleanup_forgets_the_message(void) {
     TEST_ASSERT_TRUE(
         operation_ctx_init_message(make_message_info(true), g_self_addr, NULL, &(uint64_t) {1}));
-    gcs_cleanup();
+    operation_ctx_cleanup();
     TEST_ASSERT_FALSE(operation_ctx_has_message());
     TEST_ASSERT_FALSE(operation_ctx_message_has_pending_fields());
     TEST_ASSERT_NULL(get_current_operation_info());
@@ -897,6 +912,7 @@ int main(void) {
     RUN_TEST(test_a_message_is_the_root_and_the_operation_being_described);
     RUN_TEST(test_a_message_has_no_callee_when_its_domain_has_no_contract);
     RUN_TEST(test_a_message_with_no_chain_is_on_none);
+    RUN_TEST(test_a_call_is_not_taken_for_a_message_by_its_info);
     RUN_TEST(test_a_message_that_cannot_be_started_is_refused_and_its_info_released);
     RUN_TEST(test_a_message_cannot_come_after_a_call);
     RUN_TEST(test_a_message_cannot_come_after_a_message);

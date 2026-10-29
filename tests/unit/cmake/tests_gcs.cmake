@@ -450,6 +450,18 @@ ledger_unit_tests_add_test(NAME test_call_description
     ${COMMON_LINK_OPTIONS}
 )
 
+ledger_unit_tests_add_test(NAME test_eip712_session
+  SOURCES
+    ${COMMON_SOURCES_WITH_GLOBALS}
+    ${APP_DIR}/features/sign_message_eip712/eip712_session.c
+  INCLUDE_DIRS
+    ${COMMON_INCLUDE_DIRS}
+  COMPILE_DEFS
+    ${COMMON_COMPILE_DEFS}
+  LINK_OPTIONS
+    ${COMMON_LINK_OPTIONS}
+)
+
 ledger_unit_tests_add_test(NAME test_cmd_field_tx_info
   SOURCES
     ${COMMON_SOURCES_WITH_GLOBALS}
@@ -459,6 +471,23 @@ ledger_unit_tests_add_test(NAME test_cmd_field_tx_info
     ${APP_DIR}/tlv_apdu.h
   INCLUDE_DIRS
     ${COMMON_INCLUDE_DIRS}
+  COMPILE_DEFS
+    ${COMMON_COMPILE_DEFS}
+  LINK_OPTIONS
+    ${COMMON_LINK_OPTIONS}
+)
+
+ledger_unit_tests_add_test(NAME test_eip712_v2_message_info
+  SOURCES
+    ${COMMON_SOURCES_WITH_GLOBALS}
+    ${APP_DIR}/features/sign_message_eip712/cmd_eip712_v2_message_info.c
+    ${APP_DIR}/features/sign_message_eip712/eip712_session.c
+    ${APP_DIR}/features/sign_message_eip712/eip712_v2_message_info.c
+  MOCK_HEADERS
+    ${APP_DIR}/tlv_apdu.h
+  INCLUDE_DIRS
+    ${COMMON_INCLUDE_DIRS}
+    ${APP_DIR}/features/get_public_key
   COMPILE_DEFS
     ${COMMON_COMPILE_DEFS}
   LINK_OPTIONS

@@ -609,6 +609,50 @@ def test_eip712_v2_values_twice(scenario_navigator: NavigateWithScenario):
     assert_recovers(app_client)
 
 
+def send_v1_struct_definition(app_client: EthAppClient) -> None:
+    with app_client.eip712_send_struct_def_struct_name("Test"):
+        pass
+
+
+def send_v1_struct_implementation(app_client: EthAppClient) -> None:
+    with app_client.eip712_send_struct_impl_root_struct("Test"):
+        pass
+
+
+def send_v1_filtering(app_client: EthAppClient) -> None:
+    with app_client.eip712_filtering_activate():
+        pass
+
+
+def send_v1_sign(app_client: EthAppClient) -> None:
+    with app_client.eip712_sign_new(BIP32_PATH):
+        pass
+
+
+V1_COMMANDS = {
+    "struct_definition": send_v1_struct_definition,
+    "struct_implementation": send_v1_struct_implementation,
+    "filtering": send_v1_filtering,
+    "sign": send_v1_sign,
+}
+
+
+@pytest.mark.parametrize("values_sent", [False, True])
+@pytest.mark.parametrize("send_v1_command", V1_COMMANDS.values(), ids=V1_COMMANDS.keys())
+def test_eip712_v2_session_refuses_v1_commands(
+    scenario_navigator: NavigateWithScenario, send_v1_command: Callable[[EthAppClient], None], values_sent: bool
+):
+    """A V1 command must not go on in a V2 session, with the schema only or with the values too."""
+    app_client = EthAppClient(scenario_navigator.backend)
+    data = minimal_data()
+    app_client.eip712_v2_send_schema(json_to_tlv.schema_from_json(data).serialize())
+    if values_sent:
+        app_client.eip712_v2_send_values(json_to_tlv.values_from_json(data, BIP32_PATH).serialize())
+
+    expect_status(StatusWord.SWO_COMMAND_NOT_ALLOWED, lambda: send_v1_command(app_client))
+    assert_recovers(app_client)
+
+
 @pytest.mark.parametrize("ins", [InsType.EIP712_SEND_STRUCT_DEF, InsType.EIP712_SEND_STRUCT_IMPL, InsType.EIP712_SIGN])
 def test_eip712_v2_unknown_p1(scenario_navigator: NavigateWithScenario, ins: InsType):
     """Only the documented P1 values are accepted, whichever the command."""

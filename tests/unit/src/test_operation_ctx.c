@@ -1,11 +1,12 @@
 /**
  * @file test_operation_ctx.c
- * @brief Unit tests for the GCS transaction-context module at
+ * @brief Unit tests for the GCS operation-context module at
  *        src/features/gcs/operation_ctx.c.
  *
- * operation_ctx tracks the per-transaction state that survives across the
+ * operation_ctx tracks the per-operation state that survives across the
  * APDU stream: a doubly-linked list of s_operation_ctx nodes (one per outer
- * tx + optional inner sub-calls for proxy resolution), the
+ * tx + optional inner sub-calls for proxy resolution), a typed message
+ * kept apart from them as the root of the calls it makes, the
  * "current" pointer the parsers read through, and the parked
  * calldata buffer that hops from PROVIDE_CALLDATA into the node
  * created by operation_ctx_init().
@@ -21,7 +22,8 @@
  *     match,
  *   - validate_instruction_hash: real (mocked) hash compared against
  *     the stored fields_hash,
- *   - gcs_cleanup tears the whole state down.
+ *   - gcs_cleanup tears the whole state down,
+ *   - a typed message as the root of its calls.
  *
  * Out of scope: process_empty_calls_before / process_empty_calls_after
  * pull in too many display-layer dependencies (ticker lookup,
@@ -674,6 +676,135 @@ void test_operation_ctx_init_signing_tx_calls_field_table_init(void) {
 }
 
 // =============================================================================
+// Nested calls
+// =============================================================================
+
+// =============================================================================
+// A typed message
+// =============================================================================
+
+// a message info, which announces descriptors when asked to: its fields hash is not the one of
+// none
+static s_operation_info *make_message_info(bool announces_fields) {
+    s_operation_info *info = calloc(1, sizeof(*info));
+
+    info->context = OPERATION_INFO_CTX_EIP712;
+    memset(info->domain_separator, 0xD5, sizeof(info->domain_separator));
+    memset(info->primary_type_hash, 0x5A, sizeof(info->primary_type_hash));
+    if (announces_fields) {
+        info->fields_hash[0] = 0xAA;
+    }
+    return info;
+}
+
+// the message is the root of the operations: the first operation, and the one being described
+void test_a_message_is_the_root_and_the_operation_being_described(void) {
+    s_operation_info *info = make_message_info(false);
+    uint64_t chain_id = 0;
+
+    TEST_ASSERT_TRUE(operation_ctx_init_message(info, g_addr_b, g_addr_a, &(uint64_t) {137}));
+    TEST_ASSERT_TRUE(operation_ctx_has_message());
+    TEST_ASSERT_TRUE(operation_ctx_is_root());
+    TEST_ASSERT_EQUAL_PTR(info, get_current_operation_info());
+    TEST_ASSERT_EQUAL_PTR(info, get_root_operation_info());
+    // it is not a call
+    TEST_ASSERT_EQUAL(0, get_operation_ctx_count());
+    TEST_ASSERT_NULL(get_root_calldata());
+    // what it is evaluated against: its signer, its contract, its chain, no amount
+    TEST_ASSERT_EQUAL_MEMORY(g_addr_b, get_current_operation_from(), ADDRESS_LENGTH);
+    TEST_ASSERT_EQUAL_MEMORY(g_addr_a, get_current_operation_to(), ADDRESS_LENGTH);
+    TEST_ASSERT_TRUE(get_current_operation_chain_id(&chain_id));
+    TEST_ASSERT_EQUAL_UINT64(137, chain_id);
+    TEST_ASSERT_NULL(get_current_operation_amount());
+    TEST_ASSERT_NOT_NULL(get_current_operation_fields_hash_ctx());
+}
+
+void test_a_message_has_no_callee_when_its_domain_has_no_contract(void) {
+    TEST_ASSERT_TRUE(
+        operation_ctx_init_message(make_message_info(false), g_self_addr, NULL, &(uint64_t) {1}));
+    TEST_ASSERT_NULL(get_current_operation_to());
+}
+
+// a message whose domain has no chain is on none
+void test_a_message_with_no_chain_is_on_none(void) {
+    uint64_t chain_id = 0;
+
+    TEST_ASSERT_TRUE(operation_ctx_init_message(make_message_info(false), g_self_addr, NULL, NULL));
+    TEST_ASSERT_FALSE(get_current_operation_chain_id(&chain_id));
+}
+
+// the message is only started first, and by an info that can be told what it announces
+void test_a_message_that_cannot_be_started_is_refused_and_its_info_released(void) {
+    g_finalize_hash_ret = false;
+    TEST_ASSERT_FALSE(
+        operation_ctx_init_message(make_message_info(false), g_self_addr, NULL, &(uint64_t) {1}));
+    TEST_ASSERT_FALSE(operation_ctx_has_message());
+    TEST_ASSERT_EQUAL(1, g_delete_info_calls);
+    TEST_ASSERT_NULL(get_current_operation_info());
+}
+
+void test_a_message_cannot_come_after_a_call(void) {
+    uint64_t chain = 1;
+
+    TEST_ASSERT_TRUE(operation_ctx_init(NULL, g_addr_a, g_addr_a, NULL, &chain));
+    TEST_ASSERT_FALSE(
+        operation_ctx_init_message(make_message_info(false), g_self_addr, NULL, &(uint64_t) {1}));
+    TEST_ASSERT_FALSE(operation_ctx_has_message());
+    TEST_ASSERT_EQUAL(1, g_delete_info_calls);
+    TEST_ASSERT_EQUAL(1, get_operation_ctx_count());
+}
+
+void test_a_message_cannot_come_after_a_message(void) {
+    s_operation_info *first = make_message_info(true);
+
+    TEST_ASSERT_TRUE(operation_ctx_init_message(first, g_self_addr, NULL, &(uint64_t) {1}));
+    TEST_ASSERT_FALSE(
+        operation_ctx_init_message(make_message_info(false), g_self_addr, NULL, &(uint64_t) {1}));
+    TEST_ASSERT_EQUAL(1, g_delete_info_calls);
+    TEST_ASSERT_EQUAL_PTR(first, get_current_operation_info());
+    TEST_ASSERT_TRUE(operation_ctx_message_has_pending_fields());
+}
+
+// An info only goes to a call that is being described: not to the typed message, nor to nothing,
+// and the caller keeps the info then
+void test_set_info_is_refused_when_no_call_is_being_described(void) {
+    s_operation_info *info = calloc(1, sizeof(*info));
+
+    TEST_ASSERT_FALSE(operation_ctx_set_info(info));
+    TEST_ASSERT_TRUE(
+        operation_ctx_init_message(make_message_info(true), g_self_addr, NULL, &(uint64_t) {1}));
+    TEST_ASSERT_FALSE(operation_ctx_set_info(info));
+    TEST_ASSERT_NOT_EQUAL(info, get_current_operation_info());
+    TEST_ASSERT_EQUAL(0, g_delete_info_calls);
+    free(info);
+}
+
+void test_cleanup_forgets_the_message(void) {
+    TEST_ASSERT_TRUE(
+        operation_ctx_init_message(make_message_info(true), g_self_addr, NULL, &(uint64_t) {1}));
+    gcs_cleanup();
+    TEST_ASSERT_FALSE(operation_ctx_has_message());
+    TEST_ASSERT_FALSE(operation_ctx_message_has_pending_fields());
+    TEST_ASSERT_NULL(get_current_operation_info());
+    TEST_ASSERT_EQUAL(1, g_delete_info_calls);
+    // and a new flow may have its own
+    TEST_ASSERT_TRUE(
+        operation_ctx_init_message(make_message_info(false), g_self_addr, NULL, &(uint64_t) {1}));
+}
+
+// =============================================================================
+// The descriptors of a message, and the ones its info announces
+// =============================================================================
+
+// =============================================================================
+// Describing a call
+// =============================================================================
+
+// =============================================================================
+// The calls a typed message makes
+// =============================================================================
+
+// =============================================================================
 // Runner
 // =============================================================================
 
@@ -711,5 +842,13 @@ int main(void) {
     RUN_TEST(test_get_current_getters_return_attached_state);
     RUN_TEST(test_process_empty_calls_amount_branch_happy_path);
     RUN_TEST(test_operation_ctx_init_signing_tx_calls_field_table_init);
+    RUN_TEST(test_a_message_is_the_root_and_the_operation_being_described);
+    RUN_TEST(test_a_message_has_no_callee_when_its_domain_has_no_contract);
+    RUN_TEST(test_a_message_with_no_chain_is_on_none);
+    RUN_TEST(test_a_message_that_cannot_be_started_is_refused_and_its_info_released);
+    RUN_TEST(test_a_message_cannot_come_after_a_call);
+    RUN_TEST(test_a_message_cannot_come_after_a_message);
+    RUN_TEST(test_set_info_is_refused_when_no_call_is_being_described);
+    RUN_TEST(test_cleanup_forgets_the_message);
     return UNITY_END();
 }

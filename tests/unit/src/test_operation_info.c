@@ -232,6 +232,21 @@ void test_getters_return_populated_fields(void) {
     TEST_ASSERT_EQUAL_STRING(get_deploy_date(&info), "2024-01-01");
 }
 
+void test_getters_wrong_context_return_null(void) {
+    s_operation_info sign_tx = {.context = OPERATION_INFO_CTX_SIGN_TX};
+    s_operation_info eip712 = {.context = OPERATION_INFO_CTX_EIP712};
+
+    TEST_ASSERT_NULL(get_selector(NULL));
+    TEST_ASSERT_NULL(get_primary_type_hash(NULL));
+    TEST_ASSERT_NULL(get_domain_separator(NULL));
+    TEST_ASSERT_EQUAL_PTR(get_selector(&sign_tx), sign_tx.selector);
+    TEST_ASSERT_NULL(get_primary_type_hash(&sign_tx));
+    TEST_ASSERT_NULL(get_domain_separator(&sign_tx));
+    TEST_ASSERT_EQUAL_PTR(get_primary_type_hash(&eip712), eip712.primary_type_hash);
+    TEST_ASSERT_EQUAL_PTR(get_domain_separator(&eip712), eip712.domain_separator);
+    TEST_ASSERT_NULL(get_selector(&eip712));
+}
+
 // delete_operation_info is the dual of the APP_MEM_CALLOC of new_operation_info — must
 // not crash on a heap-allocated node (mocks use real malloc/free).
 void test_delete_operation_info_frees_node(void) {
@@ -388,10 +403,15 @@ void test_parse_unsupported_version_rejected(void) {
 }
 
 void test_parse_signature_check_failure_rejected(void) {
-    payload_t p = valid(OPERATION_INFO_CTX_SIGN_TX, 0);
+    const e_operation_info_context contexts[] = {OPERATION_INFO_CTX_SIGN_TX,
+                                                 OPERATION_INFO_CTX_EIP712};
 
     s_sig_check_ret = false;
-    assert_rejected(&p, OPERATION_INFO_CTX_SIGN_TX);
+    for (size_t i = 0; i < ARRAYLEN(contexts); i++) {
+        payload_t p = valid(contexts[i], 0);
+
+        assert_rejected(&p, contexts[i]);
+    }
 }
 
 void test_parse_finalize_hash_failure_rejected(void) {
@@ -399,6 +419,150 @@ void test_parse_finalize_hash_failure_rejected(void) {
 
     s_finalize_hash_ret = false;
     assert_rejected(&p, OPERATION_INFO_CTX_SIGN_TX);
+}
+
+// =============================================================================
+// EIP712_MESSAGE_INFO: the same parser, in the EIP-712 context
+// =============================================================================
+
+void test_parse_eip712_hashes_populated(void) {
+    payload_t p = valid(OPERATION_INFO_CTX_EIP712, 0);
+    s_operation_info *info = parse_accepted(&p, OPERATION_INFO_CTX_EIP712);
+
+    TEST_ASSERT_EQUAL_MEMORY(k_domain_separator,
+                             info->domain_separator,
+                             sizeof(k_domain_separator));
+    TEST_ASSERT_EQUAL_PTR(get_domain_separator(info), info->domain_separator);
+    TEST_ASSERT_EQUAL_MEMORY(k_type_hash, info->primary_type_hash, sizeof(k_type_hash));
+    TEST_ASSERT_EQUAL_PTR(get_primary_type_hash(info), info->primary_type_hash);
+    delete_operation_info(info);
+}
+
+// A selector-sized hash would be zero-padded if the size were not exact
+void test_parse_eip712_hash_of_another_size_rejected(void) {
+    const uint8_t tags[] = {WIRE_TAG_DOMAIN_SEPARATOR, WIRE_TAG_PRIMARY_TYPE_HASH};
+    const size_t sizes[] = {CALLDATA_SELECTOR_SIZE, INT256_LENGTH - 1, INT256_LENGTH + 1};
+    uint8_t hash[INT256_LENGTH + 1] = {TYPE_HASH_BYTES};
+
+    for (size_t t = 0; t < ARRAYLEN(tags); t++) {
+        for (size_t i = 0; i < ARRAYLEN(sizes); i++) {
+            payload_t p = valid(OPERATION_INFO_CTX_EIP712, OMIT(tags[t]));
+
+            put(&p, tags[t], hash, sizes[i]);
+            assert_rejected(&p, OPERATION_INFO_CTX_EIP712);
+        }
+    }
+}
+
+void test_parse_eip712_missing_required_tag_rejected(void) {
+    const uint8_t required[] = {
+        WIRE_TAG_VERSION,
+        WIRE_TAG_DOMAIN_SEPARATOR,
+        WIRE_TAG_PRIMARY_TYPE_HASH,
+        WIRE_TAG_FIELDS_HASH,
+        WIRE_TAG_OPERATION_TYPE,
+        WIRE_TAG_SIGNATURE,
+    };
+
+    for (size_t i = 0; i < ARRAYLEN(required); i++) {
+        payload_t p = valid(OPERATION_INFO_CTX_EIP712, OMIT(required[i]));
+
+        assert_rejected(&p, OPERATION_INFO_CTX_EIP712);
+    }
+}
+
+// A transaction is on a chain: 0 and above the maximum are none
+void test_parse_chain_zero_or_above_max_rejected(void) {
+    static const uint8_t zero[] = {0x00};
+    static const uint8_t above_max[] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+    const struct {
+        const uint8_t *value;
+        size_t len;
+    } chains[] = {{zero, sizeof(zero)}, {above_max, sizeof(above_max)}};
+
+    for (size_t i = 0; i < ARRAYLEN(chains); i++) {
+        payload_t p = valid(OPERATION_INFO_CTX_SIGN_TX, OMIT(WIRE_TAG_CHAIN_ID));
+
+        put(&p, WIRE_TAG_CHAIN_ID, chains[i].value, chains[i].len);
+        assert_rejected(&p, OPERATION_INFO_CTX_SIGN_TX);
+    }
+}
+
+// =============================================================================
+// Context mismatch
+// =============================================================================
+
+// Both structs share one wire format, but neither is accepted as the other: what identifies a
+// transaction and what identifies a message have their own tags
+void test_parse_wrong_context_rejected(void) {
+    payload_t eip712 = valid(OPERATION_INFO_CTX_EIP712, 0);
+    payload_t sign_tx = valid(OPERATION_INFO_CTX_SIGN_TX, 0);
+
+    assert_rejected(&eip712, OPERATION_INFO_CTX_SIGN_TX);
+    assert_rejected(&sign_tx, OPERATION_INFO_CTX_EIP712);
+}
+
+// Even beside every tag its context requires, a tag of the other context is refused
+void test_parse_tag_of_the_other_context_rejected(void) {
+    const struct {
+        e_operation_info_context context;
+        uint8_t tag;
+        const uint8_t *value;
+        size_t len;
+    } cases[] = {
+        {OPERATION_INFO_CTX_EIP712, WIRE_TAG_CHAIN_ID, k_chain_id, sizeof(k_chain_id)},
+        {OPERATION_INFO_CTX_EIP712, WIRE_TAG_CONTRACT_ADDR, k_contract, sizeof(k_contract)},
+        {OPERATION_INFO_CTX_EIP712, WIRE_TAG_SELECTOR, k_selector, sizeof(k_selector)},
+        {OPERATION_INFO_CTX_SIGN_TX,
+         WIRE_TAG_DOMAIN_SEPARATOR,
+         k_domain_separator,
+         sizeof(k_domain_separator)},
+        {OPERATION_INFO_CTX_SIGN_TX, WIRE_TAG_PRIMARY_TYPE_HASH, k_type_hash, sizeof(k_type_hash)},
+    };
+
+    for (size_t i = 0; i < ARRAYLEN(cases); i++) {
+        payload_t p = valid(cases[i].context, OMIT(WIRE_TAG_SIGNATURE));
+
+        put(&p, cases[i].tag, cases[i].value, cases[i].len);
+        put(&p, WIRE_TAG_SIGNATURE, k_signature, sizeof(k_signature));
+        assert_rejected(&p, cases[i].context);
+    }
+}
+
+// =============================================================================
+// operation_info_fields_hash_is_empty
+// =============================================================================
+
+void test_fields_hash_is_empty(void) {
+    s_operation_info info = {0};
+    bool is_empty = false;
+
+    // the digest of no descriptors is what finalize_hash gives
+    memset(s_finalize_hash_out, 0x5A, sizeof(s_finalize_hash_out));
+    memset(info.fields_hash, 0x5A, sizeof(info.fields_hash));
+    TEST_ASSERT_TRUE(operation_info_fields_hash_is_empty(&info, &is_empty));
+    TEST_ASSERT_TRUE(is_empty);
+}
+
+void test_fields_hash_is_not_empty(void) {
+    s_operation_info info = {0};
+    bool is_empty = true;
+
+    memset(s_finalize_hash_out, 0x5A, sizeof(s_finalize_hash_out));
+    memset(info.fields_hash, 0x5A, sizeof(info.fields_hash));
+    info.fields_hash[INT256_LENGTH - 1] ^= 0x01;
+    TEST_ASSERT_TRUE(operation_info_fields_hash_is_empty(&info, &is_empty));
+    TEST_ASSERT_FALSE(is_empty);
+}
+
+void test_fields_hash_is_empty_failures(void) {
+    s_operation_info info = {0};
+    bool is_empty;
+
+    TEST_ASSERT_FALSE(operation_info_fields_hash_is_empty(NULL, &is_empty));
+    TEST_ASSERT_FALSE(operation_info_fields_hash_is_empty(&info, NULL));
+    s_finalize_hash_ret = false;
+    TEST_ASSERT_FALSE(operation_info_fields_hash_is_empty(&info, &is_empty));
 }
 
 // =============================================================================
@@ -427,6 +591,7 @@ int main(void) {
     RUN_TEST(test_getters_null_operation_info_returns_null);
     RUN_TEST(test_getters_empty_string_returns_null);
     RUN_TEST(test_getters_return_populated_fields);
+    RUN_TEST(test_getters_wrong_context_return_null);
     RUN_TEST(test_delete_operation_info_frees_node);
     RUN_TEST(test_parse_sign_tx_populates_required_fields);
     RUN_TEST(test_parse_optional_metadata_tags_populated);
@@ -440,5 +605,14 @@ int main(void) {
     RUN_TEST(test_parse_unsupported_version_rejected);
     RUN_TEST(test_parse_signature_check_failure_rejected);
     RUN_TEST(test_parse_finalize_hash_failure_rejected);
+    RUN_TEST(test_parse_eip712_hashes_populated);
+    RUN_TEST(test_parse_eip712_hash_of_another_size_rejected);
+    RUN_TEST(test_parse_eip712_missing_required_tag_rejected);
+    RUN_TEST(test_parse_chain_zero_or_above_max_rejected);
+    RUN_TEST(test_parse_wrong_context_rejected);
+    RUN_TEST(test_parse_tag_of_the_other_context_rejected);
+    RUN_TEST(test_fields_hash_is_empty);
+    RUN_TEST(test_fields_hash_is_not_empty);
+    RUN_TEST(test_fields_hash_is_empty_failures);
     return UNITY_END();
 }

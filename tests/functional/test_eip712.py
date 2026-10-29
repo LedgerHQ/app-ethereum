@@ -1518,6 +1518,60 @@ def test_eip712_calldata_no_param(scenario_navigator: NavigateWithScenario):
     eip712_calldata_common(scenario_navigator, "safe_calldata_no_param", gcs_handler_no_param)
 
 
+def test_eip712_calldata_empty_call_keeps_off_the_next_calldata(scenario_navigator: NavigateWithScenario):
+    """A call without calldata must not become the root with the calldata of the call after it.
+
+    The calldata of the second call is received before the first call is complete, so it is the one
+    waiting when the first call is.
+    """
+    app_client = EthAppClient(scenario_navigator.backend)
+    data = {
+        "types": {
+            "EIP712Domain": [
+                {"name": "chainId", "type": "uint256"},
+                {"name": "verifyingContract", "type": "address"},
+            ],
+            "Calls": [
+                {"name": "dataA", "type": "bytes"},
+                {"name": "dataB", "type": "bytes"},
+                {"name": "toA", "type": "address"},
+                {"name": "toB", "type": "address"},
+            ],
+        },
+        "primaryType": "Calls",
+        "domain": {"chainId": 1, "verifyingContract": "0xc1897a9acbdd54028da5f7b76b5833a91553aaf6"},
+        "message": {
+            "dataA": "0x",
+            "dataB": "0x18160ddd",
+            "toA": "0x23f8abfc2824c397ccb3da89ae772984107ddb99",
+            "toB": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+        },
+    }
+    call = {
+        "handler": None,
+        "value_flag": True,
+        "callee_flag": EIP712CalldataParamPresence.PRESENT_FILTERED,
+        "chain_id_flag": False,
+        "selector_flag": False,
+        "amount_flag": False,
+        "spender_flag": EIP712CalldataParamPresence.NONE,
+    }
+    filters = {
+        "name": "Calls",
+        "calldatas": [{"index": 0, **call}, {"index": 1, **call}],
+        "fields": {
+            "dataA": {"type": "calldata_value", "index": 0},
+            "dataB": {"type": "calldata_value", "index": 1},
+            "toA": {"type": "calldata_callee", "index": 0},
+            "toB": {"type": "calldata_callee", "index": 1},
+        },
+    }
+
+    with pytest.raises(ExceptionRAPDU) as e:
+        InputData.process_data(app_client, data, filters)
+    assert e.value.status == StatusWord.SWO_PARAMETER_ERROR_NO_INFO
+
+
 def test_eip712_gondi(scenario_navigator: NavigateWithScenario):
     """Test a basic EIP712 payload signature"""
 

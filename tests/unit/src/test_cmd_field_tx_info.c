@@ -314,6 +314,14 @@ void test_tx_info_wrong_appstate_rejected(void) {
     TEST_ASSERT_EQUAL(handle_tx_info(P1_FIRST_CHUNK, 0, 0, NULL), SWO_COMMAND_NOT_ALLOWED);
 }
 
+void test_tx_info_p2_rejected(void) {
+    appState = APP_STATE_SIGNING_TX;
+    g_field_tlv_from_apdu_ret = TLV_APDU_SUCCESS;
+    TEST_ASSERT_EQUAL(handle_tx_info(P1_FIRST_CHUNK, 1, 0, NULL), SWO_INCORRECT_P1_P2);
+    TEST_ASSERT_EQUAL(handle_tx_info(P1_FIRST_CHUNK, P2_EIP712_V2_IMPLEM, 0, NULL),
+                      SWO_INCORRECT_P1_P2);
+}
+
 void test_tx_info_signing_message_state_rejected(void) {
     appState = APP_STATE_SIGNING_MESSAGE;
     TEST_ASSERT_EQUAL(handle_tx_info(P1_FIRST_CHUNK, 0, 0, NULL), SWO_COMMAND_NOT_ALLOWED);
@@ -653,6 +661,7 @@ int main(void) {
     RUN_TEST(test_field_tlv_success_returns_success);
     RUN_TEST(test_field_signing_eip712_allowed);
     RUN_TEST(test_tx_info_wrong_appstate_rejected);
+    RUN_TEST(test_tx_info_p2_rejected);
     RUN_TEST(test_tx_info_signing_message_state_rejected);
     RUN_TEST(test_tx_info_tlv_failure_returns_incorrect_data);
     RUN_TEST(test_tx_info_tlv_success_returns_success);

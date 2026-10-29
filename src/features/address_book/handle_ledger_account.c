@@ -95,6 +95,8 @@ bool handle_check_register_ledger_account(ledger_account_t *params) {
         return false;
     }
 
+    // A new review may replace the previous status screen before its finalizer runs
+    address_book_review_cleanup();
     if (APP_MEM_PERMANENT((void **) &g_ctx.register_account.address_display,
                           ADDRESS_LENGTH_HEX_STR) == false) {
         PRINTF("Failed to allocate address display buffer\n");

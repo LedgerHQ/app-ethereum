@@ -255,6 +255,8 @@ bool handle_check_edit_identifier(const edit_identifier_t *params) {
         return false;
     }
 
+    // A new review may replace the previous status screen before its finalizer runs
+    address_book_review_cleanup();
     // Allocate contact name
     if (APP_MEM_PERMANENT((void **) &g_ctx.edit_identifier.contact_name, CONTACT_NAME_LENGTH) ==
         false) {

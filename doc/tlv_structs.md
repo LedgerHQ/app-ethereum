@@ -21,22 +21,28 @@
 | OWNER            | 0x74 | uint8[20]         |                                 | x        |
 | OWNER_DERIV_PATH | 0x75 | (uint8, uint32[]) |                                 | x        |
 
-## TRANSACTION_INFO
+## TRANSACTION_INFO / EIP712_MESSAGE_INFO
 
-| Name               | Tag  | Payload type | Description                                          | Optional | Source / value                                             |
-|--------------------|------|--------------|------------------------------------------------------|----------|------------------------------------------------------------|
-| VERSION            | 0x00 | uint8        | struct version                                       |          | constant: `0x1`                                            |
-| CHAIN_ID           | 0x01 | uint64       | EIP-155 chain ID                                     |          | `$.context.contract.deployments.[<deployment id>].chainId` |
-| CONTRACT_ADDR      | 0x02 | uint8[20]    | EVM contract address                                 |          | `$.context.contract.deployments.[<deployment id>].address` |
-| SELECTOR           | 0x03 | uint8[4]     | selector (4 bytes form)                              |          | `$.display.formats.<format id>`                            |
-| FIELDS_HASH        | 0x04 | uint8[32]    | SHA3-256 hash of all the FIELD structs               |          | computed by CAL                                            |
-| OPERATION_TYPE     | 0x05 | char[]       | Will be appended to "Review ..." in the first screen |          | `$.display.formats.<selector>.intent`                      |
-| CREATOR_NAME       | 0x06 | char[]       |                                                      | x        | `$.metadata.owner`                                         |
-| CREATOR_LEGAL_NAME | 0x07 | char[]       |                                                      | x        | `$.metadata.info.legalName`                                |
-| CREATOR_URL        | 0x08 | char[]       | website of the dApp or company behind it             | x        | `$.metadata.info.url`                                      |
-| CONTRACT_NAME      | 0x09 | char[]       |                                                      | x        | `$.metadata.info.$id`                                      |
-| DEPLOY_DATE        | 0x0a | uint32       | unix epoch, shown as YYYY-MM-DD                      | x        | `$.metadata.info.deploymentDate`                           |
-| SIGNATURE          | 0xff | uint8[]      | signature of all the other struct fields             |          | computed by CAL                                            |
+Same wire structure serves both SignTx (`TRANSACTION_INFO`) and EIP-712 (`EIP712_MESSAGE_INFO`,
+[EIP712_MESSAGE_INFO](eip712.md#eip712_message_info)) — almost every tag is
+identical between the two contexts, see the `Context` column below.
+
+| Name               | Tag  | Payload type | Description                                          | Optional    | Context      | Source / value                                                                                                                                                        |
+|--------------------|------|--------------|------------------------------------------------------|-------------|--------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| VERSION            | 0x00 | uint8        | struct version                                       |             | both         | constant: `0x1`                                                                                                                                                       |
+| CHAIN_ID           | 0x01 | uint64       | EIP-155 chain ID                                     |             | SignTx only  | `$.context.contract.deployments.[<deployment id>].chainId`                                                                                                            |
+| CONTRACT_ADDR      | 0x02 | uint8[20]    | EVM contract address                                 |             | SignTx only  | `$.context.contract.deployments.[<deployment id>].address`                                                                                                            |
+| SELECTOR           | 0x03 | uint8[4]     | selector (4 bytes form)                              |             | SignTx only  | `$.display.formats.<format id>`                                                                                                                                       |
+| FIELDS_HASH        | 0x04 | uint8[32]    | SHA3-256 hash of all the FIELD structs               |             | both         | computed by CAL                                                                                                                                                       |
+| OPERATION_TYPE     | 0x05 | char[]       | Will be appended to "Review ..." in the first screen |             | both         | `$.display.formats.<selector>.intent`                                                                                                                                 |
+| CREATOR_NAME       | 0x06 | char[]       |                                                      | x           | both         | `$.metadata.owner`                                                                                                                                                    |
+| CREATOR_LEGAL_NAME | 0x07 | char[]       |                                                      | x           | both         | `$.metadata.info.legalName`                                                                                                                                           |
+| CREATOR_URL        | 0x08 | char[]       | website of the dApp or company behind it             | x           | both         | `$.metadata.info.url`                                                                                                                                                 |
+| CONTRACT_NAME      | 0x09 | char[]       |                                                      | x           | both         | `$.metadata.info.$id`                                                                                                                                                 |
+| DEPLOY_DATE        | 0x0a | uint32       | unix epoch, shown as YYYY-MM-DD                      | x           | both         | `$.metadata.info.deploymentDate`                                                                                                                                      |
+| DOMAIN_SEPARATOR   | 0x0b | uint8[32]    | `hashStruct(domain)`                                 |             | EIP-712 only | `$.context.eip712.domain`, with the deployment                                                                                                                        |
+| PRIMARY_TYPE_HASH  | 0x0c | uint8[32]    | `keccak256(encodeType(primaryType))`                 |             | EIP-712 only | binds this descriptor set to a specific EIP-712 type; standard `encodeType`, does not cover `EIP712Domain` (see [EIP712_MESSAGE_INFO](eip712.md#eip712_message_info)) |
+| SIGNATURE          | 0xff | uint8[]      | signature of all the other struct fields             |             | both         | computed by CAL                                                                                                                                                       |
 
 > [!CAUTION]
 >
@@ -47,6 +53,11 @@
      but `$id` is supposed to be internal
 > - `$.metadata.info.deploymentDate` is optional, made `DEPLOY_DATE` optional
 > - `OPERATION_TYPE` completes the title of the review: `Review transaction to <OPERATION_TYPE>`.
+> - `CHAIN_ID`, `CONTRACT_ADDR` and `SELECTOR` are SignTx only, `DOMAIN_SEPARATOR` and
+>   `PRIMARY_TYPE_HASH` are EIP-712 only: a struct with a tag of the other context is refused.
+> - For EIP-712, `DOMAIN_SEPARATOR` covers the domain's `chainId` and `verifyingContract`, which are
+>   the chain and the contract of the message — see
+>   [EIP712_MESSAGE_INFO](eip712.md#eip712_message_info).
 
 ## ENUM_VALUE
 
@@ -320,15 +331,16 @@ If the network is not found, the device falls back to displaying the raw chain I
 
 ### VALUE
 
-| Name           | Tag  | Payload type                         | Description                             | Optional | Source / value                                            |
-|----------------|------|--------------------------------------|-----------------------------------------|----------|-----------------------------------------------------------|
-| VERSION        | 0x00 | uint8                                | struct version                          |          | constant: `0x1`                                           |
-| TYPE_FAMILY    | 0x01 | [TypeFamily](#typefamily-enum)       |                                         |          |                                                           |
-| TYPE_SIZE      | 0x02 | uint8                                | size of values (in bytes)               | x        |                                                           |
-| DATA_PATH      | 0x03 | [DATA_PATH](#data_path)              | path to value in serialized transaction | x        | `$.display.formats.<format id>.fields.[<field id>].path`  |
-| CONTAINER_PATH | 0x04 | [ContainerPath](#containerpath-enum) | container value enum                    | x        | `$.display.formats.<format id>.fields.[<field id>].path`  |
-| CONSTANT       | 0x05 | uint8[]                              | literal value                           | x        | `$.display.formats.<format id>.fields.[<field id>].value` |
-| MAP_REF        | 0x06 | [MAP_REF](#map_ref)                  | reference to a map entry                | x        | `$.metadata.maps.<map id>`                                |
+| Name           | Tag  | Payload type                         | Description                             | Optional    | Context         | Source / value                                            |
+|----------------|------|--------------------------------------|-----------------------------------------|-------------|-----------------|-----------------------------------------------------------|
+| VERSION        | 0x00 | uint8                                | struct version                          |             | both            | constant: `0x1`                                           |
+| TYPE_FAMILY    | 0x01 | [TypeFamily](#typefamily-enum)       |                                         |             | both            |                                                           |
+| TYPE_SIZE      | 0x02 | uint8                                | size of values (in bytes)               | x           | both            |                                                           |
+| DATA_PATH      | 0x03 | [DATA_PATH](#data_path)              | path to value in serialized transaction | x (GCS)     | SignTx/GCS only | `$.display.formats.<format id>.fields.[<field id>].path`  |
+| EIP712_PATH    | 0x03 | [EIP712_PATH](#eip712_path)          | path to value in the EIP-712 value tree | x (EIP-712) | EIP-712 only    | —                                                         |
+| CONTAINER_PATH | 0x04 | [ContainerPath](#containerpath-enum) | container value enum                    | x           | both            | `$.display.formats.<format id>.fields.[<field id>].path`  |
+| CONSTANT       | 0x05 | uint8[]                              | literal value                           | x           | both            | `$.display.formats.<format id>.fields.[<field id>].value` |
+| MAP_REF        | 0x06 | [MAP_REF](#map_ref)                  | reference to a map entry                | x           | both            | `$.metadata.maps.<map id>`                                |
 
 #### TypeFamily enum
 
@@ -352,9 +364,12 @@ If the network is not found, the device falls back to displaying the raw chain I
 | VALUE    | 0x02  |
 | CHAIN_ID | 0x03  |
 
-> __Note__: The TLV payload must include exactly one of `DATA_PATH`, `CONTAINER_PATH`, `CONSTANT` or `MAP_REF`, and both
-> `VERSION` and `TYPE_FAMILY`. A VALUE that lacks one of them, or that has none or several of those sources, is
-> refused, and so is the descriptor that holds it.
+> __Note__: The TLV payload must include exactly one of `DATA_PATH`/`EIP712_PATH` (tag `0x03`,
+> context-dependent — see `Context` column), `CONTAINER_PATH`, `CONSTANT` or `MAP_REF`, and both
+> `VERSION` and `TYPE_FAMILY`. A VALUE that lacks one of them, or that has none or several of those
+> sources, is refused, and so is the descriptor that holds it.
+> `EIP712_PATH` is only valid when the FIELD is part of an
+> [EIP712_FIELD_DESCRIPTOR](#eip712_field_descriptor) — see that section.
 
 ### DATA_PATH
 
@@ -614,3 +629,264 @@ The TUID field contains a nested TLV payload with the following tags:
 |----------|------|--------------|-------------------------|
 | ADDRESS  | 0x22 | uint8[20]    | ERC-20 contract address |
 | CHAIN_ID | 0x23 | uint64       | EVM chain ID            |
+
+## EIP712_SCHEMA
+
+Delivered as one TLV call defining the entire schema (all `EIP712_STRUCT` entries nested within).
+No GCS equivalent.
+
+| Name          | Tag  | Payload type                        | Description | Optional |
+|---------------|------|--------------------------------------|--------------|----------|
+| VERSION       | 0x00 | uint8                                | struct version (constant: `0x01`) |       |
+| EIP712_STRUCT | 0x01 | [EIP712_STRUCT](#eip712_struct) (repeated) | one entry per declared struct type |  |
+
+> [!NOTE]
+> Duplicate struct names across `EIP712_STRUCT` entries are rejected.
+
+### EIP712_STRUCT
+
+| Name         | Tag  | Payload type                    | Description | Optional |
+|--------------|------|-----------------------------------|--------------|----------|
+| VERSION      | 0x00 | uint8                              | struct version (constant: `0x01`) |          |
+| NAME         | 0x01 | char[]                             | struct name (ASCII, see the name rules below). `EIP712Domain` identifies the domain struct — exact string match, per the EIP-712 standard itself, not a Ledger convention |  |
+| EIP712_FIELD | 0x02 | [EIP712_FIELD](#eip712_field) (repeated) | one entry per declared field, in declaration order, none for a struct without member | x |
+
+> [!NOTE]
+> Struct names (`EIP712_STRUCT.NAME`, `EIP712_FIELD.STRUCT_NAME`) and field names
+> (`EIP712_FIELD.NAME`) must be non-empty and must not contain control characters, spaces, or any
+> of `(` `)` `,` `"` `\` `.`. Struct names are limited to 64 bytes. Names that break these rules
+> are rejected, so that two distinct schemas can never encode to the same type string.
+> Duplicate field names within one `EIP712_STRUCT` are rejected.
+
+### EIP712_FIELD
+
+| Name           | Tag  | Payload type                              | Description | Optional |
+|----------------|------|---------------------------------------------|--------------|----------|
+| VERSION        | 0x00 | uint8                                        | struct version (constant: `0x01`) |       |
+| NAME           | 0x01 | char[]                                       | field name (ASCII, see the name rules below) |  |
+| TYPE           | 0x02 | uint8 ([SolType](#soltype-enum))             | Solidity base type |  |
+| TYPE_SIZE      | 0x03 | uint8                                        | size in bytes, for `INT`/`UINT`/`BYTES_FIX` | x |
+| ARRAY_DIM      | 0x04 | uint32                                       | one entry per array dimension, innermost first. Empty payload = dynamic dimension; otherwise the fixed dimension size | x (non-array fields) |
+| STRUCT_NAME    | 0x05 | char[]                                       | referenced struct name, only if `TYPE` is `STRUCT` | x |
+
+Array examples: `address[]` → `{ARRAY_DIM ()}`. `OrderComponents[2]` → `{ARRAY_DIM (2)}`.
+`address[3][]` → `{ARRAY_DIM (3)}` then `{ARRAY_DIM ()}` (innermost first).
+
+A fixed dimension of size `0` (`T[0]`, legal per EIP-712) must still carry an explicit zero byte
+— it is the payload's presence, not its value, that marks the dimension as fixed:
+
+```
+0400      T[]     dynamic, empty payload
+040100    T[0]    fixed, size 0
+040102    T[2]    fixed, size 2
+```
+
+> [!NOTE]
+>
+> - `TYPE_SIZE` must be within `1..32`, and must be **absent** for `STRING`/`BYTES_DYN` (dynamic
+>   types have no fixed size by definition). Values outside this range, or present on a dynamic
+>   type, are rejected.
+> - `TYPE_SIZE` and `STRUCT_NAME` are mutually exclusive — a field is either sized or struct-typed,
+>   never both.
+
+#### SolType enum
+
+| Name       | Value |
+|------------|-------|
+| STRUCT     | 0x00  |
+| INT        | 0x01  |
+| UINT       | 0x02  |
+| ADDRESS    | 0x03  |
+| BOOL       | 0x04  |
+| STRING     | 0x05  |
+| BYTES_FIX  | 0x06  |
+| BYTES_DYN  | 0x07  |
+
+---
+
+## EIP712_VALUES
+
+Delivers the domain/message value tree. New, no GCS equivalent. **Deliberately not
+path-addressed** — position within the nested TLV sequence is the address, mirroring schema
+declaration order, so array cardinality and value placement are always unambiguous. A
+path-addressed design would reintroduce array-cardinality ambiguity and write-conflict questions
+that ordered delivery avoids by construction.
+
+| Name             | Tag  | Payload type                       | Description | Optional |
+|------------------|------|---------------------------------------|--------------|----------|
+| VERSION          | 0x00 | uint8                                  | struct version (constant: `0x01`) |       |
+| PRIMARY_TYPE     | 0x01 | char[]                                 | name of the message's root struct type |  |
+| DERIVATION_PATH  | 0x02 | uint32[]                               | BIP-32 path for signer-address resolution (1 to 10 entries, big endian) |  |
+| EIP712_DOMAIN    | 0x03 | [EIP712_VALUE_SEQ](#eip712_value_seq)  | domain value tree |  |
+| EIP712_MESSAGE   | 0x04 | [EIP712_VALUE_SEQ](#eip712_value_seq)  | message value tree |  |
+
+> [!NOTE]
+> `PRIMARY_TYPE` must be received before `EIP712_MESSAGE`, since it names the struct type the
+> message's root sequence is an instance of. `EIP712_DOMAIN` needs no such ordering — its type is
+> always `EIP712Domain`.
+
+### EIP712_VALUE_SEQ
+
+An ordered sequence of values, used for **both** struct instances and array instances:
+
+- as a struct instance, one entry per declared field, in schema-declared order
+- as an array instance, one entry per element
+
+Position is the address — no field index, element index or count is carried.
+
+| Name | Tag  | Payload type                          | Description | Optional |
+|------|------|-----------------------------------------|--------------|----------|
+| LEAF | 0x00 | uint8[]                                 | raw value bytes, when the target's type is scalar | — |
+| SEQ  | 0x01 | [EIP712_VALUE_SEQ](#eip712_value_seq)   | nested sequence: an array dimension or a struct instance | — |
+
+Whether a `SEQ` opens an array dimension or a struct instance is **derived from the schema**, not
+declared on the wire: it is an array while dimensions remain to be opened, and a struct once they
+are exhausted and the field's type is `STRUCT`. Declaring it on the wire would be redundant, since
+the schema already determines it at every position, and it could contradict the schema — a
+disagreement that would then have to be either resolved or rejected. Deriving it instead makes the
+value tree conform to the declared type by construction.
+
+> [!NOTE]
+> The `LEAF`/`SEQ` distinction is **not** derivable and must stay on the wire: it decides whether
+> the payload bytes are a raw value or a nested TLV sequence. A sequence sent where the schema
+> declares a scalar would otherwise be silently absorbed as that scalar's raw bytes. Receiving the
+> wrong one of the two is rejected.
+>
+> This check guards against a malformed or desynchronised payload, not against a malicious one —
+> schema and values come from the same untrusted sender, who can trivially send a consistent pair.
+> What makes the flow safe is that the hash and the displayed values are both derived from the same
+> schema-conformant tree, so the message shown is always the message signed.
+
+An array's element count is the number of entries in its sequence — no length is declared. For a
+fixed-size dimension that count must equal the schema's declared size; for a dynamic one it is
+whatever was sent, including zero. Because every concrete array instance carries its own entries,
+jagged arrays (`T[][]`, where each outer element's inner array has a different length) are
+unambiguous by construction.
+
+Sending more entries than the schema declares for a position is rejected.
+
+Worked example — `Person { string name; address[] wallets; }`, `wallets = [addr_A, addr_B]`:
+
+```
+SEQ {                           // Person instance: struct, no dimension to open
+    LEAF "Alice"                // name
+    SEQ {                       // wallets: array, one dimension remains
+        LEAF addr_A
+        LEAF addr_B
+    }
+}
+```
+
+Multi-dimensional example — `uint8[2][2]` holding `[[1, 2], [3, 4]]`:
+
+```
+SEQ {                           // outer dimension
+    SEQ { LEAF 1  LEAF 2 }      // inner dimension
+    SEQ { LEAF 3  LEAF 4 }
+}
+```
+
+---
+
+> [!WARNING]
+> Everything below this point describes planned structures and open design questions. None of it
+> is implemented by this application yet, unlike `EIP712_SCHEMA` and `EIP712_VALUES` above.
+
+## EIP712_FIELD_DESCRIPTOR
+
+Reuses [FIELD](#field) and all its `PARAM_*` variants unchanged — same struct, same tags, same
+signature-covers-nothing-directly rationale (`FIELDS_HASH` in `EIP712_MESSAGE_INFO` attests to
+authenticity, order and completeness of all descriptors, same as SignTx). Multiple descriptors
+referencing the same underlying field/value is normal (e.g. shown once raw, once formatted) and
+is not treated as a duplicate — this only applies to `EIP712_SCHEMA`'s struct/field name
+uniqueness, not `EIP712_FIELD_DESCRIPTOR`.
+
+The only addition is a new `VALUE` source: [EIP712_PATH](#eip712_path), reusing tag `0x03` on
+`VALUE` (same tag as `DATA_PATH`, since both play the same high-level role — see
+[VALUE](#value) above) — used in place of `DATA_PATH`/`CONTAINER_PATH` to reference a location in
+the EIP-712 value tree instead of the serialized transaction.
+
+### EIP712_PATH
+
+| Name              | Tag  | Payload type | Description | Optional |
+|-------------------|------|--------------|--------------|----------|
+| VERSION           | 0x00 | uint8        | struct version |       |
+| EIP712_STRUCT_FIELD | 0x01 | uint8 (repeated) | field index at this depth, walking from the root | — |
+| EIP712_ARRAY_SLICE  | 0x02 | [EIP712_ARRAY_SLICE](#eip712_array_slice) (repeated) | array segment to match at this depth | — |
+
+`EIP712_STRUCT_FIELD` and `EIP712_ARRAY_SLICE` entries appear interleaved, in the order the path
+descends through the tree, walking the already-decoded value tree by field index.
+
+> [!IMPORTANT]
+> Both tags describe steps of a **single ordered sequence**, not two independent collections. The
+> tag identifies the kind of step (descend into a struct field, or select an array segment); the
+> reception order is the descent order and is load-bearing. Accumulating entries per tag rather
+> than into one ordered sequence loses the interleaving, and two different paths — for example
+> `field/slice/field` and `field/field/slice` — become indistinguishable.
+
+Example — `orders[2].items[0..3).price`, where `orders` is field 1 of the root struct, `items`
+field 2 of `Order`, and `price` field 0 of `Item`:
+
+```
+EIP712_PATH {
+    EIP712_STRUCT_FIELD  1                       // orders
+    EIP712_ARRAY_SLICE   { START 2, END 3 }      // [2]
+    EIP712_STRUCT_FIELD  2                       // items
+    EIP712_ARRAY_SLICE   { START 0, END 3 }      // [0..3)
+    EIP712_STRUCT_FIELD  0                       // price
+}
+```
+
+> [!IMPORTANT]
+> **Open question**: how a descriptor's path expresses starting from the domain tree rather than
+> the message tree (e.g. to reference `domain.verifyingContract`) is not yet decided. Candidates:
+> add a root tag to `EIP712_PATH`, add two separate `VALUE` sources (domain-path vs
+> message-path), don't support it (domain fields only ever shown via the fixed `EIP712_MESSAGE_INFO`
+> metadata), or recycle GCS's `ContainerPath` enum (`CHAIN_ID`/`TO`) for the well-known domain
+> fields shared across signing contexts. Not reflected in the table above pending that decision.
+
+A single `EIP712_PATH` matching multiple leaves (via a wildcard/ranged `EIP712_ARRAY_SLICE`) is
+intentional, same as GCS's `DATA_PATH`/`ARRAY_ELEMENT` — one descriptor applying its display
+format to every matched element without one descriptor per index.
+
+### EIP712_ARRAY_SLICE
+
+| Name  | Tag  | Payload type | Description | Optional |
+|-------|------|--------------|--------------|----------|
+| START | 0x01 | int16        | start index (inclusive) | x, defaults to `0` |
+| END   | 0x02 | int16        | end index (exclusive)   | x, defaults to the array's resolved length |
+
+Absent `START` and `END` (`{}`) means wildcard — matches every element.
+
+`START` and `END` are encoded as fixed-width two-byte big-endian signed integers, not
+minimal-length — a negative index shortened to one byte would zero-extend to a large positive
+value instead of sign-extending.
+
+Resolution algorithm, given `array_size` = the resolved, fully-populated length of the target
+array (always known by the time `EIP712_FIELD_DESCRIPTOR` is processed, since `EIP712_VALUES` always completes first):
+
+1. If `START` present and negative: `start = array_size + START` (Python-style, `-1` = last
+   element). Else if present and non-negative: `start = START`. Else: `start = 0`.
+2. Same rule for `END`, with `end = array_size` if absent.
+3. Reject if `start < 0` after normalization.
+4. Reject if `end > array_size` after normalization. *(The one check added beyond GCS's own
+   `ARRAY_ELEMENT` resolution: GCS can rely on an unrelated buffer-length check catching an
+   out-of-range calldata offset later; the EIP-712 value tree has no equivalent implicit
+   backstop, so this must be explicit.)*
+5. Reject if `end <= start` (matches GCS: an inverted/empty range is malformed, not a valid
+   "zero matches" no-op).
+6. Otherwise valid — matches elements `[start, end)`.
+
+All rejections abort processing of that `EIP712_PATH`/descriptor.
+
+> [!IMPORTANT]
+> **Open question**: whether leaf-level byte-range slicing (e.g. showing only part of a `bytes`
+> value, analogous to GCS's `SLICE_ELEMENT`) is needed for EIP-712 is not yet decided — values
+> here are already decoded/typed (unlike GCS's raw ABI byte navigation), so the need is narrower.
+> Not reflected in the table above pending that decision.
+
+> [!NOTE]
+> **Open question**: which PKI usage constant scopes `EIP712_MESSAGE_INFO`/`EIP712_FIELD_DESCRIPTOR` signature verification —
+> `CERTIFICATE_PUBLIC_KEY_USAGE_COIN_META` (V1's own precedent) or
+> `CERTIFICATE_PUBLIC_KEY_USAGE_CALLDATA` (used by GCS's `TRANSACTION_INFO`/`FIELD`, which
+> `EIP712_MESSAGE_INFO`/`EIP712_FIELD_DESCRIPTOR` otherwise reuse) — is not yet decided.

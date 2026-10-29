@@ -303,15 +303,24 @@ This command has been supported since app version 1.5.0.
 The full implementation uses all the JSON data and does all the hashing on the device, it has been supported since app
 version 1.9.19. This command should come last, after all the EIP712 SEND STRUCT DEFINITION & SEND STRUCT IMPLEMENTATION.
 
+The V2 implementation triggers the hash pass and signature after the schema and values have been
+fully delivered via EIP712 SEND STRUCT DEFINITION and EIP712 SEND STRUCT IMPLEMENTATION (V2
+branches, `P2 = 02`). It carries no input data: the BIP 32 path was already delivered as part of
+the [EIP712_VALUES struct](tlv_structs.md#eip712_values).
+
 #### Coding
 
 _Command:_
 
-| CLA | INS | P1  | P2                                                                 | Lc       | Le       |
-|-----|-----|-----|--------------------------------------------------------------------|----------|----------|
-| E0  | 0C  | 00  | `00`: V0 (legacy) implementation<br>`01`: V1 (full) implementation | variable | variable |
+| CLA | INS | P1  | P2                                                                                            | Lc       | Le       |
+|-----|-----|-----|-----------------------------------------------------------------------------------------------|----------|----------|
+| E0  | 0C  | 00  | `00`: V0 (legacy) implementation<br>`01`: V1 (full) implementation<br>`02`: V2 implementation | variable | variable |
+
+Any other P2 is refused with `0x6B00`.
 
 _Input data:_
+
+##### If P2 == V0 or V1 implementation
 
 | Description                                      | Length |
 |--------------------------------------------------|--------|
@@ -321,6 +330,10 @@ _Input data:_
 | Last derivation index (big endian)               | 4      |
 | Domain hash _(only for V0)_                      | 32     |
 | Message hash _(only for V0)_                     | 32     |
+
+##### If P2 == V2 implementation
+
+None. `P1` must be `00` and `Lc` must be `0`.
 
 _Output data:_
 
@@ -575,13 +588,17 @@ _Output data:_
 This command sends the message definition with all its types.
 These commands should come before the EIP712 SEND STRUCT IMPLEMENTATION ones.
 
+This is a V1-only description; see the [V2 branch](#if-p2--v2-schema) below for the V2 schema
+delivery mechanism, which replaces this incremental struct/field-by-field protocol with a single
+TLV blob.
+
 #### Coding
 
 _Command:_
 
-| CLA | INS | P1  | P2                                      | LC       | Le       |
-|-----|-----|-----|-----------------------------------------|----------|----------|
-| E0  | 1A  | 00  | `00`: struct name<br>`FF`: struct field | variable | variable |
+| CLA | INS | P1                                                                        | P2                                                                   | LC       | Le       |
+|-----|-----|---------------------------------------------------------------------------|----------------------------------------------------------------------|----------|----------|
+| E0  | 1A  | `00`: unused (V1)<br>`01`: first chunk (V2)<br>`00`: following chunk (V2) | `00`: struct name (V1)<br>`FF`: struct field (V1)<br>`02`: V2 schema | variable | variable |
 
 _Input data:_
 
@@ -659,6 +676,28 @@ Types of array level:
 
 Each fixed-sized array level is followed by a byte indicating its size (number of elements).
 
+##### If P2 == V2 schema
+
+P1 is reinterpreted as a chunk flag under this P2 value only (`01`: first chunk, `00`: following
+chunk), distinct from the other P2 branches above where P1 is unused.
+
+###### If P1 == first chunk
+
+| Description                                          | Length (byte) |
+|------------------------------------------------------|---------------|
+| struct size (BE)                                     | 2             |
+| [EIP712_SCHEMA struct](tlv_structs.md#eip712_schema) | variable      |
+
+###### If P1 == following chunk
+
+| Description                                          | Length (byte) |
+|------------------------------------------------------|---------------|
+| [EIP712_SCHEMA struct](tlv_structs.md#eip712_schema) | variable      |
+
+Once a full `EIP712_SCHEMA` has been received and parsed successfully, it is locked: any further
+call with `P2 == V2 schema` in the same session is rejected. Any `P1` value other than `01` or `00`
+is rejected too.
+
 _Output data:_
 
 None
@@ -670,13 +709,17 @@ None
 This command sends the message implementation with all its values.
 These commands should come after the EIP712 SEND STRUCT DEFINITION ones.
 
+This is a V1-only description; see the [V2 branch](#if-p2--v2-values) below for the V2 values
+delivery mechanism, which replaces this incremental root/array/field protocol with a single TLV
+blob.
+
 #### Coding
 
 _Command:_
 
-| CLA | INS | P1                                                      | P2                                                     | LC       | Le       |
-|-----|-----|---------------------------------------------------------|--------------------------------------------------------|----------|----------|
-| E0  | 1C  | `00`: complete send<br>`01`: partial send, more to come | `00`: root struct<br>`0F`: array<br>`FF`: struct field | variable | variable |
+| CLA | INS | P1                                                                                                                        | P2                                                                                       | LC       | Le       |
+|-----|-----|---------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------|----------|----------|
+| E0  | 1C  | `00`: complete send (V1)<br>`01`: partial send, more to come (V1)<br>`01`: first chunk (V2)<br>`00`: following chunk (V2) | `00`: root struct (V1)<br>`0F`: array (V1)<br>`FF`: struct field (V1)<br>`02`: V2 values | variable | variable |
 
 _Input data:_
 
@@ -707,6 +750,28 @@ Sets the size of the upcoming array the following N fields will be a part of.
 Sets the raw value of the next field in order in the current root structure.
 Raw as in, an integer in the JSON file represented as "128" would only be 1 byte long (`0x80`)
 instead of 3 as an array of ASCII characters, same for addresses and so on.
+
+##### If P2 == V2 values
+
+P1 is reinterpreted as a chunk flag under this P2 value only (`01`: first chunk, `00`: following
+chunk), distinct from the complete/partial meaning P1 has on the V1 branches above.
+
+###### If P1 == first chunk
+
+| Description                                          | Length (byte) |
+|------------------------------------------------------|---------------|
+| struct size (BE)                                     | 2             |
+| [EIP712_VALUES struct](tlv_structs.md#eip712_values) | variable      |
+
+###### If P1 == following chunk
+
+| Description                                          | Length (byte) |
+|------------------------------------------------------|---------------|
+| [EIP712_VALUES struct](tlv_structs.md#eip712_values) | variable      |
+
+This call requires `EIP712_SCHEMA` (see EIP712 SEND STRUCT DEFINITION, V2 branch) to already be
+locked, and is accepted once per session; otherwise rejected. Any `P1` value other than `01` or `00`
+is rejected too.
 
 _Output data:_
 
@@ -1176,13 +1241,13 @@ _Input data:_
 | Description                                                | Length (byte) |
 |------------------------------------------------------------|---------------|
 | struct size (BE)                                           | 2             |
-| [TRANSACTION_INFO struct](tlv_structs.md#transaction_info) | variable      |
+| [TRANSACTION_INFO struct](tlv_structs.md#transaction_info--eip712_message_info) | variable      |
 
 ##### If P1 == following chunk
 
 | Description                                                | Length (byte) |
 |------------------------------------------------------------|---------------|
-| [TRANSACTION_INFO struct](tlv_structs.md#transaction_info) | variable      |
+| [TRANSACTION_INFO struct](tlv_structs.md#transaction_info--eip712_message_info) | variable      |
 
 _Output data:_
 

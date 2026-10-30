@@ -20,14 +20,14 @@ typedef struct {
 
     cx_sha3_t fields_hash_ctx;
     bool has_amount : 1;
-} s_tx_ctx;
+} s_operation_ctx;
 
 extern s_calldata *g_parked_calldata;
 
-bool tx_ctx_is_root(void);
-size_t get_tx_ctx_count(void);
+bool operation_ctx_is_root(void);
+size_t get_operation_ctx_count(void);
 cx_hash_t *get_fields_hash_ctx(void);
-const s_tx_info *get_root_tx_info(void);
+const s_tx_info *get_root_operation_info(void);
 const s_tx_info *get_current_tx_info(void);
 s_calldata *get_current_calldata(void);
 s_calldata *get_root_calldata(void);
@@ -36,20 +36,20 @@ const uint8_t *get_current_tx_to(void);
 const uint8_t *get_current_tx_amount(void);
 uint64_t get_current_tx_chain_id(void);
 bool validate_instruction_hash(void);
-void tx_ctx_pop(void);
-bool process_empty_txs_before(void);
-bool process_empty_txs_after(void);
-bool find_matching_tx_ctx(const uint8_t *contract_addr,
-                          const uint8_t *selector,
-                          const uint64_t *chain_id);
-bool set_tx_info_into_tx_ctx(s_tx_info *tx_info);
-bool tx_ctx_init(s_calldata *calldata,
-                 const uint8_t *from,
-                 const uint8_t *to,
-                 const uint8_t *amount,
-                 const uint64_t *chain_id);
+void operation_ctx_pop(void);
+bool process_empty_calls_before(void);
+bool process_empty_calls_after(void);
+bool find_matching_operation_ctx(const uint8_t *contract_addr,
+                                 const uint8_t *selector,
+                                 const uint64_t *chain_id);
+bool operation_ctx_set_info(s_tx_info *tx_info);
+bool operation_ctx_init(s_calldata *calldata,
+                        const uint8_t *from,
+                        const uint8_t *to,
+                        const uint8_t *amount,
+                        const uint64_t *chain_id);
 void gcs_cleanup(void);
-void gcs_set_root_value_shown(void);
-bool gcs_is_root_value_shown(void);
-void gcs_set_root_from_shown(void);
-bool gcs_is_root_from_shown(void);
+void operation_ctx_set_root_value_shown(void);
+bool operation_ctx_is_root_value_shown(void);
+void operation_ctx_set_root_from_shown(void);
+bool operation_ctx_is_root_from_shown(void);

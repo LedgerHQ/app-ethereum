@@ -15,7 +15,7 @@
 #include "get_public_key.h"
 #include "app_mem_utils.h"
 #include "mem_utils.h"
-#include "tx_ctx.h"
+#include "operation_ctx.h"
 #include "eth_swap_utils.h"
 
 static uint32_t split_binary_parameter_part(char *result, size_t result_size, uint8_t *parameter) {

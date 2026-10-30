@@ -22,7 +22,7 @@
 #include "address_name_lookup.h"
 #include "utils.h"
 #include "get_public_key.h"
-#include "tx_ctx.h"
+#include "operation_ctx.h"
 #include "common_utils.h"
 #include "Mocknetwork.h"
 

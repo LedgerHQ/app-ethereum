@@ -14,7 +14,7 @@
 #include "shared_context.h"
 #include "apdu_constants.h"     // handleApdu()
 #include "eip712_v1_context.h"  // eip712_v1_context_deinit()
-#include "tx_ctx.h"             // gcs_cleanup()
+#include "operation_ctx.h"      // gcs_cleanup()
 #include "trusted_name.h"       // trusted_name_cleanup()
 #include "enum_value.h"         // enum_value_cleanup()
 #include "proxy_info.h"         // proxy_cleanup()

@@ -333,10 +333,10 @@ ledger_unit_tests_add_test(NAME test_tx_info
     ${COMMON_LINK_OPTIONS}
 )
 
-ledger_unit_tests_add_test(NAME test_tx_ctx
+ledger_unit_tests_add_test(NAME test_operation_ctx
   SOURCES
     ${COMMON_SOURCES_WITH_GLOBALS}
-    ${APP_DIR}/features/generic_tx_parser/tx_ctx.c
+    ${APP_DIR}/features/gcs/operation_ctx.c
     ${APP_DIR}/features/generic_tx_parser/calldata.c
     ${APP_DIR}/utils/mem_utils.c
     ${SDK_DIR}/lib_lists/lists.c

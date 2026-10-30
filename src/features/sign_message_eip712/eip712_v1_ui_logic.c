@@ -15,8 +15,8 @@
 #include "lists.h"
 #include "ui_utils.h"
 #include "utils.h"
-#include "tx_ctx.h"  // g_parked_calldata
-#include "read.h"    // read_u64_be
+#include "operation_ctx.h"  // g_parked_calldata
+#include "read.h"           // read_u64_be
 #include "token_info.h"
 #ifdef HAVE_ADDRESS_BOOK
 #include "handle_contacts.h"
@@ -850,11 +850,11 @@ static bool update_calldata(const uint8_t *data,
         if (g_parked_calldata == NULL) {
             if (!handle_fallback_empty_calldata(calldata_info)) return false;
         } else {
-            if (!tx_ctx_init(g_parked_calldata,
-                             calldata_info->spender,
-                             calldata_info->callee,
-                             calldata_info->amount,
-                             &calldata_info->chain_id)) {
+            if (!operation_ctx_init(g_parked_calldata,
+                                    calldata_info->spender,
+                                    calldata_info->callee,
+                                    calldata_info->amount,
+                                    &calldata_info->chain_id)) {
                 calldata_delete(g_parked_calldata);
                 g_parked_calldata = NULL;
                 return false;

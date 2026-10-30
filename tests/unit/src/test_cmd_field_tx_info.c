@@ -11,7 +11,7 @@
  * TLV payload into the static handle_tlv_payload.
  *
  * The deep parsing path is already covered by test_tx_info /
- * test_field_validation / test_tx_ctx; this slice focuses on the
+ * test_field_validation / test_operation_ctx; this slice focuses on the
  * entry-point glue: status-word returns on guard failures and on
  * tlv_from_apdu success / failure.
  */
@@ -25,7 +25,7 @@
 #include "cmd_tx_info.h"
 #include "gtp_tx_info.h"
 #include "gcs_field.h"
-#include "tx_ctx.h"
+#include "operation_ctx.h"
 #include "apdu_constants.h"
 #include "shared_context.h"
 #include "status_words.h"
@@ -120,15 +120,15 @@ static cx_err_t g_cx_hash_ret = CX_OK;
 // decrements the counter; when it reaches zero the stub returns false
 // and the loop exits.
 static int g_validate_instruction_hash_budget = 0;
-static bool g_tx_ctx_is_root_ret = true;
-static bool g_process_empty_txs_after_ret = true;
-static bool g_process_empty_txs_before_ret = true;
+static bool g_operation_ctx_is_root_ret = true;
+static bool g_process_empty_calls_after_ret = true;
+static bool g_process_empty_calls_before_ret = true;
 static bool g_handle_tx_info_struct_ret = true;
 static bool g_verify_tx_info_struct_ret = true;
-static bool g_find_matching_tx_ctx_ret = true;
-static bool g_set_tx_info_into_tx_ctx_ret = true;
+static bool g_find_matching_operation_ctx_ret = true;
+static bool g_operation_ctx_set_info_ret = true;
 static int g_cleanup_field_calls = 0;
-static int g_tx_ctx_pop_calls = 0;
+static int g_operation_ctx_pop_calls = 0;
 
 bool handle_field_struct(const buffer_t *buf, s_field_ctx *ctx) {
     (void) buf;
@@ -166,17 +166,17 @@ bool format_field(s_field *f, uint8_t depth) {
     (void) depth;
     return g_format_field_ret;
 }
-bool process_empty_txs_after(void) {
-    return g_process_empty_txs_after_ret;
+bool process_empty_calls_after(void) {
+    return g_process_empty_calls_after_ret;
 }
-bool process_empty_txs_before(void) {
-    return g_process_empty_txs_before_ret;
+bool process_empty_calls_before(void) {
+    return g_process_empty_calls_before_ret;
 }
-void tx_ctx_pop(void) {
-    g_tx_ctx_pop_calls++;
+void operation_ctx_pop(void) {
+    g_operation_ctx_pop_calls++;
 }
-bool tx_ctx_is_root(void) {
-    return g_tx_ctx_is_root_ret;
+bool operation_ctx_is_root(void) {
+    return g_operation_ctx_is_root_ret;
 }
 bool validate_instruction_hash(void) {
     if (g_validate_instruction_hash_budget > 0) {
@@ -194,16 +194,16 @@ bool verify_tx_info_struct(const s_tx_info_ctx *ctx) {
     (void) ctx;
     return g_verify_tx_info_struct_ret;
 }
-bool find_matching_tx_ctx(const uint8_t *a, const uint8_t *s, const uint64_t *c) {
+bool find_matching_operation_ctx(const uint8_t *a, const uint8_t *s, const uint64_t *c) {
     (void) a;
     (void) s;
     (void) c;
-    return g_find_matching_tx_ctx_ret;
+    return g_find_matching_operation_ctx_ret;
 }
 // The tx context takes ownership of info.
-bool set_tx_info_into_tx_ctx(s_tx_info *info) {
+bool operation_ctx_set_info(s_tx_info *info) {
     free(info);
-    return g_set_tx_info_into_tx_ctx_ret;
+    return g_operation_ctx_set_info_ret;
 }
 // =============================================================================
 // Fixture
@@ -221,15 +221,15 @@ static void reset(void) {
     g_format_field_ret = true;
     g_cx_hash_ret = CX_OK;
     g_validate_instruction_hash_budget = 0;
-    g_tx_ctx_is_root_ret = true;
-    g_process_empty_txs_after_ret = true;
-    g_process_empty_txs_before_ret = true;
+    g_operation_ctx_is_root_ret = true;
+    g_process_empty_calls_after_ret = true;
+    g_process_empty_calls_before_ret = true;
     g_handle_tx_info_struct_ret = true;
     g_verify_tx_info_struct_ret = true;
-    g_find_matching_tx_ctx_ret = true;
-    g_set_tx_info_into_tx_ctx_ret = true;
+    g_find_matching_operation_ctx_ret = true;
+    g_operation_ctx_set_info_ret = true;
     g_cleanup_field_calls = 0;
-    g_tx_ctx_pop_calls = 0;
+    g_operation_ctx_pop_calls = 0;
 }
 
 // =============================================================================
@@ -339,7 +339,7 @@ void test_field_handler_happy_path(void) {
     s_tx_info_ret = &dummy;
     appState = APP_STATE_SIGNING_TX;
     g_field_tlv_invoke_handler = true;
-    g_tx_ctx_is_root_ret = true;  // not signing EIP-712 & at root → exit while loop
+    g_operation_ctx_is_root_ret = true;  // not signing EIP-712 & at root → exit while loop
     g_validate_instruction_hash_budget = 0;
 
     TEST_ASSERT_EQUAL(handle_field(P1_FIRST_CHUNK, 0, 0, NULL), SWO_SUCCESS);
@@ -407,7 +407,7 @@ void test_field_handler_eip712_pop_loop_runs(void) {
     g_validate_instruction_hash_budget = 2;
 
     handle_field(P1_FIRST_CHUNK, 0, 0, NULL);
-    TEST_ASSERT_EQUAL(g_tx_ctx_pop_calls, 2);
+    TEST_ASSERT_EQUAL(g_operation_ctx_pop_calls, 2);
 }
 
 void test_field_handler_process_empty_failure_propagates(void) {
@@ -415,8 +415,8 @@ void test_field_handler_process_empty_failure_propagates(void) {
     s_tx_info_ret = &dummy;
     appState = APP_STATE_SIGNING_EIP712;
     g_field_tlv_invoke_handler = true;
-    g_validate_instruction_hash_budget = 1;  // first iter true, then false
-    g_process_empty_txs_after_ret = false;   // bail out of while loop
+    g_validate_instruction_hash_budget = 1;   // first iter true, then false
+    g_process_empty_calls_after_ret = false;  // bail out of while loop
 
     handle_field(P1_FIRST_CHUNK, 0, 0, NULL);
     TEST_ASSERT_FALSE(g_field_tlv_handler_returned);
@@ -453,7 +453,7 @@ void test_tx_info_handler_verify_failure(void) {
 void test_tx_info_handler_no_matching_ctx_rejected(void) {
     appState = APP_STATE_SIGNING_TX;
     g_field_tlv_invoke_handler = true;
-    g_find_matching_tx_ctx_ret = false;
+    g_find_matching_operation_ctx_ret = false;
 
     handle_tx_info(P1_FIRST_CHUNK, 0, 0, NULL);
     TEST_ASSERT_FALSE(g_field_tlv_handler_returned);
@@ -462,7 +462,7 @@ void test_tx_info_handler_no_matching_ctx_rejected(void) {
 void test_tx_info_handler_set_info_failure_propagates(void) {
     appState = APP_STATE_SIGNING_TX;
     g_field_tlv_invoke_handler = true;
-    g_set_tx_info_into_tx_ctx_ret = false;
+    g_operation_ctx_set_info_ret = false;
 
     handle_tx_info(P1_FIRST_CHUNK, 0, 0, NULL);
     TEST_ASSERT_FALSE(g_field_tlv_handler_returned);
@@ -471,7 +471,7 @@ void test_tx_info_handler_set_info_failure_propagates(void) {
 void test_tx_info_handler_process_empty_failure_frees_tx_info(void) {
     appState = APP_STATE_SIGNING_TX;
     g_field_tlv_invoke_handler = true;
-    g_process_empty_txs_before_ret = false;
+    g_process_empty_calls_before_ret = false;
 
     handle_tx_info(P1_FIRST_CHUNK, 0, 0, NULL);
     TEST_ASSERT_FALSE(g_field_tlv_handler_returned);

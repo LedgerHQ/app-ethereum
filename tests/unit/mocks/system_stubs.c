@@ -305,7 +305,7 @@ __attribute__((weak)) bool data_path_get(const void *data_path, void *collection
 }
 
 // =============================================================================
-// app/src/features/generic_tx_parser/tx_ctx.c
+// app/src/features/gcs/operation_ctx.c
 // =============================================================================
 
 __attribute__((weak)) const uint8_t *get_current_tx_to(void) {
@@ -486,14 +486,14 @@ __attribute__((weak)) __attribute__((noreturn)) void send_swap_error_simple(
 // Default: not at the root context, so value_get_rlp() never marks the root
 // FROM/VALUE rows as shown. Tests that exercise the dedup hooks install their
 // own strong definitions.
-__attribute__((weak)) bool tx_ctx_is_root(void) {
+__attribute__((weak)) bool operation_ctx_is_root(void) {
     return false;
 }
 
-__attribute__((weak)) void gcs_set_root_from_shown(void) {
+__attribute__((weak)) void operation_ctx_set_root_from_shown(void) {
 }
 
-__attribute__((weak)) void gcs_set_root_value_shown(void) {
+__attribute__((weak)) void operation_ctx_set_root_value_shown(void) {
 }
 
 __attribute__((weak)) bool chain_id_is_signable(uint64_t chain_id) {

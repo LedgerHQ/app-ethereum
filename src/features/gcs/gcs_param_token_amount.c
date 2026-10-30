@@ -5,7 +5,7 @@
 #include "utils.h"
 #include "gcs_field_table.h"
 #include "token_info.h"
-#include "tx_ctx.h"
+#include "operation_ctx.h"
 #include "tlv_utils.h"
 #include "shared_context.h"
 

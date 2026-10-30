@@ -4,7 +4,7 @@
 #include "tlv_library.h"
 #include "tlv_utils.h"
 #include "shared_context.h"
-#include "tx_ctx.h"
+#include "operation_ctx.h"
 #include "nft_info.h"
 
 #define PARAM_NFT_STRUCT_VERSION 0x01

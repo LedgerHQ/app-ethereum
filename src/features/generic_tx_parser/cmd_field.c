@@ -5,7 +5,7 @@
 #include "gcs_field.h"
 #include "cmd_tx_info.h"
 #include "gtp_tx_info.h"
-#include "tx_ctx.h"
+#include "operation_ctx.h"
 #include "app_mem_utils.h"
 
 static bool process_field(const buffer_t *buf, s_field *field) {
@@ -46,12 +46,12 @@ static bool process_field(const buffer_t *buf, s_field *field) {
         return false;
     }
     APP_MEM_FREE(hash_ctx_backup);
-    while (((appState == APP_STATE_SIGNING_EIP712) || !tx_ctx_is_root()) &&
+    while (((appState == APP_STATE_SIGNING_EIP712) || !operation_ctx_is_root()) &&
            validate_instruction_hash()) {
-        if (!process_empty_txs_after()) {
+        if (!process_empty_calls_after()) {
             return false;
         }
-        tx_ctx_pop();
+        operation_ctx_pop();
     }
     return true;
 }

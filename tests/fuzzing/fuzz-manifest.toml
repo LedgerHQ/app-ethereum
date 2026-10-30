@@ -160,7 +160,7 @@ key_files = [
     "src/features/gcs/gcs_param_calldata.c",
     "src/features/gcs/gcs_param_group.c",
     "src/features/generic_tx_parser/calldata.c",
-    "src/features/generic_tx_parser/tx_ctx.c",
+    "src/features/gcs/operation_ctx.c",
     "src/features/provide_enum_value/enum_value.c",
     "src/features/sign_message_eip712/eip712_v1_filtering.c",
     "src/features/sign_message_eip712/eip712_v1_parse.c",

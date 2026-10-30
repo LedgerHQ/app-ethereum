@@ -7,7 +7,7 @@
 #include "common_ui.h"
 #include "app_mem_utils.h"
 #include "mem_utils.h"
-#include "tx_ctx.h"
+#include "operation_ctx.h"
 #include "eth_swap_utils.h"
 
 typedef enum {
@@ -170,11 +170,11 @@ uint16_t handle_sign(uint8_t p1, uint8_t p2, const uint8_t *payload, uint8_t len
             }
 
             // This should do nothing unless we only had TX context of empty transactions
-            if (!process_empty_txs_after()) {
+            if (!process_empty_calls_after()) {
                 return SWO_INCORRECT_DATA;
             }
 
-            if (get_tx_ctx_count() != 1) {
+            if (get_operation_ctx_count() != 1) {
                 PRINTF("Error: remnant unprocessed TX context!\n");
                 return SWO_COMMAND_NOT_ALLOWED;
             }

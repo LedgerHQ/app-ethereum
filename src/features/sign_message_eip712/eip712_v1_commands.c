@@ -6,7 +6,7 @@
 #include "eip712_v1_filtering.h"
 #include "common_ui.h"  // ui_idle, ui_error_blind_signing
 #include "manage_asset_info.h"
-#include "tx_ctx.h"  // get_tx_ctx_count
+#include "operation_ctx.h"  // get_operation_ctx_count
 #include "value_hash.h"
 #include "eip712_v1_parse.h"
 
@@ -284,7 +284,7 @@ uint16_t handle_eip712_v1_sign(const uint8_t *cdata, uint8_t length) {
                 ui_712_filtering_broken() || ui_712_pending_amount_joins())) {
         PRINTF("%d EIP712 filters are missing\n", ui_712_remaining_filters());
         sw = SWO_REFERENCED_DATA_NOT_FOUND;
-    } else if (!all_calldata_info_processed() || (get_tx_ctx_count() != 0)) {
+    } else if (!all_calldata_info_processed() || (get_operation_ctx_count() != 0)) {
         PRINTF("Unprocessed calldata\n");
         sw = SWO_REFERENCED_DATA_NOT_FOUND;
     } else if (parseBip32(cdata, &length, &tmpCtx.messageSigningContext.bip32) == NULL) {

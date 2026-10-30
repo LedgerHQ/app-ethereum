@@ -14,7 +14,7 @@
 #include "utils.h"
 #include "network.h"
 #include "gcs_field_table.h"
-#include "tx_ctx.h"
+#include "operation_ctx.h"
 #include "apdu_constants.h"
 #include "tlv_utils.h"
 #include "chain_config.h"

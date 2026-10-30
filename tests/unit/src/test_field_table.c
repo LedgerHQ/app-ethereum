@@ -37,7 +37,7 @@
 #include "token_info.h"
 #include "gcs_field.h"
 #include "shared_context.h"
-#include "tx_ctx.h"
+#include "operation_ctx.h"
 
 // =============================================================================
 // Globals the module reads

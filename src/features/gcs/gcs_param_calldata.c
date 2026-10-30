@@ -7,7 +7,7 @@
 #include "gtp_tx_info.h"
 #include "utils.h"
 #include "read.h"
-#include "tx_ctx.h"
+#include "operation_ctx.h"
 #include "app_mem_utils.h"
 #include "tlv_utils.h"
 
@@ -161,11 +161,11 @@ static bool process_nested_calldata(const s_param_calldata *param,
         buf_shrink_expand(spender->ptr, spender->length, from_buf, sizeof(from_buf));
     }
 
-    if (!tx_ctx_init(new_calldata,
-                     param->has_spender ? from_buf : NULL,
-                     addr_buf,
-                     param->has_amount ? amount_buf : NULL,
-                     param->has_chain_id ? &chain_id_value : NULL)) {
+    if (!operation_ctx_init(new_calldata,
+                            param->has_spender ? from_buf : NULL,
+                            addr_buf,
+                            param->has_amount ? amount_buf : NULL,
+                            param->has_chain_id ? &chain_id_value : NULL)) {
         if (new_calldata != NULL) {
             calldata_delete(new_calldata);
         }

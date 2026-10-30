@@ -17,7 +17,7 @@
 #include "hash_bytes.h"
 #include "shared_context.h"
 #include "eth_ustream.h"
-#include "tx_ctx.h"
+#include "operation_ctx.h"
 #include "calldata.h"
 #include "proxy_info.h"
 #include "utils.h"

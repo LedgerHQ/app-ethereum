@@ -6,7 +6,7 @@
 #include "get_public_key.h"
 #include "gcs_parsed_value.h"
 #include "ui_utils.h"
-#include "tx_ctx.h"
+#include "operation_ctx.h"
 #include "tlv_library.h"
 #include "tlv_utils.h"
 #include "map_entry.h"
@@ -182,10 +182,10 @@ static bool value_get_rlp(const s_value *value, s_parsed_value_collection *colle
             }
             collection->value[0].length = ADDRESS_LENGTH;
             collection->size = 1;
-            if (tx_ctx_is_root()) {
+            if (operation_ctx_is_root()) {
                 // The descriptor already shows the root sender; the GCS
                 // review must not add its own duplicate row for it.
-                gcs_set_root_from_shown();
+                operation_ctx_set_root_from_shown();
             }
             break;
 
@@ -205,10 +205,10 @@ static bool value_get_rlp(const s_value *value, s_parsed_value_collection *colle
             }
             collection->value[0].length = INT256_LENGTH;
             collection->size = 1;
-            if (tx_ctx_is_root()) {
+            if (operation_ctx_is_root()) {
                 // The descriptor already shows the root native value; the GCS
                 // review must not add its own duplicate row for it.
-                gcs_set_root_value_shown();
+                operation_ctx_set_root_value_shown();
             }
             break;
 

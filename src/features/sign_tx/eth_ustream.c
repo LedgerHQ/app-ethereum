@@ -23,7 +23,7 @@
 #include "common_utils.h"
 #include "feature_sign_tx.h"
 #include "calldata.h"
-#include "tx_ctx.h"  // g_parked_calldata
+#include "operation_ctx.h"  // g_parked_calldata
 #include "utils.h"
 #include "shared_context.h"  // tmpContent
 #include "read.h"            // read_u64_be
@@ -726,7 +726,7 @@ static parserStatus_e process_tx_internal(txContext_t *context) {
                                   sizeof(amount));
                 chain_id = get_tx_chain_id();
 
-                if (!tx_ctx_init(g_parked_calldata, NULL, to, amount, &chain_id)) {
+                if (!operation_ctx_init(g_parked_calldata, NULL, to, amount, &chain_id)) {
                     // NULL once the calldata ownership was transferred to the context
                     if (g_parked_calldata != NULL) {
                         calldata_delete(g_parked_calldata);

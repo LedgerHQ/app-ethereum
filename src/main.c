@@ -61,7 +61,7 @@
 #endif  // HAVE_ADDRESS_BOOK_LEDGER_ACCOUNT
 #endif  // HAVE_ADDRESS_BOOK
 #include "cmd_safe_account.h"
-#include "tx_ctx.h"
+#include "operation_ctx.h"
 #include "enum_value.h"
 #include "proxy_info.h"
 

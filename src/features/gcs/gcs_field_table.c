@@ -5,7 +5,7 @@
 #include "lists.h"
 #include "shared_context.h"  // appState
 #include "eip712_v1_ui_logic.h"
-#include "tx_ctx.h"
+#include "operation_ctx.h"
 #include "token_info.h"
 #include "nft_info.h"
 #ifdef HAVE_ADDRESS_BOOK

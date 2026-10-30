@@ -9,7 +9,7 @@
 #include "shared_context.h"
 #include "get_public_key.h"
 #include "apdu_constants.h"
-#include "tx_ctx.h"
+#include "operation_ctx.h"
 #include "tlv_utils.h"
 
 #define PARAM_TRUSTED_NAME_STRUCT_VERSION 0x01

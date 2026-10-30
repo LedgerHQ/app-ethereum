@@ -11,8 +11,8 @@ g_parked_calldata
 
 # ── App-level pointer globals (from .zon — 8-byte .top fields) ──
 eip712_v1_context
-g_tx_ctx_list
-g_tx_ctx_current
+g_operation_ctx_list
+g_operation_ctx_current
 g_enum_value_list
 g_table
 g_pairs

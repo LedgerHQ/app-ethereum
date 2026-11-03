@@ -95,7 +95,7 @@ class EthAppClient:
         self,
         field_type: EIP712FieldType,
         type_name: str,
-        type_size: int,
+        type_size: int | None,
         array_levels: list,
         key_name: str,
     ):

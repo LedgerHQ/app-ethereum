@@ -38,7 +38,8 @@ static bool is_valid_identifier(const uint8_t *name, size_t length) {
  * @return whether it was successful
  */
 bool v1_set_struct_name(uint8_t length, const uint8_t *name) {
-    if ((name == NULL) || !is_valid_identifier(name, length)) {
+    if ((name == NULL) || !is_valid_identifier(name, length) ||
+        !td_is_valid_struct_name(name, length)) {
         return false;
     }
 
@@ -126,6 +127,7 @@ static bool v1_set_struct_field_custom_typename(s_struct_712_field *field,
         return false;
     }
     if (!is_valid_identifier(&data[*data_idx], typename_len) ||
+        !td_is_valid_struct_name(&data[*data_idx], typename_len) ||
         !td_field_set_struct_name(field, &data[*data_idx], typename_len)) {
         return false;
     }
@@ -227,6 +229,7 @@ static bool v1_set_struct_field_keyname(s_struct_712_field *field,
     }
 
     if (!is_valid_identifier(&data[*data_idx], keyname_len) ||
+        !td_is_valid_field_name(&data[*data_idx], keyname_len) ||
         !td_field_set_key_name(field, &data[*data_idx], keyname_len)) {
         return false;
     }

@@ -7,7 +7,7 @@
 #include "utils.h"
 #include "calldata.h"
 #include "app_mem_utils.h"
-#include "tx_ctx.h"
+#include "operation_ctx.h"
 #include "tlv_library.h"
 #include "tlv_utils.h"
 

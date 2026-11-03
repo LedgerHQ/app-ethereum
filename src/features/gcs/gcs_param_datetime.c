@@ -1,0 +1,121 @@
+#include "gcs_param_datetime.h"
+#include "gcs_field_table.h"
+#include "read.h"
+#include "time_format.h"
+#include "utils.h"
+#include "shared_context.h"
+#include "tlv_library.h"
+#include "tlv_utils.h"
+#include "common_utils.h"
+
+#define PARAM_DATETIME_STRUCT_VERSION 0x01
+
+#define PARAM_DATETIME_TAGS(X)                               \
+    X(0x00, TAG_VERSION, handle_version, ENFORCE_UNIQUE_TAG) \
+    X(0x01, TAG_VALUE, handle_value, ENFORCE_UNIQUE_TAG)     \
+    X(0x02, TAG_TYPE, handle_type, ENFORCE_UNIQUE_TAG)
+
+static bool handle_version(const tlv_data_t *data, s_param_datetime_context *context) {
+    return tlv_get_uint8_range(data,
+                               &context->param->version,
+                               PARAM_DATETIME_STRUCT_VERSION,
+                               PARAM_DATETIME_STRUCT_VERSION);
+}
+
+static bool handle_value(const tlv_data_t *data, s_param_datetime_context *context) {
+    s_value_context ctx = {0};
+
+    ctx.value = &context->param->value;
+    explicit_bzero(ctx.value, sizeof(*ctx.value));
+    return handle_value_struct(&data->value, &ctx);
+}
+
+static bool handle_type(const tlv_data_t *data, s_param_datetime_context *context) {
+    uint8_t type;
+    if (!tlv_get_uint8_range(data, &type, 0, UINT8_MAX)) {
+        return false;
+    }
+    switch (type) {
+        case DT_UNIX:
+        case DT_BLOCKHEIGHT:
+            break;
+        default:
+            return false;
+    }
+    context->param->type = (e_datetime_type) type;
+    return true;
+}
+
+DEFINE_TLV_PARSER(PARAM_DATETIME_TAGS, NULL, param_datetime_tlv_parser)
+
+bool handle_param_datetime_struct(const buffer_t *buf, s_param_datetime_context *context) {
+    TLV_reception_t received_tags;
+    if (!param_datetime_tlv_parser(buf, context, &received_tags)) {
+        return false;
+    }
+    // Enforce the sub-structure's mandatory tags: an empty or partial PARAM
+    // payload would otherwise parse fine and never appear in the review
+    if (!TLV_CHECK_RECEIVED_TAGS(received_tags, TAG_VERSION, TAG_VALUE, TAG_TYPE)) {
+        PRINTF("Error: missing mandatory tag(s) in gcs_param_datetime\n");
+        return false;
+    }
+    return true;
+}
+
+__attribute__((noinline)) bool format_param_datetime(const s_param_datetime *param,
+                                                     const char *name) {
+    bool ret;
+    s_parsed_value_collection collec = {0};
+    char *buf = strings.tmp.tmp;
+    size_t buf_size = sizeof(strings.tmp.tmp);
+    uint8_t time_buf[sizeof(uint64_t)] = {0};
+    uint64_t raw_timestamp;
+    time_t timestamp;
+    if ((ret = value_get(&param->value, &collec))) {
+        for (int i = 0; i < collec.size; ++i) {
+            if (param->type == DT_UNIX) {
+                if ((collec.value[i].length >= param->value.type_size) &&
+                    ismaxint((uint8_t *) collec.value[i].ptr, collec.value[i].length)) {
+                    snprintf(buf, buf_size, "Unlimited");
+                } else {
+                    // The timestamp is decoded from the low 8 bytes: reject values
+                    // with non-zero higher bytes instead of silently truncating
+                    // them to a different displayed date.
+                    if ((collec.value[i].length > sizeof(time_buf)) &&
+                        !allzeroes(collec.value[i].ptr,
+                                   collec.value[i].length - sizeof(time_buf))) {
+                        ret = false;
+                        break;
+                    }
+                    buf_shrink_expand(collec.value[i].ptr,
+                                      collec.value[i].length,
+                                      time_buf,
+                                      sizeof(time_buf));
+                    raw_timestamp = read_u64_be(time_buf, 0);
+                    // time_t is signed: reject values it cannot represent
+                    if (raw_timestamp > (uint64_t) INT64_MAX) {
+                        PRINTF("Datetime value outside the representable time_t range\n");
+                        ret = false;
+                        break;
+                    }
+                    timestamp = (time_t) raw_timestamp;
+                    if (!(ret = time_format_to_utc(&timestamp, buf, buf_size))) {
+                        break;
+                    }
+                }
+            } else if (param->type == DT_BLOCKHEIGHT) {
+                if (!(ret = uint256_to_decimal(collec.value[i].ptr,
+                                               collec.value[i].length,
+                                               buf,
+                                               buf_size))) {
+                    break;
+                }
+            }
+            if (!(ret = add_to_field_table(PARAM_TYPE_DATETIME, name, buf, NULL))) {
+                break;
+            }
+        }
+    }
+    value_cleanup(&param->value, &collec);
+    return ret;
+}

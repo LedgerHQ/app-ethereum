@@ -6,7 +6,7 @@
 #include "mem_utils.h"
 #include "gtp_tx_info.h"
 #include "tlv_apdu.h"
-#include "tx_ctx.h"
+#include "operation_ctx.h"
 
 static bool handle_tlv_payload(const buffer_t *buf) {
     s_tx_info_ctx ctx = {0};
@@ -23,18 +23,18 @@ static bool handle_tlv_payload(const buffer_t *buf) {
         APP_MEM_FREE(ctx.tx_info);
         return false;
     }
-    if (!find_matching_tx_ctx(ctx.tx_info->contract_addr,
-                              ctx.tx_info->selector,
-                              &ctx.tx_info->chain_id)) {
+    if (!find_matching_operation_ctx(ctx.tx_info->contract_addr,
+                                     ctx.tx_info->selector,
+                                     &ctx.tx_info->chain_id)) {
         APP_MEM_FREE(ctx.tx_info);
         return false;
     }
-    if (!process_empty_txs_before()) {
+    if (!process_empty_calls_before()) {
         APP_MEM_FREE(ctx.tx_info);
         return false;
     }
     // Attached to the matched context before any check, freed with it
-    return set_tx_info_into_tx_ctx(ctx.tx_info);
+    return operation_ctx_set_info(ctx.tx_info);
 }
 
 uint16_t handle_tx_info(uint8_t p1, uint8_t p2, uint8_t lc, const uint8_t *payload) {

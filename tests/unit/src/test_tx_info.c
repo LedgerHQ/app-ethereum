@@ -31,7 +31,7 @@
 
 #include "gtp_tx_info.h"
 #include "shared_context.h"
-#include "tx_ctx.h"
+#include "operation_ctx.h"
 #include "calldata.h"
 #include "Mockpublic_keys.h"
 #include "Mockhash_bytes.h"
@@ -71,9 +71,9 @@ static bool finalize_hash_stub(cx_hash_t *hash_ctx, uint8_t *out, size_t out_len
     return s_finalize_hash_ret;
 }
 
-static size_t g_tx_ctx_count = 0;
-size_t get_tx_ctx_count(void) {
-    return g_tx_ctx_count;
+static size_t g_operation_ctx_count = 0;
+size_t get_operation_ctx_count(void) {
+    return g_operation_ctx_count;
 }
 
 static const uint8_t *g_selector_ret = NULL;
@@ -89,8 +89,8 @@ const uint8_t *calldata_get_selector(const s_calldata *calldata) {
 static void reset(void) {
     s_finalize_hash_ret = true;
     s_sig_check_ret = true;
-    g_tx_ctx_count = 1;  // Skip the selector-match by default; tests that
-                         // want to exercise the match set it to 0.
+    g_operation_ctx_count = 1;  // Skip the selector-match by default; tests that
+                                // want to exercise the match set it to 0.
     g_selector_ret = NULL;
 }
 
@@ -154,7 +154,7 @@ void test_tlv_happy_path_populates_fields(void) {
     s_tx_info_ctx ctx = {.tx_info = &info};
 
     // Skip the selector match path
-    g_tx_ctx_count = 1;
+    g_operation_ctx_count = 1;
 
     const uint8_t bytes[] = {
         0x00,
@@ -268,7 +268,7 @@ void test_tlv_selector_match_against_parked_calldata(void) {
 
     // Force the match path: ctx_count==0 → handle_selector must compare
     // against calldata_get_selector(g_parked_calldata).
-    g_tx_ctx_count = 0;
+    g_operation_ctx_count = 0;
     static const uint8_t parked[4] = {0xDE, 0xAD, 0xBE, 0xEF};
     g_selector_ret = parked;
 
@@ -287,7 +287,7 @@ void test_tlv_selector_match_against_parked_calldata(void) {
 void test_tlv_selector_mismatch_rejected(void) {
     s_tx_info info = {0};
     s_tx_info_ctx ctx = {.tx_info = &info};
-    g_tx_ctx_count = 0;
+    g_operation_ctx_count = 0;
     static const uint8_t parked[4] = {0xDE, 0xAD, 0xBE, 0xEF};
     g_selector_ret = parked;
 
@@ -305,7 +305,7 @@ void test_tlv_selector_mismatch_rejected(void) {
 void test_tlv_selector_no_parked_calldata_rejected(void) {
     s_tx_info info = {0};
     s_tx_info_ctx ctx = {.tx_info = &info};
-    g_tx_ctx_count = 0;
+    g_operation_ctx_count = 0;
     g_selector_ret = NULL;  // no parked calldata at all
 
     const uint8_t bytes[] = {
@@ -326,7 +326,7 @@ void test_tlv_selector_no_parked_calldata_rejected(void) {
 void test_tlv_fields_hash_oversized_rejected(void) {
     s_tx_info info = {0};
     s_tx_info_ctx ctx = {.tx_info = &info};
-    g_tx_ctx_count = 1;
+    g_operation_ctx_count = 1;
 
     // FIELDS_HASH > 32 bytes is rejected.
     uint8_t bytes[2 + 33];
@@ -339,7 +339,7 @@ void test_tlv_fields_hash_oversized_rejected(void) {
 void test_tlv_deploy_date_oversized_rejected(void) {
     s_tx_info info = {0};
     s_tx_info_ctx ctx = {.tx_info = &info};
-    g_tx_ctx_count = 1;
+    g_operation_ctx_count = 1;
 
     // DEPLOY_DATE > 4 bytes is rejected.
     uint8_t bytes[2 + 5];
@@ -352,7 +352,7 @@ void test_tlv_deploy_date_oversized_rejected(void) {
 void test_tlv_selector_oversize_rejected(void) {
     s_tx_info info = {0};
     s_tx_info_ctx ctx = {.tx_info = &info};
-    g_tx_ctx_count = 1;
+    g_operation_ctx_count = 1;
 
     // SELECTOR > CALLDATA_SELECTOR_SIZE (4) bytes — tlv_get_hash's max_size
     // guard inside handle_selector must reject before we ever look at the
@@ -367,7 +367,7 @@ void test_tlv_selector_oversize_rejected(void) {
 void test_tlv_signature_oversize_rejected(void) {
     s_tx_info info = {0};
     s_tx_info_ctx ctx = {.tx_info = &info};
-    g_tx_ctx_count = 1;
+    g_operation_ctx_count = 1;
 
     // SIGNATURE > sizeof(tx_info->signature) (CX_ECDSA_SHA256_SIG_MAX_ASN1_LENGTH=72)
     // must be rejected — otherwise the memcpy on line 133 would overflow
@@ -392,7 +392,7 @@ void test_tlv_signature_oversize_rejected(void) {
 void test_tlv_optional_metadata_tags_populated(void) {
     s_tx_info info = {0};
     s_tx_info_ctx ctx = {.tx_info = &info};
-    g_tx_ctx_count = 1;
+    g_operation_ctx_count = 1;
 
     const uint8_t bytes[] = {
         0x06, 0x07, 'A',  'a',  ' ',  'I',  'n', 'c', '.',                 // CREATOR_NAME
@@ -447,7 +447,7 @@ void test_verify_missing_version_rejected(void) {
 void test_verify_missing_required_field_with_version_present(void) {
     s_tx_info info = {0};
     s_tx_info_ctx ctx = {.tx_info = &info};
-    g_tx_ctx_count = 1;
+    g_operation_ctx_count = 1;
     const uint8_t bytes[] = {0x00, 0x01, 0x01};  // VERSION = 1, nothing else
     TEST_ASSERT_TRUE(run_tlv(bytes, sizeof(bytes), &ctx));
     TEST_ASSERT_FALSE(verify_tx_info_struct(&ctx));
@@ -456,7 +456,7 @@ void test_verify_missing_required_field_with_version_present(void) {
 void test_verify_unsupported_version_rejected(void) {
     s_tx_info info = {0};
     s_tx_info_ctx ctx = {.tx_info = &info};
-    g_tx_ctx_count = 1;
+    g_operation_ctx_count = 1;
     const uint8_t bytes[] = {0x00, 0x01, 0x99};  // VERSION = 0x99 (not 1)
     TEST_ASSERT_TRUE(run_tlv(bytes, sizeof(bytes), &ctx));
     TEST_ASSERT_FALSE(verify_tx_info_struct(&ctx));
@@ -465,7 +465,7 @@ void test_verify_unsupported_version_rejected(void) {
 void test_verify_happy_path(void) {
     s_tx_info info = {0};
     s_tx_info_ctx ctx = {.tx_info = &info};
-    g_tx_ctx_count = 1;
+    g_operation_ctx_count = 1;
     TEST_ASSERT_TRUE(run_tlv(g_valid_v1_tlv, sizeof(g_valid_v1_tlv), &ctx));
     TEST_ASSERT_TRUE(verify_tx_info_struct(&ctx));
 }
@@ -473,7 +473,7 @@ void test_verify_happy_path(void) {
 void test_verify_signature_check_failure_rejected(void) {
     s_tx_info info = {0};
     s_tx_info_ctx ctx = {.tx_info = &info};
-    g_tx_ctx_count = 1;
+    g_operation_ctx_count = 1;
     TEST_ASSERT_TRUE(run_tlv(g_valid_v1_tlv, sizeof(g_valid_v1_tlv), &ctx));
     s_sig_check_ret = false;
     TEST_ASSERT_FALSE(verify_tx_info_struct(&ctx));
@@ -482,7 +482,7 @@ void test_verify_signature_check_failure_rejected(void) {
 void test_verify_finalize_hash_failure_rejected(void) {
     s_tx_info info = {0};
     s_tx_info_ctx ctx = {.tx_info = &info};
-    g_tx_ctx_count = 1;
+    g_operation_ctx_count = 1;
     TEST_ASSERT_TRUE(run_tlv(g_valid_v1_tlv, sizeof(g_valid_v1_tlv), &ctx));
     s_finalize_hash_ret = false;
     TEST_ASSERT_FALSE(verify_tx_info_struct(&ctx));

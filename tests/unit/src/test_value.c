@@ -1,7 +1,7 @@
 /**
  * @file test_value.c
  * @brief Unit tests for the GCS value resolver at
- *        src/features/generic_tx_parser/gtp_value.c.
+ *        src/features/gcs/gcs_value.c.
  *
  * `s_value` is the polymorphic descriptor every GCS parameter carries
  * to say "where do I read my bytes from". Four sources are supported,
@@ -33,9 +33,9 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#include "gtp_value.h"
+#include "gcs_value.h"
 #include "gtp_data_path.h"
-#include "gtp_parsed_value.h"
+#include "gcs_parsed_value.h"
 #include "gtp_tx_info.h"
 #include "map_entry.h"
 // wraps.h removed: all stubs are local

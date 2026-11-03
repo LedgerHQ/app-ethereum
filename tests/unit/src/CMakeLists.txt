@@ -5,7 +5,7 @@ set_source_files_properties(${SDK_DIR}/lib_tlv/tlv_library.c
   PROPERTIES COMPILE_FLAGS "-Wno-pedantic")
 
 include(../cmake/tests_low_level.cmake)
-include(../cmake/tests_gtp.cmake)
+include(../cmake/tests_gcs.cmake)
 include(../cmake/tests_descriptors.cmake)
 include(../cmake/tests_sign.cmake)
 include(../cmake/tests_plugins.cmake)

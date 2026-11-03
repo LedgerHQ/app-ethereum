@@ -1,7 +1,7 @@
 /**
  * @file test_param_token.c
  * @brief Unit tests for the TOKEN parameter in
- *        src/features/generic_tx_parser/gtp_param_token.c.
+ *        src/features/gcs/gcs_param_token.c.
  *
  * TOKEN renders an ERC-20 token reference by resolving its address
  * through two branches:
@@ -28,10 +28,10 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#include "gtp_param_token.h"
-#include "gtp_parsed_value.h"
-#include "gtp_value.h"
-#include "gtp_field.h"
+#include "gcs_param_token.h"
+#include "gcs_parsed_value.h"
+#include "gcs_value.h"
+#include "gcs_field.h"
 #include "gtp_tx_info.h"
 #include "token_info.h"
 #include "shared_context.h"

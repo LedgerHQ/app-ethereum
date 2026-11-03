@@ -9,8 +9,8 @@
 #include <stdbool.h>
 
 // Includes
-#include "gtp_field.h"
-#include "gtp_value.h"
+#include "gcs_field.h"
+#include "gcs_value.h"
 #include "shared_context.h"
 #include "status_words.h"
 
@@ -179,7 +179,7 @@ void test_format_network_wrong_type_family(void) {
 // handle_param_network_struct — TLV dispatch
 // =============================================================================
 
-// Real handle_value_struct is in gtp_value.c and is linked here: the inner VALUE is a complete one.
+// Real handle_value_struct is in gcs_value.c and is linked here: the inner VALUE is a complete one.
 void test_handle_network_struct_version_other_than_one_refused(void) {
     uint8_t buf_bytes[] = {
         0x00,

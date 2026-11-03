@@ -1,7 +1,7 @@
 /**
  * @file test_param_enum.c
  * @brief Unit tests for the ENUM parameter in
- *        src/features/generic_tx_parser/gtp_param_enum.c.
+ *        src/features/gcs/gcs_param_enum.c.
  *
  * ENUM renders a numeric value as a human label looked up in the
  * enum_value table keyed by (chain_id, contract_addr, selector, id,
@@ -26,10 +26,10 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#include "gtp_param_enum.h"
-#include "gtp_parsed_value.h"
-#include "gtp_value.h"
-#include "gtp_field.h"
+#include "gcs_param_enum.h"
+#include "gcs_parsed_value.h"
+#include "gcs_value.h"
+#include "gcs_field.h"
 #include "gtp_tx_info.h"
 #include "enum_value.h"
 #include "calldata.h"

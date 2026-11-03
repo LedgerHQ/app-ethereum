@@ -13,7 +13,7 @@
  *   - `custom_processor` returning SUSPENDED / FAULT / unknown,
  *   - `continue_tx` after a partial `process_tx`,
  *   - unknown `context->txType` ⇒ FAULT,
- *   - tx_ctx_init failure when store_calldata is set.
+ *   - operation_ctx_init failure when store_calldata is set.
  *
  * The SDK crypto primitives (keccak, sha3 hash, signature) are stubbed
  * to CX_OK; this suite pins the byte-pump that decides what goes into
@@ -29,7 +29,7 @@
 #include "eth_ustream.h"
 #include "feature_sign_tx.h"
 #include "Mocknetwork.h"
-#include "tx_ctx.h"
+#include "operation_ctx.h"
 #include "calldata.h"
 
 // =============================================================================
@@ -76,18 +76,18 @@ customStatus_e custom_processor(txContext_t *context) {
     return g_custom_status;
 }
 
-static bool g_tx_ctx_init_ok = true;
-bool tx_ctx_init(s_calldata *calldata,
-                 const uint8_t *from,
-                 const uint8_t *to,
-                 const uint8_t *amount,
-                 const uint64_t *chain_id) {
+static bool g_operation_ctx_init_ok = true;
+bool operation_ctx_init(s_calldata *calldata,
+                        const uint8_t *from,
+                        const uint8_t *to,
+                        const uint8_t *amount,
+                        const uint64_t *chain_id) {
     (void) calldata;
     (void) from;
     (void) to;
     (void) amount;
     (void) chain_id;
-    return g_tx_ctx_init_ok;
+    return g_operation_ctx_init_ok;
 }
 
 static s_calldata g_calldata_sentinel;
@@ -119,7 +119,7 @@ static void reset(void) {
     s_sdk.keccak_init_ret = CX_OK;
     s_sdk.hash_ret = CX_OK;
     g_custom_status = CUSTOM_NOT_HANDLED;
-    g_tx_ctx_init_ok = true;
+    g_operation_ctx_init_ok = true;
     g_parked_calldata = NULL;
 }
 
@@ -511,16 +511,16 @@ void test_continue_tx_on_empty_buffer_reports_processing(void) {
 }
 
 // =============================================================================
-// Tests — tx_ctx_init failure on calldata storage
+// Tests — operation_ctx_init failure on calldata storage
 // =============================================================================
 
-void test_tx_ctx_init_failure_returns_fault(void) {
+void test_operation_ctx_init_failure_returns_fault(void) {
     cx_sha3_t sha3;
     txContent_t content = {0};
     txContext_t ctx;
     TEST_ASSERT_TRUE(init_tx(&ctx, &sha3, &content, /*store_calldata=*/true));
     ctx.txType = EIP1559;
-    g_tx_ctx_init_ok = false;  // force the finalize path to fail
+    g_operation_ctx_init_ok = false;  // force the finalize path to fail
 
     // Caller installed a sentinel calldata; the source releases it on
     // failure.
@@ -568,6 +568,6 @@ int main(void) {
     RUN_TEST(test_custom_processor_unknown_status);
     RUN_TEST(test_continue_tx_resumes_partial_parse);
     RUN_TEST(test_continue_tx_on_empty_buffer_reports_processing);
-    RUN_TEST(test_tx_ctx_init_failure_returns_fault);
+    RUN_TEST(test_operation_ctx_init_failure_returns_fault);
     return UNITY_END();
 }

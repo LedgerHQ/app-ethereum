@@ -10,8 +10,8 @@
 #include <stdlib.h>
 
 // Includes
-#include "gtp_field.h"
-#include "gtp_value.h"
+#include "gcs_field.h"
+#include "gcs_value.h"
 #include "shared_context.h"
 #include "status_words.h"
 
@@ -22,7 +22,7 @@
 #include "address_name_lookup.h"
 #include "utils.h"
 #include "get_public_key.h"
-#include "tx_ctx.h"
+#include "operation_ctx.h"
 #include "common_utils.h"
 #include "Mocknetwork.h"
 
@@ -566,7 +566,7 @@ void test_trusted_name_interoperable_network_failure_rejected(void) {
 // form).
 // =============================================================================
 
-#include "gtp_param_trusted_name.h"
+#include "gcs_param_trusted_name.h"
 
 void test_handle_tn_struct_version_other_than_one_refused(void) {
     uint8_t buf_bytes[] = {

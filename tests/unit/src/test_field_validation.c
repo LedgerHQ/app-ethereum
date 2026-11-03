@@ -7,7 +7,7 @@
 #include <string.h>
 #include <stdint.h>
 #include "unity.h"
-#include "gtp_field.h"
+#include "gcs_field.h"
 #include "shared_context.h"
 #include "buffer.h"
 #include "tlv_library.h"
@@ -211,7 +211,7 @@ void test_multiple_constraints_accepted(void) {
 
 // =============================================================================
 // Per-tag dispatch tests — pin the type / visibility / param-ordering
-// rules that gtp_field.c enforces on attacker-controlled GCS field
+// rules that gcs_field.c enforces on attacker-controlled GCS field
 // descriptors.
 // =============================================================================
 

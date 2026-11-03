@@ -8,7 +8,7 @@
 #include "public_keys.h"  // LEDGER_SIGNATURE_PUBLIC_KEY
 #include "proxy_info.h"
 #include "app_mem_utils.h"
-#include "tx_ctx.h"
+#include "operation_ctx.h"
 #include "tlv_library.h"
 #include "tlv_utils.h"
 
@@ -45,7 +45,7 @@ static bool handle_selector(const tlv_data_t *data, s_tx_info_ctx *context) {
     if (tlv_get_hash(data, buf, sizeof(buf)) != true) {
         return false;
     }
-    if (get_tx_ctx_count() == 0) {
+    if (get_operation_ctx_count() == 0) {
         if ((selector = calldata_get_selector(g_parked_calldata)) == NULL) {
             return false;
         }

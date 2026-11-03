@@ -4,7 +4,7 @@
 #include "ui_nbgl.h"
 #include "ui_icons.h"
 #include "gtp_tx_info.h"
-#include "gtp_field_table.h"
+#include "gcs_field_table.h"
 #include "app_mem_utils.h"
 #include "mem_utils.h"
 #include "network.h"
@@ -16,7 +16,7 @@
 #include "enum_value.h"
 #include "proxy_info.h"
 #include "trusted_name.h"
-#include "tx_ctx.h"
+#include "operation_ctx.h"
 #include "token_info.h"
 #include "nft_info.h"
 #include "common_ui.h"
@@ -492,15 +492,16 @@ bool ui_gcs(void) {
     // Get the number of TX fields to display
     table_size = field_table_size();
     // Sender account, unless a descriptor field already shows it (CP_FROM)
-    show_root_from = !gcs_is_root_from_shown();
+    show_root_from = !operation_ctx_is_root_from_shown();
     if (show_root_from) {
         nbPairs += 1;
     }
     // Contract info
     nbPairs += 1;
     // Root transaction native value, unless a descriptor field already shows it (CP_VALUE)
-    show_root_value = !gcs_is_root_value_shown() && !allzeroes(tmpContent.txContent.value.value,
-                                                               tmpContent.txContent.value.length);
+    show_root_value =
+        !operation_ctx_is_root_value_shown() &&
+        !allzeroes(tmpContent.txContent.value.value, tmpContent.txContent.value.length);
     if (show_root_value) {
         nbPairs += 1;
     }

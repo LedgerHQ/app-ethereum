@@ -57,6 +57,7 @@ set(COMMON_INCLUDE_DIRS
   ${APP_DIR}
   ${PLUGIN_DIR}
   ${APP_DIR}/features/generic_tx_parser
+  ${APP_DIR}/features/gcs
   ${APP_DIR}/features/provide_erc20_token_information
   ${APP_DIR}/features/provide_nft_information
   ${APP_DIR}/features/provide_trusted_name

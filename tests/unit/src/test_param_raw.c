@@ -12,8 +12,8 @@
 #include "calldata.h"  // CALLDATA_CHUNK_SIZE
 
 // Includes
-#include "gtp_field.h"
-#include "gtp_value.h"
+#include "gcs_field.h"
+#include "gcs_value.h"
 #include "shared_context.h"
 #include "status_words.h"
 #include "uint256.h"

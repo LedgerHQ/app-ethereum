@@ -111,10 +111,10 @@ customStatus_e custom_processor(txContext_t *context) {
 bool validate_instruction_hash(void) {
     return true;
 }
-bool process_empty_txs_after(void) {
+bool process_empty_calls_after(void) {
     return true;
 }
-size_t get_tx_ctx_count(void) {
+size_t get_operation_ctx_count(void) {
     return 1;
 }
 static int g_ui_gcs_calls = 0;
@@ -125,11 +125,11 @@ bool ui_gcs(void) {
 void ui_gcs_cleanup(void) {
 }
 
-bool tx_ctx_init(s_calldata *calldata,
-                 const uint8_t *from,
-                 const uint8_t *to,
-                 const uint8_t *amount,
-                 const uint64_t *chain_id) {
+bool operation_ctx_init(s_calldata *calldata,
+                        const uint8_t *from,
+                        const uint8_t *to,
+                        const uint8_t *amount,
+                        const uint64_t *chain_id) {
     (void) calldata;
     (void) from;
     (void) to;

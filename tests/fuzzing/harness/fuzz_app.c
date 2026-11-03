@@ -14,7 +14,7 @@
 #include "shared_context.h"
 #include "apdu_constants.h"     // handleApdu()
 #include "eip712_v1_context.h"  // eip712_v1_context_deinit()
-#include "tx_ctx.h"             // gcs_cleanup()
+#include "operation_ctx.h"      // gcs_cleanup()
 #include "trusted_name.h"       // trusted_name_cleanup()
 #include "enum_value.h"         // enum_value_cleanup()
 #include "proxy_info.h"         // proxy_cleanup()
@@ -147,7 +147,7 @@ static const tlv_tag_info_t TAGS_GTP_TX_INFO[] = {
     {0xff, 0, 72},
 };
 
-static const tlv_tag_info_t TAGS_GTP_FIELD[] = {
+static const tlv_tag_info_t TAGS_GCS_FIELD[] = {
     {0x00, 1, 1},
     {0x01, 1, 20},
     {0x02, 1, 1},
@@ -183,7 +183,7 @@ static const tlv_tag_info_t TAGS_MAP_ENTRY[] = {
 #define _TLV_INLINE_NETWORK_INFO    TLV_CFG(TAGS_NETWORK_INFO)
 #define _TLV_INLINE_SAFE_DESCRIPTOR TLV_CFG(TAGS_SAFE_DESCRIPTOR)
 #define _TLV_INLINE_GTP_TX_INFO     TLV_CFG(TAGS_GTP_TX_INFO)
-#define _TLV_INLINE_GTP_FIELD       TLV_CFG(TAGS_GTP_FIELD)
+#define _TLV_INLINE_GCS_FIELD       TLV_CFG(TAGS_GCS_FIELD)
 #define _TLV_INLINE_AUTH_7702       TLV_CFG(TAGS_AUTH_7702)
 #define _TLV_INLINE_MAP_ENTRY       TLV_CFG(TAGS_MAP_ENTRY)
 
@@ -210,7 +210,7 @@ static const tlv_tag_info_t TAGS_MAP_ENTRY[] = {
     X(INS_PROVIDE_TRUSTED_NAME,            1,    0,    FUZZ_CMD_HAS_DATA, TRUSTED_NAME)  \
     X(INS_PROVIDE_ENUM_VALUE,              1,    0,    FUZZ_CMD_HAS_DATA, ENUM_VALUE)    \
     X(INS_GTP_TRANSACTION_INFO,            1,    0,    FUZZ_CMD_HAS_DATA, GTP_TX_INFO)   \
-    X(INS_GTP_FIELD,                       1,    0,    FUZZ_CMD_HAS_DATA, GTP_FIELD)     \
+    X(INS_GTP_FIELD,                       1,    0,    FUZZ_CMD_HAS_DATA, GCS_FIELD)     \
     X(INS_PROVIDE_PROXY_INFO,              1,    0,    FUZZ_CMD_HAS_DATA, PROXY_INFO)    \
     X(INS_PROVIDE_NETWORK_INFO,            1,    0,    FUZZ_CMD_HAS_DATA, NETWORK_INFO)  \
     X(INS_PROVIDE_TX_SIMULATION,           1,    0,    FUZZ_CMD_HAS_DATA, TX_SIMULATION) \

@@ -32,14 +32,14 @@
 #include "eth_ustream.h"
 #include "feature_sign_tx.h"
 #include "Mocknetwork.h"  // network_info_t
-#include "tx_ctx.h"
+#include "operation_ctx.h"
 #include "calldata.h"
 
 // =============================================================================
 // Globals the module reads — provide storage here.
 // =============================================================================
 
-// eth_ustream.c declares s_calldata *g_parked_calldata in tx_ctx.h.
+// eth_ustream.c declares s_calldata *g_parked_calldata in operation_ctx.h.
 
 // =============================================================================
 // SDK crypto stubs — configurable failure injection
@@ -96,25 +96,25 @@ customStatus_e custom_processor(txContext_t *context) {
     return CUSTOM_NOT_HANDLED;
 }
 
-// Controlled by the tx_ctx_init failure tests: g_tx_ctx_init_ok selects the
-// return value, g_tx_ctx_init_takes_ownership mimics a failure occurring after
+// Controlled by the operation_ctx_init failure tests: g_operation_ctx_init_ok selects the
+// return value, g_operation_ctx_init_takes_ownership mimics a failure occurring after
 // the calldata was handed over to the new context (g_parked_calldata cleared).
-static bool g_tx_ctx_init_ok = true;
-static bool g_tx_ctx_init_takes_ownership = false;
-bool tx_ctx_init(s_calldata *calldata,
-                 const uint8_t *from,
-                 const uint8_t *to,
-                 const uint8_t *amount,
-                 const uint64_t *chain_id) {
+static bool g_operation_ctx_init_ok = true;
+static bool g_operation_ctx_init_takes_ownership = false;
+bool operation_ctx_init(s_calldata *calldata,
+                        const uint8_t *from,
+                        const uint8_t *to,
+                        const uint8_t *amount,
+                        const uint64_t *chain_id) {
     (void) calldata;
     (void) from;
     (void) to;
     (void) amount;
     (void) chain_id;
-    if (g_tx_ctx_init_takes_ownership) {
+    if (g_operation_ctx_init_takes_ownership) {
         g_parked_calldata = NULL;
     }
-    return g_tx_ctx_init_ok;
+    return g_operation_ctx_init_ok;
 }
 
 // Controlled by the store_calldata tests below: when g_calldata_init_ok
@@ -166,8 +166,8 @@ static void reset(void) {
     g_calldata_append_calls = 0;
     g_calldata_delete_calls = 0;
     g_calldata_delete_null_calls = 0;
-    g_tx_ctx_init_ok = true;
-    g_tx_ctx_init_takes_ownership = false;
+    g_operation_ctx_init_ok = true;
+    g_operation_ctx_init_takes_ownership = false;
 }
 
 // =============================================================================
@@ -701,7 +701,7 @@ void test_process_data_store_calldata_init_failure_rejected(void) {
     TEST_ASSERT_EQUAL(g_calldata_append_calls, 0);  // never reached
 }
 
-// tx_ctx_init failure once parsing is done: the parser must report a fault
+// operation_ctx_init failure once parsing is done: the parser must report a fault
 // (not "processing", which the APDU layer turns into 0x9000) and release the
 // parked calldata only while it still owns it.
 void test_process_tx_store_calldata_ctx_init_failure_rejected(void) {
@@ -710,7 +710,7 @@ void test_process_tx_store_calldata_ctx_init_failure_rejected(void) {
     txContext_t ctx;
     TEST_ASSERT_TRUE(init_tx(&ctx, &sha3, &content, /*store_calldata=*/true));
     ctx.txType = LEGACY;
-    g_tx_ctx_init_ok = false;
+    g_operation_ctx_init_ok = false;
 
     parserStatus_e r =
         process_tx(&ctx, g_legacy_tx_with_8byte_data, sizeof(g_legacy_tx_with_8byte_data));
@@ -726,8 +726,8 @@ void test_process_tx_store_calldata_ctx_init_failure_after_handover_rejected(voi
     txContext_t ctx;
     TEST_ASSERT_TRUE(init_tx(&ctx, &sha3, &content, /*store_calldata=*/true));
     ctx.txType = LEGACY;
-    g_tx_ctx_init_ok = false;
-    g_tx_ctx_init_takes_ownership = true;
+    g_operation_ctx_init_ok = false;
+    g_operation_ctx_init_takes_ownership = true;
 
     parserStatus_e r =
         process_tx(&ctx, g_legacy_tx_with_8byte_data, sizeof(g_legacy_tx_with_8byte_data));

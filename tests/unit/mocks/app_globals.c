@@ -27,7 +27,7 @@
 
 #include "shared_context.h"
 #include "network.h"
-#include "tx_ctx.h"         // s_calldata + extern g_parked_calldata
+#include "operation_ctx.h"  // s_calldata + extern g_parked_calldata
 #include "nbgl_use_case.h"  // nbgl_warning_t
 
 // Forward-declare to avoid pulling network_info.h, which lives in a
@@ -91,7 +91,7 @@ WEAK swap_value_check_t G_swap_expected_value_check;
 WEAK uint8_t G_swap_expected_value[INT256_LENGTH];
 
 // =============================================================================
-// app/src/features/generic_tx_parser/tx_ctx.c
+// app/src/features/gcs/operation_ctx.c
 // =============================================================================
 // g_parked_calldata is the buffered calldata captured during the
 // EIP-712 preview before the user confirms.

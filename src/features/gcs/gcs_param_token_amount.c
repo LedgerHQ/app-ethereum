@@ -1,0 +1,198 @@
+#include <string.h>
+#include "gcs_param_token_amount.h"
+#include "tlv_library.h"
+#include "network.h"
+#include "utils.h"
+#include "gcs_field_table.h"
+#include "token_info.h"
+#include "operation_ctx.h"
+#include "tlv_utils.h"
+#include "shared_context.h"
+
+#define PARAM_TOKEN_AMOUNT_STRUCT_VERSION 0x01
+
+#define PARAM_TOKEN_AMOUNT_TAGS(X)                                           \
+    X(0x00, TAG_VERSION, handle_version, ENFORCE_UNIQUE_TAG)                 \
+    X(0x01, TAG_VALUE, handle_value, ENFORCE_UNIQUE_TAG)                     \
+    X(0x02, TAG_TOKEN, handle_token, ALLOW_MULTIPLE_TAG)                     \
+    X(0x03, TAG_NATIVE_CURRENCY, handle_native_currency, ALLOW_MULTIPLE_TAG) \
+    X(0x04, TAG_THRESHOLD, handle_threshold, ENFORCE_UNIQUE_TAG)             \
+    X(0x05, TAG_ABOVE_THRESHOLD_MSG, handle_above_threshold_msg, ENFORCE_UNIQUE_TAG)
+
+static bool handle_version(const tlv_data_t *data, s_param_token_amount_context *context) {
+    return tlv_get_uint8_range(data,
+                               &context->param->version,
+                               PARAM_TOKEN_AMOUNT_STRUCT_VERSION,
+                               PARAM_TOKEN_AMOUNT_STRUCT_VERSION);
+}
+
+static bool handle_value(const tlv_data_t *data, s_param_token_amount_context *context) {
+    s_value_context ctx = {0};
+
+    ctx.value = &context->param->value;
+    explicit_bzero(ctx.value, sizeof(*ctx.value));
+    return handle_value_struct(&data->value, &ctx);
+}
+
+static bool handle_token(const tlv_data_t *data, s_param_token_amount_context *context) {
+    s_value_context ctx = {0};
+
+    ctx.value = &context->param->token;
+    explicit_bzero(ctx.value, sizeof(*ctx.value));
+    context->param->has_token = true;
+    return handle_value_struct(&data->value, &ctx);
+}
+
+static bool handle_native_currency(const tlv_data_t *data, s_param_token_amount_context *context) {
+    if (data->value.size > ADDRESS_LENGTH) {
+        return false;
+    }
+    if (context->param->native_addr_count == MAX_NATIVE_ADDRS) {
+        return false;
+    }
+    if (data->value.size > 0) {
+        if (data->value.ptr == NULL) {
+            return false;
+        }
+        memcpy(&context->param->native_addrs[context->param->native_addr_count]
+                                            [ADDRESS_LENGTH - data->value.size],
+               data->value.ptr,
+               data->value.size);
+    }
+    context->param->native_addr_count += 1;
+    return true;
+}
+
+static bool handle_threshold(const tlv_data_t *data, s_param_token_amount_context *context) {
+    if (data->value.size > sizeof(uint256_t)) {
+        return false;
+    }
+    return convertUint256BE(data->value.ptr, data->value.size, &context->param->threshold);
+}
+
+static bool handle_above_threshold_msg(const tlv_data_t *data,
+                                       s_param_token_amount_context *context) {
+    if (data->value.size >= sizeof(context->param->above_threshold_msg)) {
+        return false;
+    }
+    if (data->value.size > 0) {
+        if (data->value.ptr == NULL) {
+            return false;
+        }
+        memcpy(context->param->above_threshold_msg, data->value.ptr, data->value.size);
+    }
+    context->param->above_threshold_msg[data->value.size] = '\0';
+    return true;
+}
+
+DEFINE_TLV_PARSER(PARAM_TOKEN_AMOUNT_TAGS, NULL, param_token_amount_tlv_parser)
+
+bool handle_param_token_amount_struct(const buffer_t *buf, s_param_token_amount_context *context) {
+    TLV_reception_t received_tags;
+    if (!param_token_amount_tlv_parser(buf, context, &received_tags)) {
+        return false;
+    }
+    // Enforce the sub-structure's mandatory tags: an empty or partial PARAM
+    // payload would otherwise parse fine and never appear in the review
+    if (!TLV_CHECK_RECEIVED_TAGS(received_tags, TAG_VERSION, TAG_VALUE)) {
+        PRINTF("Error: missing mandatory tag(s) in gcs_param_token_amount\n");
+        return false;
+    }
+    return true;
+}
+
+static bool match_native(const uint8_t *addr, const s_param_token_amount *param) {
+    for (int i = 0; i < param->native_addr_count; ++i) {
+        if (memcmp(addr, param->native_addrs[i], ADDRESS_LENGTH) == 0) {
+            return true;
+        }
+    }
+    return false;
+}
+
+static bool process_token_amount(const s_param_token_amount *param,
+                                 const char *name,
+                                 s_parsed_value *value,
+                                 s_parsed_value *token) {
+    char *buf = strings.tmp.tmp;
+    size_t buf_size = sizeof(strings.tmp.tmp);
+    uint8_t addr_buf[ADDRESS_LENGTH];
+    uint256_t zero256 = {0};
+    uint256_t val256;
+    const s_token_info *token_info = NULL;
+    s_token_info dummy;
+    uint64_t chain_id;
+    const char *ticker = g_unknown_ticker;
+    uint8_t decimals = 0;
+
+    if (get_current_tx_info() == NULL) return false;
+    chain_id = get_current_tx_info()->chain_id;
+    if (param->has_token) {
+        buf_shrink_expand(token->ptr, token->length, addr_buf, sizeof(addr_buf));
+        if (match_native(addr_buf, param)) {
+            ticker = get_displayable_ticker(&chain_id, g_chain_config, true);
+            decimals = WEI_TO_ETHER;
+        } else {
+            if ((token_info = get_matching_token_info_or_dummy(&chain_id, addr_buf, &dummy)) ==
+                NULL) {
+                return false;
+            }
+            ticker = token_info->ticker;
+            decimals = token_info->decimals;
+        }
+    }
+
+    if (!convertUint256BE(value->ptr, value->length, &val256)) {
+        return false;
+    }
+    if (!equal256(&param->threshold, &zero256) && gte256(&val256, &param->threshold)) {
+        if (param->above_threshold_msg[0] != '\0') {
+            snprintf(buf, buf_size, "%s %s", param->above_threshold_msg, ticker);
+        } else {
+            snprintf(buf, buf_size, "Unlimited %s", ticker);
+        }
+    } else {
+        if (!amountToString(value->ptr, value->length, decimals, ticker, buf, buf_size)) {
+            return false;
+        }
+    }
+    if (!add_to_field_table(token_info ? PARAM_TYPE_TOKEN_AMOUNT : PARAM_TYPE_AMOUNT,
+                            name,
+                            buf,
+                            token_info)) {
+        return false;
+    }
+    return true;
+}
+
+__attribute__((noinline)) bool format_param_token_amount(const s_param_token_amount *param,
+                                                         const char *name) {
+    bool ret;
+    s_parsed_value_collection collec_value = {0};
+    s_parsed_value_collection collec_token = {0};
+
+    if ((ret = value_get(&param->value, &collec_value))) {
+        if (param->has_token) {
+            if ((ret = value_get(&param->token, &collec_token))) {
+                if (collec_token.size != collec_value.size && collec_token.size != 1) {
+                    PRINTF("Error: mismatch between counts of value & token!\n");
+                    ret = false;
+                }
+            }
+        }
+        if (ret) {
+            for (int i = 0; i < collec_value.size; ++i) {
+                int ti = collec_token.size == 1 ? 0 : i;
+                if (!(ret = process_token_amount(param,
+                                                 name,
+                                                 &collec_value.value[i],
+                                                 &collec_token.value[ti]))) {
+                    break;
+                }
+            }
+        }
+    }
+    value_cleanup(&param->value, &collec_value);
+    value_cleanup(&param->token, &collec_token);
+    return ret;
+}

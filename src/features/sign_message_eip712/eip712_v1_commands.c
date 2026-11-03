@@ -6,9 +6,8 @@
 #include "eip712_v1_filtering.h"
 #include "common_ui.h"  // ui_idle, ui_error_blind_signing
 #include "manage_asset_info.h"
-#include "tx_ctx.h"  // get_tx_ctx_count
+#include "operation_ctx.h"  // get_operation_ctx_count
 #include "value_hash.h"
-#include "common_712.h"  // ui_712_start
 #include "eip712_v1_parse.h"
 
 // APDUs P1
@@ -285,7 +284,7 @@ uint16_t handle_eip712_v1_sign(const uint8_t *cdata, uint8_t length) {
                 ui_712_filtering_broken() || ui_712_pending_amount_joins())) {
         PRINTF("%d EIP712 filters are missing\n", ui_712_remaining_filters());
         sw = SWO_REFERENCED_DATA_NOT_FOUND;
-    } else if (!all_calldata_info_processed() || (get_tx_ctx_count() != 0)) {
+    } else if (!all_calldata_info_processed() || (get_operation_ctx_count() != 0)) {
         PRINTF("Unprocessed calldata\n");
         sw = SWO_REFERENCED_DATA_NOT_FOUND;
     } else if (parseBip32(cdata, &length, &tmpCtx.messageSigningContext.bip32) == NULL) {
@@ -301,7 +300,7 @@ uint16_t handle_eip712_v1_sign(const uint8_t *cdata, uint8_t length) {
             bool should_start_ui = true;
             sw = SWO_SUCCESS;
 
-            // Only call ui_712_start() if not already in signing state (FULL filtering may have
+            // Only prepare the review if not already in signing state (FULL filtering may have
             // already transitioned it via display)
             if (appState != APP_STATE_SIGNING_EIP712) {
                 // For verbose/no-filtering mode, populate UI pairs from the value tree before
@@ -314,8 +313,8 @@ uint16_t handle_eip712_v1_sign(const uint8_t *cdata, uint8_t length) {
                     }
                 }
                 if (should_start_ui) {
-                    if (!(ret = ui_712_start(filt_mode))) {
-                        PRINTF("SIGN fail: ui_712_start\n");
+                    if (!(ret = ui_712_prepare_review_v1(filt_mode))) {
+                        PRINTF("SIGN fail: ui_712_prepare_review_v1\n");
                         sw = SWO_INCORRECT_DATA;
                     }
                 }

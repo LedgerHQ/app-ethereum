@@ -16,7 +16,7 @@
 
 #include "shared_context.h"
 #include "buffer.h"
-#include "gtp_field.h"
+#include "gcs_field.h"
 #include "gtp_tx_info.h"
 #include "enum_value.h"
 #include "eip712_v1_commands.h"
@@ -27,7 +27,7 @@
 #include "fuzz_harness.h"
 
 enum {
-    PARSER_GTP_FIELD,
+    PARSER_GCS_FIELD,
     PARSER_GTP_TX_INFO,
     PARSER_ENUM_VALUE,
     PARSER_EIP712,
@@ -37,7 +37,7 @@ enum {
 
 #define PARSER_ROW(idx) {.ins = (idx), .flags = FUZZ_CMD_HAS_DATA}
 const fuzz_command_spec_t fuzz_commands[] = {
-    PARSER_ROW(PARSER_GTP_FIELD),
+    PARSER_ROW(PARSER_GCS_FIELD),
     PARSER_ROW(PARSER_GTP_TX_INFO),
     PARSER_ROW(PARSER_ENUM_VALUE),
     PARSER_ROW(PARSER_EIP712),
@@ -58,7 +58,7 @@ void fuzz_app_reset(void) {
     g_chain_config = &g_fuzz_chain_config;
 }
 
-static void run_gtp_field(buffer_t *buf) {
+static void run_gcs_field(buffer_t *buf) {
     s_field field = {0};
     s_field_ctx ctx = {.field = &field};
 
@@ -174,15 +174,15 @@ static void run_calldata(fuzz_cursor_t *cur) {
     calldata_delete(calldata);
 }
 
-/* The GTP and enum handlers each take one complete TLV payload. */
+/* The GCS and enum handlers each take one complete TLV payload. */
 static void run_tlv_step(uint8_t parser, fuzz_cursor_t *cur) {
     size_t len;
     const uint8_t *payload = fuzz_take_slice16(cur, &len);
     buffer_t buf = {.ptr = (uint8_t *) payload, .size = len, .offset = 0};
 
     switch (parser) {
-        case PARSER_GTP_FIELD:
-            run_gtp_field(&buf);
+        case PARSER_GCS_FIELD:
+            run_gcs_field(&buf);
             break;
         case PARSER_GTP_TX_INFO:
             run_gtp_tx_info(&buf);

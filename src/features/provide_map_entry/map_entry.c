@@ -9,7 +9,7 @@
 #include "lcx_ecdsa.h"
 #include "calldata.h"
 #include "shared_context.h"
-#include "tx_ctx.h"
+#include "operation_ctx.h"
 
 #define STRUCT_VERSION 0x01
 

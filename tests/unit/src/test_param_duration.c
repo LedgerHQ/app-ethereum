@@ -1,7 +1,7 @@
 /**
  * @file test_param_duration.c
  * @brief Unit tests for the DURATION parameter in
- *        src/features/generic_tx_parser/gtp_param_duration.c.
+ *        src/features/gcs/gcs_param_duration.c.
  *
  * DURATION converts an unsigned-seconds value into a "1d02h03m04s" style
  * string, with each component dropped when its count is zero AND at least
@@ -23,10 +23,10 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#include "gtp_param_duration.h"
-#include "gtp_parsed_value.h"
-#include "gtp_value.h"
-#include "gtp_field.h"
+#include "gcs_param_duration.h"
+#include "gcs_parsed_value.h"
+#include "gcs_value.h"
+#include "gcs_field.h"
 #include "shared_context.h"
 
 // =============================================================================

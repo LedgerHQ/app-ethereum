@@ -2,9 +2,9 @@
 
 #include <stdbool.h>
 #include <stdint.h>
-#include "eip712_v1_ui_logic.h"
 
-bool ui_712_start(e_eip712_filtering_mode filtering);
+bool ui_712_prepare_review(void);
+bool ui_712_prepare_blind_review(void);
 
 bool eip712_format_hash(uint8_t index);
 void eip712_hash_strs_cleanup(void);

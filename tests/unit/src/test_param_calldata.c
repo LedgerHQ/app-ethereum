@@ -10,10 +10,10 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#include "gtp_param_calldata.h"
-#include "gtp_parsed_value.h"
-#include "gtp_value.h"
-#include "tx_ctx.h"
+#include "gcs_param_calldata.h"
+#include "gcs_parsed_value.h"
+#include "gcs_value.h"
+#include "operation_ctx.h"
 #include "calldata.h"
 #include "shared_context.h"
 #include "eth_ustream.h"
@@ -28,7 +28,7 @@ static int g_vg_call = 0;
 // one collection for each value a calldata param can read
 static s_parsed_value_collection g_vg[6];
 
-static bool g_tx_ctx_init_ret = true;
+static bool g_operation_ctx_init_ret = true;
 
 bool value_get(const s_value *value, s_parsed_value_collection *collection) {
     (void) value;
@@ -80,23 +80,23 @@ void calldata_delete(s_calldata *calldata) {
 }
 
 // ===========================================================================
-// tx_ctx_init mock
+// operation_ctx_init mock
 // ===========================================================================
 
-bool tx_ctx_init(s_calldata *calldata,
-                 const uint8_t *from,
-                 const uint8_t *to,
-                 const uint8_t *amount,
-                 const uint64_t *chain_id) {
+bool operation_ctx_init(s_calldata *calldata,
+                        const uint8_t *from,
+                        const uint8_t *to,
+                        const uint8_t *amount,
+                        const uint64_t *chain_id) {
     (void) from;
     (void) to;
     (void) amount;
     (void) chain_id;
     // On success, the tx context takes ownership of calldata.
-    if (g_tx_ctx_init_ret) {
+    if (g_operation_ctx_init_ret) {
         free(calldata);
     }
-    return (bool) g_tx_ctx_init_ret;
+    return (bool) g_operation_ctx_init_ret;
 }
 
 // ===========================================================================
@@ -116,7 +116,7 @@ static uint8_t g_contract_addr[ADDRESS_LENGTH] = {
 /**
  * Broadcast: calldata collection has 2 elements (both empty, length=0),
  * contract_addr collection has 1 element — broadcast to both iterations.
- * Expected: format_param_calldata returns true and tx_ctx_init is called twice.
+ * Expected: format_param_calldata returns true and operation_ctx_init is called twice.
  */
 void test_calldata_broadcast_ok(void) {
     // Primary collection: two empty calldatas (length=0 skips calldata_init)
@@ -136,9 +136,9 @@ void test_calldata_broadcast_ok(void) {
     g_vg_call = 0;
     memset(&txContext, 0, sizeof(txContext));
 
-    // tx_ctx_init called once per calldata iteration (2 iterations)
-    g_tx_ctx_init_ret = true;
-    g_tx_ctx_init_ret = true;
+    // operation_ctx_init called once per calldata iteration (2 iterations)
+    g_operation_ctx_init_ret = true;
+    g_operation_ctx_init_ret = true;
 
     s_param_calldata param;
     memset(&param, 0, sizeof(param));
@@ -154,7 +154,7 @@ void test_calldata_broadcast_ok(void) {
 /**
  * Mismatch rejection: calldata collection has 2 elements,
  * contract_addr collection has 3 — neither equals 1 nor matches calldatas.size.
- * check_param must return false; tx_ctx_init must NOT be called.
+ * check_param must return false; operation_ctx_init must NOT be called.
  */
 void test_calldata_size_mismatch_rejected(void) {
     // Primary collection: 2 calldatas
@@ -170,7 +170,7 @@ void test_calldata_size_mismatch_rejected(void) {
     memset(&param, 0, sizeof(param));
     param.version = 1;
 
-    // format_param_calldata must return false; tx_ctx_init is NOT called
+    // format_param_calldata must return false; operation_ctx_init is NOT called
     TEST_ASSERT_FALSE(format_param_calldata(&param, "Destination"));
 }
 
@@ -305,7 +305,7 @@ void test_nested_calldata_with_selector_happy_path(void) {
         .offset = 0,
         .length = ADDRESS_LENGTH,
     };
-    g_tx_ctx_init_ret = true;
+    g_operation_ctx_init_ret = true;
 
     s_param_calldata param = {0};
     param.version = 1;
@@ -444,7 +444,7 @@ void test_nested_calldata_with_all_optional_fields(void) {
         .offset = 0,
         .length = ADDRESS_LENGTH,
     };
-    g_tx_ctx_init_ret = true;
+    g_operation_ctx_init_ret = true;
 
     s_param_calldata param = {0};
     param.version = 1;

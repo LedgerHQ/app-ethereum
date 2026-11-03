@@ -1,0 +1,447 @@
+#include "os.h"
+#include "os_print.h"
+#include "common_utils.h"
+#include "gcs_param_raw.h"
+#include "gcs_field.h"
+#include "uint256.h"
+#include "gcs_field_table.h"
+#include "utils.h"
+#include "shared_context.h"
+#include "tlv_library.h"
+#include "tlv_utils.h"
+
+#define PARAM_RAW_STRUCT_VERSION 0x01
+
+#define PARAM_RAW_TAGS(X)                                    \
+    X(0x00, TAG_VERSION, handle_version, ENFORCE_UNIQUE_TAG) \
+    X(0x01, TAG_VALUE, handle_value, ENFORCE_UNIQUE_TAG)
+
+static bool handle_version(const tlv_data_t *data, s_param_raw_context *context) {
+    return tlv_get_uint8_range(data,
+                               &context->param->version,
+                               PARAM_RAW_STRUCT_VERSION,
+                               PARAM_RAW_STRUCT_VERSION);
+}
+
+static bool handle_value(const tlv_data_t *data, s_param_raw_context *context) {
+    s_value_context ctx = {0};
+
+    ctx.value = &context->param->value;
+    explicit_bzero(ctx.value, sizeof(*ctx.value));
+    return handle_value_struct(&data->value, &ctx);
+}
+
+DEFINE_TLV_PARSER(PARAM_RAW_TAGS, NULL, param_raw_tlv_parser)
+
+bool handle_param_raw_struct(const buffer_t *buf, s_param_raw_context *context) {
+    TLV_reception_t received_tags;
+    if (!param_raw_tlv_parser(buf, context, &received_tags)) {
+        return false;
+    }
+    // Enforce the sub-structure's mandatory tags: an empty or partial PARAM
+    // payload would otherwise parse fine and never appear in the review
+    if (!TLV_CHECK_RECEIVED_TAGS(received_tags, TAG_VERSION, TAG_VALUE)) {
+        PRINTF("Error: missing mandatory tag(s) in gcs_param_raw\n");
+        return false;
+    }
+    return true;
+}
+
+/**
+ * @brief Apply visibility constraint logic
+ *
+ * @param field Field with visibility setting
+ * @param to_be_displayed Output: whether field should be displayed
+ * @param constraint_matched Whether value matched a constraint
+ * @param value_type Type name for error messages
+ * @return false if TX should be rejected (MUST_BE not matched), true otherwise
+ */
+static bool apply_visibility_constraint(const s_field *field,
+                                        bool *to_be_displayed,
+                                        bool constraint_matched) {
+    *to_be_displayed = false;
+
+    switch (field->visibility) {
+        case PARAM_VISIBILITY_MUST_BE:
+            if (!constraint_matched) {
+                PRINTF("Error: RAW value does not match any MUST_BE constraint!\n");
+                // Reject the TX
+                return false;
+            }
+            break;
+        case PARAM_VISIBILITY_IF_NOT_IN:
+            if (constraint_matched) {
+                PRINTF("Warning: RAW value does match a IF_NOT_IN constraint!\n");
+                // Skip displaying the field
+                break;
+            }
+            *to_be_displayed = true;
+            break;
+        default:  // PARAM_VISIBILITY_ALWAYS
+            *to_be_displayed = true;
+            break;
+    }
+
+    return true;
+}
+
+/**
+ * @brief Check if a uint256 value matches any of the field's constraints
+ *
+ * @param field Field containing the constraints to check
+ * @param value256 Value to check against constraints
+ * @return true if value matches a constraint, false otherwise
+ */
+static bool check_uint_constraint(const s_field *field, const uint256_t *value256) {
+    uint256_t constraint = {0};
+
+    for (s_field_constraint *c_node = field->constraints; c_node != NULL;
+         c_node = (s_field_constraint *) c_node->node.next) {
+        memset(&constraint, 0, sizeof(constraint));
+        if (!convertUint256BE(c_node->value, c_node->size, &constraint)) {
+            continue;
+        }
+        if (equal256(value256, &constraint)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool format_uint(const s_field *field,
+                 bool *to_be_displayed,
+                 s_parsed_value *value,
+                 char *buf,
+                 size_t buf_size) {
+    uint256_t value256 = {0};
+    const uint8_t zero = 0;
+    const uint8_t *value_ptr = value->ptr;
+
+    if (value->length == 0) {
+        value_ptr = &zero;
+        value->length = 1;
+    } else if (value_ptr == NULL) {
+        return false;
+    }
+
+    if (!convertUint256BE(value_ptr, value->length, &value256)) {
+        return false;
+    }
+
+    if (!apply_visibility_constraint(field,
+                                     to_be_displayed,
+                                     check_uint_constraint(field, &value256))) {
+        return false;
+    }
+
+    return *to_be_displayed ? uint256_to_decimal(value_ptr, value->length, buf, buf_size) : true;
+}
+
+/**
+ * @brief Check if a signed integer value matches any of the field's constraints
+ *
+ * Constraints are compared as canonical decimal strings so the same logic
+ * works regardless of the byte length and sign-extension of either side.
+ */
+static bool check_int_constraint(const s_field *field, const char *formatted_buf) {
+    char constraint_buf[sizeof(strings.tmp.tmp)];
+
+    for (s_field_constraint *c_node = field->constraints; c_node != NULL;
+         c_node = (s_field_constraint *) c_node->node.next) {
+        if (!format_signed_int_be(c_node->value,
+                                  c_node->size,
+                                  field->param_raw.value.type_size,
+                                  constraint_buf,
+                                  sizeof(constraint_buf))) {
+            continue;
+        }
+        if (strcmp(formatted_buf, constraint_buf) == 0) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool format_int(const s_field *field,
+                bool *to_be_displayed,
+                const s_parsed_value *value,
+                char *buf,
+                size_t buf_size) {
+    if (!format_signed_int_be(value->ptr,
+                              value->length,
+                              field->param_raw.value.type_size,
+                              buf,
+                              buf_size)) {
+        return false;
+    }
+    return apply_visibility_constraint(field, to_be_displayed, check_int_constraint(field, buf));
+}
+
+/**
+ * @brief Check if an address matches any of the field's constraints
+ *
+ * @param field Field containing the constraints to check
+ * @param addr Address to check against constraints
+ * @return true if address matches a constraint, false otherwise
+ */
+static bool check_address_constraint(const s_field *field, const uint8_t *addr) {
+    uint8_t constraint[ADDRESS_LENGTH] = {0};
+
+    for (s_field_constraint *c_node = field->constraints; c_node != NULL;
+         c_node = (s_field_constraint *) c_node->node.next) {
+        memset(constraint, 0, sizeof(constraint));
+        buf_shrink_expand(c_node->value, c_node->size, constraint, sizeof(constraint));
+        if (memcmp(addr, constraint, ADDRESS_LENGTH) == 0) {
+            return true;
+        }
+    }
+    return false;
+}
+
+static bool format_addr(const s_field *field,
+                        bool *to_be_displayed,
+                        const s_parsed_value *value,
+                        char *buf,
+                        size_t buf_size) {
+    uint8_t tmp[ADDRESS_LENGTH] = {0};
+
+    buf_shrink_expand(value->ptr, value->length, tmp, sizeof(tmp));
+
+    if (!apply_visibility_constraint(field,
+                                     to_be_displayed,
+                                     check_address_constraint(field, tmp))) {
+        return false;
+    }
+
+    return *to_be_displayed ? getEthDisplayableAddress(tmp, buf, buf_size, g_chain_config->chain_id)
+                            : true;
+}
+
+/**
+ * @brief Check if a bool value matches any of the field's constraints
+ */
+static bool check_bool_constraint(const s_field *field, uint8_t value) {
+    uint8_t cv;
+
+    for (s_field_constraint *c_node = field->constraints; c_node != NULL;
+         c_node = (s_field_constraint *) c_node->node.next) {
+        // Normalize to 0/1 — a constraint may be encoded as any non-zero byte
+        // and may be sign-extended across multiple bytes.
+        cv = 0;
+        for (uint32_t i = 0; i < c_node->size; ++i) {
+            if (c_node->value[i] != 0) {
+                cv = 1;
+                break;
+            }
+        }
+        if (cv == (value ? 1 : 0)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+static bool format_bool(const s_field *field,
+                        bool *to_be_displayed,
+                        const s_parsed_value *value,
+                        char *buf,
+                        size_t buf_size) {
+    uint8_t tmp;
+
+    // Only the canonical encodings are accepted: leading zeros, then 0 or 1
+    if ((value->length == 0) || !allzeroes(value->ptr, value->length - 1) ||
+        (value->ptr[value->length - 1] > 1)) {
+        PRINTF("Error: non-canonical boolean\n");
+        return false;
+    }
+    tmp = value->ptr[value->length - 1];
+    snprintf(buf, buf_size, "%s", tmp ? "true" : "false");
+    return apply_visibility_constraint(field, to_be_displayed, check_bool_constraint(field, tmp));
+}
+
+/**
+ * @brief Check if a bytes value matches any of the field's constraints
+ *
+ * Byte-level equality, like the string path: comparing formatted hex would
+ * depend on the display buffer fitting both operands.
+ *
+ * @param field Field containing the constraints to check
+ * @param value Value being formatted
+ * @return true if value matches a constraint, false otherwise
+ */
+static bool check_bytes_constraint(const s_field *field, const s_parsed_value *value) {
+    for (s_field_constraint *c_node = field->constraints; c_node != NULL;
+         c_node = (s_field_constraint *) c_node->node.next) {
+        if (c_node->size != value->length) {
+            continue;
+        }
+        if (memcmp(c_node->value, value->ptr, c_node->size) == 0) {
+            return true;
+        }
+    }
+    return false;
+}
+
+static bool format_bytes(const s_field *field,
+                         bool *to_be_displayed,
+                         const s_parsed_value *value,
+                         char *buf,
+                         size_t buf_size) {
+    LEDGER_ASSERT(sizeof(strings.tmp.tmp) == buf_size, "Buffer too small for bytes formatting");
+
+    if (!apply_visibility_constraint(field,
+                                     to_be_displayed,
+                                     check_bytes_constraint(field, value))) {
+        return false;
+    }
+    if (!*to_be_displayed) {
+        return true;
+    }
+
+    if (HEX_0X_STRING_SIZE(value->length) > buf_size) {
+        // Does not fit: show as many leading bytes as possible, end with "..."
+        // keep room for "0x" (2), "..." (3) and NUL (1); 2 hex chars per byte
+        size_t max_bytes = (buf_size - 2 - 1 - 3) / 2;
+
+        if (bytes_to_lowercase_hex_0x(buf, HEX_0X_STRING_SIZE(max_bytes), value->ptr, max_bytes) !=
+            0) {
+            return false;
+        }
+        memmove(buf + 2 + HEX_STRING_LEN(max_bytes), "...", 4);  // "..." + NUL
+    } else if (bytes_to_lowercase_hex_0x(buf, buf_size, value->ptr, value->length) != 0) {
+        return false;
+    }
+    return true;
+}
+
+/**
+ * @brief Check if a string value matches any of the field's constraints
+ *
+ * Byte-level equality: constraint and parsed value must have the same length
+ * and identical contents. The constraint is treated as the raw bytes from
+ * the TLV, not as a NUL-terminated string.
+ */
+static bool check_string_constraint(const s_field *field, const s_parsed_value *value) {
+    for (s_field_constraint *c_node = field->constraints; c_node != NULL;
+         c_node = (s_field_constraint *) c_node->node.next) {
+        if ((c_node->size == value->length) &&
+            (memcmp(c_node->value, value->ptr, c_node->size) == 0)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+/**
+ * @brief Check that a string holds no control character other than line feed
+ *
+ * Rejects C0 controls (NUL included) except '\n', DEL, and C1 controls in their
+ * UTF-8 encoding (0xC2 0x80..0x9F).
+ */
+static bool has_only_displayable_chars(const uint8_t *str, size_t length) {
+    for (size_t i = 0; i < length; ++i) {
+        if (((str[i] < 0x20) && (str[i] != '\n')) || (str[i] == 0x7F)) {
+            return false;
+        }
+        if ((str[i] == 0xC2) && ((i + 1) < length) && (str[i + 1] >= 0x80) &&
+            (str[i + 1] <= 0x9F)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+static bool format_string(const s_field *field,
+                          bool *to_be_displayed,
+                          const s_parsed_value *value,
+                          char *buf,
+                          size_t buf_size) {
+    if (value->length + 1 > buf_size) {
+        PRINTF("RAW STRING value too long for display (%u > %u bytes)\n",
+               (unsigned) value->length + 1,
+               (unsigned) buf_size);
+        return false;
+    }
+    if (!has_only_displayable_chars(value->ptr, value->length)) {
+        PRINTF("RAW STRING value contains a control character\n");
+        return false;
+    }
+    memmove(buf, value->ptr, value->length);
+    buf[value->length] = '\0';
+    return apply_visibility_constraint(field,
+                                       to_be_displayed,
+                                       check_string_constraint(field, value));
+}
+
+static bool format_separator(const char *tmpl, int idx) {
+    char buf[MAX_SEPARATOR_SIZE];
+    const char *placeholder = "{index}";
+    const char *pos = strstr(tmpl, placeholder);
+
+    if (pos == NULL) {
+        return add_to_field_table(PARAM_TYPE_SEPARATOR, tmpl, "", NULL);
+    }
+
+    char idx_str[12];
+    snprintf(idx_str, sizeof(idx_str), "%d", idx);
+    snprintf(buf,
+             sizeof(buf),
+             "%.*s%s%s",
+             (int) (pos - tmpl),
+             tmpl,
+             idx_str,
+             pos + strlen(placeholder));
+    return add_to_field_table(PARAM_TYPE_SEPARATOR, buf, "", NULL);
+}
+
+__attribute__((noinline)) bool format_param_raw(const s_field *field) {
+    bool ret = false;
+    s_parsed_value_collection collec = {0};
+    char *buf = strings.tmp.tmp;
+    size_t buf_size = sizeof(strings.tmp.tmp);
+    bool to_be_displayed = true;
+
+    ret = value_get(&field->param_raw.value, &collec);
+    if (ret) {
+        for (int i = 0; i < collec.size && ret == true; ++i) {
+            // Reset on each iteration: PARAM_VISIBILITY_IF_NOT_IN can hide a
+            // single value without disabling display for the rest of the
+            // collection (CWE-451 / CWE-693).
+            to_be_displayed = true;
+            switch (field->param_raw.value.type_family) {
+                case TF_UINT:
+                    ret = format_uint(field, &to_be_displayed, &collec.value[i], buf, buf_size);
+                    break;
+                case TF_INT:
+                    ret = format_int(field, &to_be_displayed, &collec.value[i], buf, buf_size);
+                    break;
+                case TF_ADDRESS:
+                    ret = format_addr(field, &to_be_displayed, &collec.value[i], buf, buf_size);
+                    break;
+                case TF_BOOL:
+                    ret = format_bool(field, &to_be_displayed, &collec.value[i], buf, buf_size);
+                    break;
+                case TF_BYTES:
+                    ret = format_bytes(field, &to_be_displayed, &collec.value[i], buf, buf_size);
+                    break;
+                case TF_STRING:
+                    ret = format_string(field, &to_be_displayed, &collec.value[i], buf, buf_size);
+                    break;
+                case TF_UFIXED:
+                case TF_FIXED:
+                default:
+                    ret = false;
+            }
+            // Emit separator (page break or labeled header) before each element
+            if (ret && to_be_displayed && field->separator[0] != '\0') {
+                ret = format_separator(field->separator, i + 1);
+            }
+            // Add to field table only if required to be displayed
+            if (ret && to_be_displayed) {
+                ret = add_to_field_table(PARAM_TYPE_RAW, field->name, buf, NULL);
+            }
+        }
+    }
+    value_cleanup(&field->param_raw.value, &collec);
+    return ret;
+}

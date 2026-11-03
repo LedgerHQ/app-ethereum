@@ -8,7 +8,7 @@
 #include "buffer.h"
 #include "lcx_ecdsa.h"
 #include "lists.h"
-#include "gtp_field.h"
+#include "gcs_field.h"
 #include "lcx_ecdsa.h"
 
 #define OPERATION_TYPE_SIZE     31

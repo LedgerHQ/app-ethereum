@@ -17,7 +17,7 @@
 #ifdef HAVE_TRANSACTION_CHECKS
 #include "cmd_get_tx_simulation.h"  // clear_tx_simulation
 #endif
-#include "tx_ctx.h"
+#include "operation_ctx.h"
 #include "ui_utils.h"
 #include "app_mem_utils.h"
 #include "cmd_safe_account.h"

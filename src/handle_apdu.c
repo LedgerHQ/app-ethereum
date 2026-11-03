@@ -111,7 +111,7 @@ uint16_t handleApdu(command_t *cmd, uint32_t *tx) {
             sw = handle_eip712_v1_filtering(cmd->p1, cmd->p2, cmd->data, cmd->lc);
             break;
 
-        // Generic clear-signing protocol (GTP) and trusted data provisioning
+        // Generic clear-signing protocol (GCS) and trusted data provisioning
         case INS_GET_CHALLENGE:
             sw = handle_get_challenge(tx);
             break;

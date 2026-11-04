@@ -565,34 +565,34 @@ void test_set_warning_counter_wrap_reanchors_to_one(void) {
 
 void test_set_warning_proxy_implementation_match(void) {
     prime_tx_descriptor();
-    // Pretend the active tx hits a proxy that resolves to the descriptor
-    // address. The proxy lookup returns a contract address that matches
-    // the tx destination — gate must accept.
-    static const uint8_t implem[ADDRESS_LENGTH] = {0xAA};
-    static const uint8_t proxy[ADDRESS_LENGTH] = {0xAA};
-    g_implem_contract_ret = implem;
-    g_proxy_contract_ret = proxy;
-    // Implementation must equal GATING->address (0xAA pattern). Make the
-    // returned proxy address equal tmpContent.txContent.destination so the
-    // final memcmp passes.
+    // The tx hits a proxy (0x77) whose implementation is the descriptor address (0xAA).
     static uint8_t proxy_full[ADDRESS_LENGTH];
-    memset(proxy_full, 0xAA, sizeof(proxy_full));
+    memset(proxy_full, 0x77, sizeof(proxy_full));
     static uint8_t implem_full[ADDRESS_LENGTH];
     memset(implem_full, 0xAA, sizeof(implem_full));
     g_implem_contract_ret = implem_full;
     g_proxy_contract_ret = proxy_full;
-    memset(tmpContent.txContent.destination, 0xAA, ADDRESS_LENGTH);
+    memset(tmpContent.txContent.destination, 0x77, ADDRESS_LENGTH);
     TEST_ASSERT_TRUE(set_gating_warning());
 }
 
 void test_set_warning_proxy_implementation_mismatch(void) {
     prime_tx_descriptor();
-    // Proxy lookup says the implementation is some unrelated address ⇒
-    // gate must reject regardless of the descriptor signature.
+    // Neither the called proxy (0x77) nor its implementation (0x55) is the descriptor address.
     static uint8_t implem_full[ADDRESS_LENGTH];
     memset(implem_full, 0x55, sizeof(implem_full));
     g_implem_contract_ret = implem_full;
+    memset(tmpContent.txContent.destination, 0x77, ADDRESS_LENGTH);
     TEST_ASSERT_FALSE(set_gating_warning());
+}
+
+void test_set_warning_proxy_descriptor_on_called_contract(void) {
+    prime_tx_descriptor();
+    // The descriptor targets the called proxy itself, whatever its implementation.
+    static uint8_t implem_full[ADDRESS_LENGTH];
+    memset(implem_full, 0x55, sizeof(implem_full));
+    g_implem_contract_ret = implem_full;
+    TEST_ASSERT_TRUE(set_gating_warning());
 }
 
 void test_set_warning_typed_data_happy_path(void) {
@@ -682,6 +682,7 @@ int main(void) {
     RUN_TEST(test_set_warning_counter_wrap_reanchors_to_one);
     RUN_TEST(test_set_warning_proxy_implementation_match);
     RUN_TEST(test_set_warning_proxy_implementation_mismatch);
+    RUN_TEST(test_set_warning_proxy_descriptor_on_called_contract);
     RUN_TEST(test_set_warning_typed_data_happy_path);
     RUN_TEST(test_set_warning_typed_data_schema_hash_mismatch);
     RUN_TEST(test_set_warning_typed_data_compute_schema_failure);

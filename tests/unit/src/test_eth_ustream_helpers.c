@@ -652,23 +652,6 @@ static const uint8_t g_legacy_tx_with_8byte_data[] = {
     0x1B, 0x80, 0x80,                                            // v, r, s
 };
 
-void test_process_data_captures_selector_bytes(void) {
-    cx_sha3_t sha3;
-    txContent_t content = {0};
-    txContext_t ctx;
-    TEST_ASSERT_TRUE(init_tx(&ctx, &sha3, &content, /*store_calldata=*/false));
-    ctx.txType = LEGACY;
-
-    parserStatus_e r =
-        process_tx(&ctx, g_legacy_tx_with_8byte_data, sizeof(g_legacy_tx_with_8byte_data));
-    TEST_ASSERT_EQUAL(r, USTREAM_FINISHED);
-
-    // process_data captures the first 4 bytes of the data field into
-    // ctx.selector_bytes for the gating cross-check.
-    static const uint8_t expected_selector[CALLDATA_SELECTOR_SIZE] = {0xA9, 0x05, 0x9C, 0xBB};
-    TEST_ASSERT_EQUAL_MEMORY(ctx.selector_bytes, expected_selector, CALLDATA_SELECTOR_SIZE);
-}
-
 void test_process_data_store_calldata_happy_path(void) {
     cx_sha3_t sha3;
     txContent_t content = {0};
@@ -1074,7 +1057,6 @@ int main(void) {
     RUN_TEST(test_process_tx_eip2930_happy_path);
     RUN_TEST(test_process_tx_eip7702_happy_path);
     RUN_TEST(test_process_tx_eip1559_chainid_overflow_rejected);
-    RUN_TEST(test_process_data_captures_selector_bytes);
     RUN_TEST(test_process_data_store_calldata_happy_path);
     RUN_TEST(test_process_data_store_calldata_init_failure_rejected);
     RUN_TEST(test_process_tx_store_calldata_ctx_init_failure_rejected);

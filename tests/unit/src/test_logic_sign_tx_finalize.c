@@ -691,6 +691,8 @@ void test_raw_fee_to_string_long_ticker_fails_closed(void) {
 // signing. The fixture sets up a "valid first chunk on LEGACY RLP DATA"
 // baseline; each test perturbs one field.
 
+static const uint8_t g_cp_calldata[] = {0xA9, 0x05, 0x9C, 0xBB, 0x01, 0x02, 0x03, 0x04};
+
 static void cp_setup_first_chunk(void) {
     // Default: LEGACY tx, first chunk of an 8-byte data field, plugin
     // unavailable, no contractDetails, data allowed.
@@ -700,6 +702,7 @@ static void cp_setup_first_chunk(void) {
     s_ctx.currentFieldLength = 8;
     s_ctx.currentFieldPos = 0;
     s_ctx.commandLength = 8;
+    s_ctx.workBuffer = g_cp_calldata;
     s_ctx.store_calldata = false;
     s_ctx.processingField = true;
     // context->content is dereferenced on the first `dataPresent = true`
@@ -773,6 +776,13 @@ void test_cp_plugin_success_selector_copy_failure_returns_fault(void) {
     g_perform_init_ret = ETH_PLUGIN_RESULT_SUCCESSFUL;
     g_copy_tx_data_ret = false;  // selector copy fails
     TEST_ASSERT_EQUAL(custom_processor(&s_ctx), CUSTOM_FAULT);
+}
+
+void test_cp_first_chunk_captures_selector_bytes(void) {
+    cp_setup_first_chunk();
+    s_ctx.store_calldata = true;
+    TEST_ASSERT_EQUAL(custom_processor(&s_ctx), CUSTOM_NOT_HANDLED);
+    TEST_ASSERT_EQUAL_MEMORY(g_cp_calldata, s_ctx.selector_bytes, CALLDATA_SELECTOR_SIZE);
 }
 
 // --- first chunk -- no plugin / blind signing gate ----------------------
@@ -1015,6 +1025,7 @@ int main(void) {
     RUN_TEST(test_cp_new_contract_skips_plugin_dispatch);
     RUN_TEST(test_cp_short_field_returns_not_handled);
     RUN_TEST(test_cp_first_chunk_short_command_returns_fault);
+    RUN_TEST(test_cp_first_chunk_captures_selector_bytes);
     RUN_TEST(test_cp_plugin_init_error_returns_fault);
     RUN_TEST(test_cp_plugin_success_selector_only_returns_not_handled);
     RUN_TEST(test_cp_plugin_success_selector_copy_failure_returns_fault);

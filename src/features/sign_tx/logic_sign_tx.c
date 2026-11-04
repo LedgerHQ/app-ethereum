@@ -76,6 +76,8 @@ customStatus_e custom_processor(txContext_t *context) {
                 PRINTF("Missing function selector\n");
                 return CUSTOM_FAULT;
             }
+            // Kept for the Gating check
+            memcpy(context->selector_bytes, context->workBuffer, CALLDATA_SELECTOR_SIZE);
             dataContext.tokenContext.pluginStatus = ETH_PLUGIN_RESULT_UNAVAILABLE;
             // If contract debugging mode is activated, do not go through the plugin activation
             // as they wouldn't be displayed if the plugin consumes all data but fallbacks

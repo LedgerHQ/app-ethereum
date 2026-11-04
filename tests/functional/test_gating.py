@@ -4,6 +4,7 @@ from pathlib import Path
 import client.response_parser as ResponseParser
 from client.client import EthAppClient
 from client.gating import Gating
+from client.proxy_info import ProxyInfo
 from client.settings import SettingID, settings_toggle
 from client.status_word import StatusWord
 from client.utils import TxType, recover_transaction
@@ -59,6 +60,46 @@ def test_gating_blind_signing_with_proxy(
         gating_params=descriptor,
         with_proxy=True,
     )
+
+
+def test_gating_blind_signing_proxy_descriptor(scenario_navigator: NavigateWithScenario) -> None:
+    """Test a Gating descriptor on the proxy address, with the proxy implementation provided"""
+    backend = scenario_navigator.backend
+    app_client = EthAppClient(backend)
+
+    with app_client.get_public_addr(bip32_path=BIP32_PATH, display=False):
+        pass
+    _, device_addr, _ = ResponseParser.pk_addr(app_client.response().data)
+
+    settings_toggle(backend.device, scenario_navigator.navigator, [SettingID.BLIND_SIGNING])
+
+    tx_params = common_tx_params(0.0)
+    proxy_info = ProxyInfo(
+        ResponseParser.challenge(app_client.get_challenge().data),
+        tx_params["to"],
+        tx_params["chainId"],
+        bytes.fromhex("Dad77910DbDFdE764fC21FCD4E74D71bBACA6D8D"),
+    )
+    response = app_client.provide_proxy_info(proxy_info.serialize())
+    assert response.status == StatusWord.SWO_SUCCESS
+
+    descriptor = Gating(
+        TxType.TRANSACTION,
+        tx_params["to"],
+        "To scan for threats and verify this transaction before signing, use Ledger Multisig.",
+        "ledger.com/ledger-multisig",
+        tx_params["chainId"],
+        bytes.fromhex(tx_params["data"][2:10]),
+    )
+    response = app_client.provide_gating(descriptor)
+    assert response.status == StatusWord.SWO_SUCCESS
+
+    # Same screens as test_gating_blind_signing_with_proxy
+    with app_client.sign(BIP32_PATH, tx_params):
+        scenario_navigator.review_approve_with_warning(nb_warnings=2, do_comparison=False)
+
+    vrs = ResponseParser.signature(app_client.response().data)
+    assert recover_transaction(tx_params, vrs) == device_addr
 
 
 def test_gating_eip712(scenario_navigator: NavigateWithScenario) -> None:

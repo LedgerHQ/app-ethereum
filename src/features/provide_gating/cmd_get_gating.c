@@ -507,6 +507,11 @@ static bool check_gating_address(void) {
     PRINTF("[GATING] Tx TO address: %.*h\n", ADDRESS_LENGTH, contract);
     PRINTF("[GATING] Gating address: %.*h\n", ADDRESS_LENGTH, GATING->address);
 
+    // Descriptor for the called contract itself, behind a proxy or not
+    if (memcmp(GATING->address, contract, ADDRESS_LENGTH) == 0) {
+        return true;
+    }
+
     // Get the implementation address for the received descriptor address
     address = get_implem_contract(&GATING->chain_id, contract, selector);
     if (address != NULL) {

@@ -79,6 +79,7 @@ SECONDARY_SCOPE = "Eth Address 2"
 # Max-length values (CONTACT_NAME_MAX_LENGTH == SCOPE_MAX_LENGTH == 32) used to
 # validate long-name display (truncation / wrapping) on the device screens.
 LONG_CONTACT_NAME = "Alice Very Long Contact Name 123"  # 32 chars
+ABSURD_LONG_CONTACT_NAME = "MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM"  # 32 chars
 LONG_SCOPE = "Ethereum Address Number One Long"  # 32 chars
 
 
@@ -826,6 +827,59 @@ def test_address_book_simple_tx_long_name(scenario_navigator: NavigateWithScenar
         scenario_navigator.review_approve()
 
 
+def test_address_book_simple_tx_absurd_long_name(scenario_navigator: NavigateWithScenario) -> None:
+    """Test Provide Contact: a max-length (32-char) contact name too wide for the TX "To" field.
+
+    Same flow as test_address_book_simple_tx_long_name but with a name of wide chars,
+    which doesn't fit in the max number of lines of the "To" field (2 lines on touch
+    devices, 3 lines on Nano): it must be cut with "...".
+
+    Flow:
+      1. Register Identity with ABSURD_LONG_CONTACT_NAME / LONG_SCOPE (no comparison)
+      2. Provide Contact (synchronous, no UI)
+      3. Sign a TX to the same address → "To" shows the long contact name
+    """
+    backend = scenario_navigator.backend
+    app_client = EthAppClient(backend)
+
+    # Step 1: Register Identity with the long name / scope
+    group_handle, hmac_name, hmac_rest = _common_register_identity(
+        scenario_navigator,
+        app_client,
+        contact_name=ABSURD_LONG_CONTACT_NAME,
+        scope=LONG_SCOPE,
+        do_compare=False,
+    )
+
+    # Step 2: Provide Contact (synchronous, no UI)
+    apdu = ProvideContact(
+        identifier=DEFAULT_ADDRESS,
+        group_handle=group_handle,
+        hmac_name=hmac_name,
+        hmac_rest=hmac_rest,
+        contact_name=ABSURD_LONG_CONTACT_NAME,
+        scope=LONG_SCOPE,
+        blockchain_family=FAMILY,
+        chain_id=DEFAULT_CHAIN_ID,
+    )
+
+    response = app_client.provide_address_book(apdu, False)
+    assert_sw(response.status, StatusWord.SWO_SUCCESS)
+    assert len(response.data) == 0, f"Provide Contact must return no data, got {response.data.hex()}"
+
+    # Step 3: Sign TX to the same address — "To" shows the long contact name
+    tx_params: dict = {
+        "nonce": NONCE,
+        "gasPrice": Web3.to_wei(GAS_PRICE, "gwei"),
+        "gas": GAS_LIMIT,
+        "to": DEFAULT_ADDRESS,
+        "value": Web3.to_wei(AMOUNT, "ether"),
+        "chainId": DEFAULT_CHAIN_ID,
+    }
+    with app_client.sign(DEFAULT_BIP32_PATH, tx_params):
+        scenario_navigator.review_approve()
+
+
 def test_address_book_simple_tx_reject(scenario_navigator: NavigateWithScenario) -> None:
     """Test Provide Contact: user rejects the TX after the contact name is shown.
 
@@ -1462,10 +1516,13 @@ def test_address_book_gcs_edit_scope_before_review(scenario_navigator: NavigateW
         scenario_navigator.review_approve()
 
 
-def test_address_book_gcs_trusted_name_field(
+def _common_gcs_trusted_name_field(
     scenario_navigator: NavigateWithScenario,
+    contact_name: str = DEFAULT_CONTACT_NAME,
+    scope: str = DEFAULT_SCOPE,
 ) -> None:
-    """Test Provide Contact: contact name replaces raw address in a GCS ParamTrustedName field.
+    """Register a contact, then sign a GCS ERC-20 transfer to it with the recipient
+    typed as trusted_name, so that the "To" field shows the contact name.
 
     Flow:
       1. Register Identity (no screenshot comparison)
@@ -1484,6 +1541,8 @@ def test_address_book_gcs_trusted_name_field(
         scenario_navigator,
         app_client,
         address=recipient_addr,
+        contact_name=contact_name,
+        scope=scope,
         do_compare=False,
     )
 
@@ -1493,8 +1552,8 @@ def test_address_book_gcs_trusted_name_field(
         group_handle=group_handle,
         hmac_name=hmac_name,
         hmac_rest=hmac_rest,
-        contact_name=DEFAULT_CONTACT_NAME,
-        scope=DEFAULT_SCOPE,
+        contact_name=contact_name,
+        scope=scope,
         blockchain_family=FAMILY,
         chain_id=DEFAULT_CHAIN_ID,
     )
@@ -1559,6 +1618,27 @@ def test_address_book_gcs_trusted_name_field(
 
     with app_client.sign(mode=SignMode.START_FLOW):
         scenario_navigator.review_approve()
+
+
+def test_address_book_gcs_trusted_name_field(scenario_navigator: NavigateWithScenario) -> None:
+    """Test Provide Contact: contact name replaces raw address in a GCS ParamTrustedName field."""
+    _common_gcs_trusted_name_field(scenario_navigator)
+
+
+def test_address_book_gcs_trusted_name_field_absurd_long_name(
+    scenario_navigator: NavigateWithScenario,
+) -> None:
+    """Test Provide Contact: a contact name too wide to fit in a GCS ParamTrustedName field.
+
+    The GCS review sets the contact name max number of lines on its own, apart from the
+    simple TX review: the name must be cut with "..." the same way (2 lines on touch
+    devices, 3 lines on Nano).
+    """
+    _common_gcs_trusted_name_field(
+        scenario_navigator,
+        contact_name=ABSURD_LONG_CONTACT_NAME,
+        scope=LONG_SCOPE,
+    )
 
 
 def test_address_book_gcs_combined_ab_and_tn(scenario_navigator: NavigateWithScenario) -> None:

@@ -146,6 +146,11 @@ static bool resolve_address_pair(nbgl_contentTagValue_t *pair,
         (*ext_out)->explanation = alias_expl;
         pair->extension = *ext_out;
         pair->aliasValue = true;
+#ifdef HAVE_ADDRESS_BOOK
+        if (alias_type == ADDRESS_BOOK_ALIAS) {
+            pair->nbMaxLinesForValue = ADDRESS_BOOK_ALIAS_MAX_LINES;
+        }
+#endif  // HAVE_ADDRESS_BOOK
     } else {
         pair->value = display_addr;
     }

@@ -417,12 +417,19 @@ static bool handle_extra_data(const s_field_table_entry *field, nbgl_contentTagV
             if ((pair->extension = handle_extra_data_trusted_name(field)) == NULL) {
                 return false;
             }
+#ifdef HAVE_ADDRESS_BOOK
+            // displayed as a contact, so cut as one
+            if (pair->extension->aliasType == ADDRESS_BOOK_ALIAS) {
+                pair->nbMaxLinesForValue = ADDRESS_BOOK_ALIAS_MAX_LINES;
+            }
+#endif  // HAVE_ADDRESS_BOOK
             break;
 #ifdef HAVE_ADDRESS_BOOK
         case PARAM_TYPE_ADDRESS_BOOK:
             if ((pair->extension = handle_extra_data_address_book(field)) == NULL) {
                 return false;
             }
+            pair->nbMaxLinesForValue = ADDRESS_BOOK_ALIAS_MAX_LINES;
             break;
 #endif  // HAVE_ADDRESS_BOOK
         case PARAM_TYPE_TOKEN_AMOUNT:

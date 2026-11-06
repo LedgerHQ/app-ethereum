@@ -5,7 +5,7 @@
 #include "cx.h"
 #include "nbgl_use_case.h"
 
-// The rows that show the hashes of the message, when the "Transaction hash" setting is on
+// The rows that show the hashes of the message, when the "Show all hashes" setting is on
 #define EIP712_DOMAIN_HASH_LABEL  "Domain hash"
 #define EIP712_MESSAGE_HASH_LABEL "Message hash"
 #define EIP712_HASH_ROWS          2

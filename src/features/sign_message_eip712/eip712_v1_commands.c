@@ -7,7 +7,7 @@
 #include "typed_data.h"
 #include "schema_hash.h"
 #include "eip712_v1_filtering.h"
-#include "common_ui.h"  // ui_idle, ui_error_blind_signing
+#include "common_ui.h"  // ui_idle, ui_error_blind_signing, ui_hold_error_screen
 #include "manage_asset_info.h"
 #include "operation_ctx.h"  // get_operation_ctx_count
 #include "value_hash.h"
@@ -305,6 +305,7 @@ uint16_t handle_eip712_v1_sign(const uint8_t *cdata, uint8_t length) {
         if ((filt_mode == EIP712_FILTERING_BASIC) && !N_storage.dataAllowed &&
             !N_storage.verbose_eip712) {
             ui_error_blind_signing();
+            ui_hold_error_screen();
             sw = SWO_INCORRECT_DATA;
         } else {
             bool should_start_ui = true;

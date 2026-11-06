@@ -1,3 +1,5 @@
+#ifdef HAVE_EIP712_V1
+
 #include "app_mem_utils.h"
 #include "read.h"
 #include "os_utils.h"  // is_zeroes_buffer
@@ -6,7 +8,7 @@
 
 static s_struct_712 *g_pending_struct = NULL;
 
-// domain root node while its value tree is being built (NULL once popped or before v1_set_root)
+// domain root node once set by v1_set_root (NULL otherwise)
 static const s_struct_712_value *g_domain_root = NULL;
 
 /**
@@ -40,20 +42,15 @@ bool v1_set_struct_name(uint8_t length, const uint8_t *name) {
         return false;
     }
 
-    char *name_tmp = APP_MEM_ALLOC(length + 1);
-    if (name_tmp == NULL) {
+    if ((g_pending_struct = td_create_struct_def(name, length)) == NULL) {
         return false;
     }
-    memcpy(name_tmp, name, length);
-    name_tmp[length] = '\0';
-
-    g_pending_struct = td_create_struct_def(name_tmp);
-    APP_MEM_FREE_AND_NULL((void **) &name_tmp);
-
-    if (g_pending_struct == NULL) {
+    // td_add_struct_def() owns the struct whatever the outcome
+    if (!td_add_struct_def(g_pending_struct)) {
+        g_pending_struct = NULL;
         return false;
     }
-    return td_add_struct_def(g_pending_struct);
+    return true;
 }
 
 // TypeDesc masks
@@ -488,9 +485,11 @@ bool v1_set_root(const char *name) {
         return false;
     }
 
-    if (strcmp(name, "EIP712Domain") == 0) {
-        g_domain_root = node;
+    if (strcmp(name, TD_DOMAIN_STRUCT_NAME) == 0) {
         ret = td_set_domain(node);
+        if (ret) {
+            g_domain_root = node;
+        }
     } else {
         ret = td_set_message(node);
     }
@@ -811,3 +810,5 @@ void v1_parse_deinit(void) {
     g_pending_struct = NULL;
     g_domain_root = NULL;
 }
+
+#endif  // HAVE_EIP712_V1

@@ -4,7 +4,9 @@
 #include "app_mem_utils.h"
 #include "lists.h"
 #include "shared_context.h"  // appState
+#ifdef HAVE_EIP712_V1
 #include "eip712_v1_ui_logic.h"
+#endif  // HAVE_EIP712_V1
 #include "operation_ctx.h"
 #include "token_info.h"
 #include "nft_info.h"
@@ -73,6 +75,7 @@ bool add_to_field_table(e_param_type type,
         return false;
     }
     PRINTF(">>> \"%s\": \"%s\"\n", key, value);
+#ifdef HAVE_EIP712_V1
     if (appState == APP_STATE_SIGNING_EIP712) {
         if ((type == PARAM_TYPE_INTENT) && (txContext.current_batch_size > 1)) {
             // Special handling for intent in EIP712 mode
@@ -89,6 +92,7 @@ bool add_to_field_table(e_param_type type,
         }
         return true;
     }
+#endif  // HAVE_EIP712_V1
     if (APP_MEM_CALLOC((void **) &node, sizeof(*node)) == false) {
         return false;
     }

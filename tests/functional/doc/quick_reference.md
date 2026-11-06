@@ -12,6 +12,7 @@
 | `test_nft.py`                | NFT operations         | ERC-721, ERC-1155, transfer, approve, batch operations |
 | `test_eip191.py`             | Personal messages      | ASCII/non-ASCII messages, long messages, check         |
 | `test_eip712.py`             | Structured data        | Complex types, arrays, tokens, NFTs, datetime, GCS     |
+| `test_eip712_v2*.py`         | EIP-712 V2 protocol    | Schema, values, message info, descriptors, calls       |
 | `test_eth2.py`               | Beacon deposits        | ETH2 deposits, BLS keys, withdrawal credentials        |
 | `test_eip7002.py`            | Withdrawal requests    | Partial withdrawals, full exit, validator operations   |
 | `test_eip7251.py`            | Validator operations   | Consolidation, compounding, validator management       |
@@ -35,7 +36,7 @@
 | **Contract Interactions** | `test_sign.py`, `test_blind_sign.py`, `test_gcs.py`, `test_gcs_formatters.py`                                     |
 | **Token Transfers**       | `test_erc20.py`                                                                                                   |
 | **NFT Operations**        | `test_nft.py`                                                                                                     |
-| **Message Signing**       | `test_eip191.py`, `test_eip712.py`                                                                                |
+| **Message Signing**       | `test_eip191.py`, `test_eip712.py`, `test_eip712_v2*.py`                                                          |
 | **Staking**               | `test_eth2.py`, `test_eip7002.py`, `test_eip7251.py`                                                              |
 | **Transaction Simulation**| `test_tx_simulation.py`, `test_eip191.py`, `test_eip712.py`, `test_blind_sign.py`, `test_erc20.py`, `test_nft.py` |
 | **Trusted Names**         | `test_trusted_name.py`, `test_eip712.py`, `test_gcs.py`, `test_gcs_formatters.py`                                 |
@@ -50,13 +51,13 @@
 - **Basic Operations**: 2 files, ~15 tests
 - **Transaction Signing**: 2 files, ~30 tests
 - **Token Standards**: 2 files, ~25 tests
-- **Message Signing**: 2 files, ~60+ tests
+- **Message Signing**: 5 files, ~400 tests
 - **Ethereum 2.0**: 3 files, ~5 tests
 - **Advanced Features**: 7 files, ~100+ tests
 - **External Chains**: 1 file, ~1 test
 - **Privacy**: 1 file, ~2 tests
 
-**Total**: 20 files, 200+ test cases
+**Total**: 23 files, 500+ test cases
 
 ## Common Test Patterns
 

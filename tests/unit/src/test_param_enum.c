@@ -10,7 +10,7 @@
  * bytes wide), then chains five preconditions that each surface as a
  * `false` return when they fail:
  *   - value_get must succeed,
- *   - get_current_tx_info must be non-NULL (chain_id source),
+ *   - the operation being described must be on a chain (chain_id source),
  *   - the parsed value must be non-empty,
  *   - calldata_get_selector(get_current_calldata()) must yield a
  *     selector — without it the lookup key is incomplete,
@@ -30,7 +30,7 @@
 #include "gcs_parsed_value.h"
 #include "gcs_value.h"
 #include "gcs_field.h"
-#include "gtp_tx_info.h"
+#include "operation_info.h"
 #include "enum_value.h"
 #include "calldata.h"
 #include "shared_context.h"
@@ -70,27 +70,23 @@ bool handle_value_struct(const buffer_t *buf, s_value_context *context) {
     return g_hvs_ret;
 }
 
-static s_tx_info g_fake_tx_info;
-
-static s_calldata g_fake_calldata;  // contents irrelevant — only pointer identity matters
-static s_calldata *g_calldata_ret = &g_fake_calldata;
-s_calldata *get_current_calldata(void) {
-    return g_calldata_ret;
-}
-
-static const uint8_t g_selector[4] = {0xDE, 0xAD, 0xBE, 0xEF};
-static const uint8_t *g_selector_ret = g_selector;
-const uint8_t *calldata_get_selector(const s_calldata *calldata) {
-    (void) calldata;
-    return g_selector_ret;
+// What the enum is looked up with: the key of the operation being described
+static s_operation_key g_operation_key;
+static bool g_operation_key_ret = true;
+bool get_current_operation_key(s_operation_key *key) {
+    if (!g_operation_key_ret) {
+        return false;
+    }
+    *key = g_operation_key;
+    return true;
 }
 
 static const s_enum_value_entry *g_enum_ret = NULL;
-const s_enum_value_entry *get_matching_enum(const uint64_t *chain_id,
-                                            const uint8_t *contract_addr,
-                                            const uint8_t *selector,
+static s_operation_key g_enum_lookup_key;
+const s_enum_value_entry *get_matching_enum(const s_operation_key *operation_key,
                                             uint8_t id,
                                             uint8_t value) {
+    g_enum_lookup_key = *operation_key;
     return g_enum_ret;
 }
 
@@ -99,11 +95,6 @@ bool add_to_field_table(e_param_type type,
                         const char *value,
                         const void *extra_data) {
     return (bool) g_add_to_field_table_ret;
-}
-
-static const s_tx_info *s_tx_info_ret = NULL;
-const s_tx_info *get_current_tx_info(void) {
-    return s_tx_info_ret;
 }
 
 // =============================================================================
@@ -115,12 +106,10 @@ static const uint8_t g_contract[ADDRESS_LENGTH] = {
     0x55, 0x66, 0x77, 0x88, 0x99, 0x00, 0xAA, 0xBB, 0xCC, 0xDD,
 };
 
-// Enum metadata is resolved against the callee of the current context
-const uint8_t *get_current_tx_to(void) {
-    return g_contract;
-}
-
 static void reset(void) {
+    memset(&g_operation_key, 0, sizeof(g_operation_key));
+    g_operation_key_ret = true;
+    memset(&g_enum_lookup_key, 0, sizeof(g_enum_lookup_key));
     memset(&g_vg, 0, sizeof(g_vg));
     g_vg_call = 0;
     g_value_cleanup_calls = 0;
@@ -128,12 +117,6 @@ static void reset(void) {
     g_hvs_ret = true;
     g_add_to_field_table_ret = true;
 
-    memset(&g_fake_tx_info, 0, sizeof(g_fake_tx_info));
-    g_fake_tx_info.chain_id = 1;
-    s_tx_info_ret = &g_fake_tx_info;
-
-    g_calldata_ret = &g_fake_calldata;
-    g_selector_ret = g_selector;
     g_enum_ret = NULL;
 
     memset(&g_tx_content, 0, sizeof(g_tx_content));
@@ -197,7 +180,7 @@ void test_format_tx_info_null_returns_false(void) {
     static const uint8_t v[] = {0x01};
     g_vg[0].size = 1;
     g_vg[0].value[0] = (s_parsed_value) {.ptr = v, .size = 1, .offset = 0, .length = 1};
-    s_tx_info_ret = NULL;
+    g_operation_key_ret = false;
 
     s_param_enum param = {0};
     param.value.type_family = TF_UINT;
@@ -215,11 +198,11 @@ void test_format_empty_value_rejected(void) {
     TEST_ASSERT_FALSE(format_param_enum(&param, "Action"));
 }
 
-void test_format_selector_missing_rejects(void) {
+void test_format_operation_key_missing_rejects(void) {
     static const uint8_t v[] = {0x01};
     g_vg[0].size = 1;
     g_vg[0].value[0] = (s_parsed_value) {.ptr = v, .size = 1, .offset = 0, .length = 1};
-    g_selector_ret = NULL;
+    g_operation_key_ret = false;
 
     s_param_enum param = {0};
     TEST_ASSERT_FALSE(format_param_enum(&param, "Action"));
@@ -246,6 +229,32 @@ void test_format_add_to_field_table_failure_propagates(void) {
 
     s_param_enum param = {0};
     TEST_ASSERT_FALSE(format_param_enum(&param, "Action"));
+}
+
+// =============================================================================
+// format_param_enum — the key the enum is looked up with
+// =============================================================================
+
+// the enum is looked up with the key of the operation being described, whichever kind it is
+void test_format_looks_up_with_the_key_of_the_operation(void) {
+    static const uint8_t v[] = {0x05};
+    g_vg[0].size = 1;
+    g_vg[0].value[0] = (s_parsed_value) {.ptr = v, .size = 1, .offset = 0, .length = 1};
+    static const s_enum_value_entry entry = {.name = "BUY", .value = 5, .id = 7};
+    g_enum_ret = &entry;
+
+    g_operation_key.context = OPERATION_INFO_CTX_EIP712;
+    memset(g_operation_key.domain_separator, 0xD5, sizeof(g_operation_key.domain_separator));
+    memset(g_operation_key.primary_type_hash, 0x5A, sizeof(g_operation_key.primary_type_hash));
+
+    s_param_enum param = {0};
+    param.id = 7;
+    param.value.type_family = TF_UINT;
+    param.value.type_size = sizeof(uint8_t);
+    TEST_ASSERT_TRUE(format_param_enum(&param, "Action"));
+    TEST_ASSERT_EQUAL(OPERATION_INFO_CTX_EIP712, g_enum_lookup_key.context);
+    TEST_ASSERT_EACH_EQUAL_UINT8(0xD5, g_enum_lookup_key.domain_separator, INT256_LENGTH);
+    TEST_ASSERT_EACH_EQUAL_UINT8(0x5A, g_enum_lookup_key.primary_type_hash, INT256_LENGTH);
 }
 
 // =============================================================================
@@ -323,10 +332,11 @@ int main(void) {
     RUN_TEST(test_format_value_get_failure_returns_false);
     RUN_TEST(test_format_tx_info_null_returns_false);
     RUN_TEST(test_format_empty_value_rejected);
-    RUN_TEST(test_format_selector_missing_rejects);
+    RUN_TEST(test_format_operation_key_missing_rejects);
     RUN_TEST(test_format_unknown_enum_rejects);
     RUN_TEST(test_format_add_to_field_table_failure_propagates);
     RUN_TEST(test_tlv_version_other_than_one_refused);
+    RUN_TEST(test_format_looks_up_with_the_key_of_the_operation);
     RUN_TEST(test_tlv_happy_path);
     RUN_TEST(test_tlv_duplicate_id_rejected);
     return UNITY_END();

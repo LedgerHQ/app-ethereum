@@ -29,7 +29,7 @@ a timestamp); outputs land in `.fuzz-artifacts/<name>/`.
 | `fuzz_app` | A sequence of fuzzed APDUs through the real `apdu_parser()` → `handleApdu()` path |
 | `fuzz_app_clone` | `fuzz_app` built as a clone (chain ID 61), for the checks that reject other chains |
 | `fuzz_plugin` | One internal plugin through the production `eth_plugin_call()` sequence |
-| `fuzz_parser` | The generic tx parser, EIP-712 and the calldata store, at their own entry points |
+| `fuzz_parser` | The generic tx parser, EIP-712 V1 and V2 and the calldata store, at their own entry points |
 
 `fuzz_plugin` and `fuzz_parser` exist because the APDU path cannot reach that
 code: the internal plugins are called through the plugin interface rather than
@@ -48,7 +48,9 @@ complete, and an APDU carries at most 253 bytes of TLV after the two-byte length
 header — so a single dispatch can never finish a descriptor that carries a
 signature. The same holds inside EIP-712: `handle_eip712_v1_filtering()` returns
 before doing anything unless a prior `P2_FILT_ACTIVATE` call switched the mode,
-and a type is built by several struct-def calls.
+and a type is built by several struct-def calls. A V2 message is built by a
+schema step, then a values step, then a message info step, after which the
+FIELD steps read their `EIP712_PATH` against the message.
 
 The fuzzer picks every field of every step, including how many steps there are.
 The only structure the harness adds is the protocol's own framing.

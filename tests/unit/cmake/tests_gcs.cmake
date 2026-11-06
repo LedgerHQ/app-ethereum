@@ -307,10 +307,10 @@ ledger_unit_tests_add_test(NAME test_field_table
     ${COMMON_LINK_OPTIONS}
 )
 
-ledger_unit_tests_add_test(NAME test_tx_info
+ledger_unit_tests_add_test(NAME test_operation_info
   SOURCES
     ${COMMON_SOURCES_WITH_GLOBALS}
-    ${APP_DIR}/features/generic_tx_parser/gtp_tx_info.c
+    ${APP_DIR}/features/gcs/operation_info.c
     ${APP_DIR}/tlv_apdu.c
     ${APP_DIR}/utils/tlv_utils.c
     ${APP_DIR}/utils/mem_utils.c
@@ -397,6 +397,7 @@ ledger_unit_tests_add_test(NAME test_provide_map_entry
   SOURCES
     ${COMMON_SOURCES_WITH_GLOBALS}
     ${APP_DIR}/features/provide_map_entry/map_entry.c
+    ${APP_DIR}/features/gcs/operation_key.c
     ${APP_DIR}/tlv_apdu.c
     ${APP_DIR}/utils/tlv_utils.c
     ${APP_DIR}/utils/mem_utils.c
@@ -418,6 +419,7 @@ ledger_unit_tests_add_test(NAME test_enum_value
   SOURCES
     ${COMMON_SOURCES_WITH_GLOBALS}
     ${APP_DIR}/features/provide_enum_value/enum_value.c
+    ${APP_DIR}/features/gcs/operation_key.c
     ${APP_DIR}/utils/tlv_utils.c
     ${APP_DIR}/utils/utils.c
     ${APP_DIR}/uint128.c
@@ -437,10 +439,36 @@ ledger_unit_tests_add_test(NAME test_enum_value
     ${COMMON_LINK_OPTIONS}
 )
 
+ledger_unit_tests_add_test(NAME test_call_description
+  SOURCES
+    ${COMMON_SOURCES_WITH_GLOBALS}
+    ${APP_DIR}/features/generic_tx_parser/call_description.c
+    ${APP_DIR}/features/sign_message_eip712/eip712_session.c
+  INCLUDE_DIRS
+    ${COMMON_INCLUDE_DIRS}
+  COMPILE_DEFS
+    ${COMMON_COMPILE_DEFS}
+  LINK_OPTIONS
+    ${COMMON_LINK_OPTIONS}
+)
+
+ledger_unit_tests_add_test(NAME test_eip712_session
+  SOURCES
+    ${COMMON_SOURCES_WITH_GLOBALS}
+    ${APP_DIR}/features/sign_message_eip712/eip712_session.c
+  INCLUDE_DIRS
+    ${COMMON_INCLUDE_DIRS}
+  COMPILE_DEFS
+    ${COMMON_COMPILE_DEFS}
+  LINK_OPTIONS
+    ${COMMON_LINK_OPTIONS}
+)
+
 ledger_unit_tests_add_test(NAME test_cmd_field_tx_info
   SOURCES
     ${COMMON_SOURCES_WITH_GLOBALS}
-    ${APP_DIR}/features/generic_tx_parser/cmd_field.c
+    ${APP_DIR}/features/gcs/cmd_field.c
+    ${APP_DIR}/features/generic_tx_parser/cmd_tx_field.c
     ${APP_DIR}/features/generic_tx_parser/cmd_tx_info.c
   MOCK_HEADERS
     ${APP_DIR}/tlv_apdu.h
@@ -450,8 +478,98 @@ ledger_unit_tests_add_test(NAME test_cmd_field_tx_info
     ${COMMON_COMPILE_DEFS}
   LINK_OPTIONS
     ${COMMON_LINK_OPTIONS}
-    -Wl,--wrap=mem_utils_calloc
-    -Wl,--wrap=mem_utils_free
+)
+
+ledger_unit_tests_add_test(NAME test_cmd_eip712_v2_sign
+  SOURCES
+    ${COMMON_SOURCES_WITH_GLOBALS}
+    ${APP_DIR}/features/sign_message_eip712/cmd_eip712_v2_sign.c
+    ${APP_DIR}/features/sign_message_eip712/eip712_session.c
+  INCLUDE_DIRS
+    ${COMMON_INCLUDE_DIRS}
+  COMPILE_DEFS
+    ${COMMON_COMPILE_DEFS}
+  LINK_OPTIONS
+    ${COMMON_LINK_OPTIONS}
+)
+
+ledger_unit_tests_add_test(NAME test_cmd_eip712_v2_field
+  SOURCES
+    ${COMMON_SOURCES_WITH_GLOBALS}
+    ${APP_DIR}/features/sign_message_eip712/cmd_eip712_v2_field.c
+    ${APP_DIR}/features/sign_message_eip712/eip712_session.c
+  MOCK_HEADERS
+    ${APP_DIR}/tlv_apdu.h
+  INCLUDE_DIRS
+    ${COMMON_INCLUDE_DIRS}
+  COMPILE_DEFS
+    ${COMMON_COMPILE_DEFS}
+  LINK_OPTIONS
+    ${COMMON_LINK_OPTIONS}
+)
+
+ledger_unit_tests_add_test(NAME test_eip712_v2_path
+  SOURCES
+    ${COMMON_SOURCES}
+    ${APP_DIR}/features/sign_message_eip712/eip712_v2_path.c
+    ${APP_DIR}/features/generic_tx_parser/gtp_path_slice.c
+    ${APP_DIR}/features/sign_message_eip712/typed_data.c
+    ${APP_DIR}/features/sign_message_eip712/sol_typenames.c
+    ${APP_DIR}/utils/mem_utils.c
+    ${SDK_DIR}/lib_lists/lists.c
+  INCLUDE_DIRS
+    ${COMMON_INCLUDE_DIRS}
+  COMPILE_DEFS
+    ${COMMON_COMPILE_DEFS}
+  LINK_OPTIONS
+    ${COMMON_LINK_OPTIONS}
+)
+
+ledger_unit_tests_add_test(NAME test_typed_data_accessors
+  SOURCES
+    ${COMMON_SOURCES}
+    ${APP_DIR}/features/sign_message_eip712/typed_data.c
+    ${APP_DIR}/features/sign_message_eip712/sol_typenames.c
+    ${APP_DIR}/utils/mem_utils.c
+    ${SDK_DIR}/lib_lists/lists.c
+  INCLUDE_DIRS
+    ${COMMON_INCLUDE_DIRS}
+  COMPILE_DEFS
+    ${COMMON_COMPILE_DEFS}
+  LINK_OPTIONS
+    ${COMMON_LINK_OPTIONS}
+)
+
+ledger_unit_tests_add_test(NAME test_typed_data_validation
+  SOURCES
+    ${COMMON_SOURCES}
+    ${APP_DIR}/features/sign_message_eip712/typed_data.c
+    ${APP_DIR}/features/sign_message_eip712/sol_typenames.c
+    ${APP_DIR}/utils/mem_utils.c
+    ${SDK_DIR}/lib_lists/lists.c
+  INCLUDE_DIRS
+    ${COMMON_INCLUDE_DIRS}
+  COMPILE_DEFS
+    ${COMMON_COMPILE_DEFS}
+  LINK_OPTIONS
+    ${COMMON_LINK_OPTIONS}
+)
+
+ledger_unit_tests_add_test(NAME test_eip712_v2_message_info
+  SOURCES
+    ${COMMON_SOURCES_WITH_GLOBALS}
+    ${APP_DIR}/features/sign_message_eip712/cmd_eip712_v2_message_info.c
+    ${APP_DIR}/features/sign_message_eip712/eip712_session.c
+    ${APP_DIR}/features/sign_message_eip712/eip712_v2_message_info.c
+  MOCK_HEADERS
+    ${APP_DIR}/tlv_apdu.h
+  INCLUDE_DIRS
+    ${COMMON_INCLUDE_DIRS}
+    ${APP_DIR}/features/get_public_key
+  COMPILE_DEFS
+    ${COMMON_COMPILE_DEFS}
+  LINK_OPTIONS
+    ${COMMON_LINK_OPTIONS}
 )
 
 ledger_unit_tests_add_test(NAME test_cmd_map_entry

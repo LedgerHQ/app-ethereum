@@ -1,19 +1,29 @@
+import copy
 import json
 from pathlib import Path
 
 import client.response_parser as ResponseParser
+import pytest
 from client.client import EthAppClient
+from client.eip712 import InputData, json_to_tlv
 from client.gating import Gating
 from client.proxy_info import ProxyInfo
 from client.settings import SettingID, settings_toggle
 from client.status_word import StatusWord
-from client.utils import TxType, recover_transaction
+from client.utils import TxType, recover_message, recover_transaction
+from ragger.error import ExceptionRAPDU
 from ragger.navigator import NavInsID
 from ragger.navigator.navigation_scenario import NavigateWithScenario
 from test_blind_sign import BIP32_PATH, common_tx_params
 from test_blind_sign import test_blind_sign as blind_sign
 from test_eip712 import eip712_json_path, set_wallet_addr
 from test_eip712 import test_eip712_new as sign_eip712
+from test_eip712_v2 import (
+    assert_recovers,
+    enable_blind_signing,
+    get_wallet_addr,
+)
+from test_eip712_v2_message_info import domain_separator, message, provide_proxy_info, type_hash
 
 
 def test_gating_blind_signing(scenario_navigator: NavigateWithScenario) -> None:
@@ -191,3 +201,149 @@ def test_gating_blind_signing_debug_data(scenario_navigator: NavigateWithScenari
 
     vrs = ResponseParser.signature(app_client.response().data)
     assert recover_transaction(tx_params, vrs) == device_addr
+
+
+def gating_v2_data() -> dict:
+    json_file = Path(eip712_json_path()) / "00-simple_mail-data.json"
+    with open(json_file, encoding="utf-8") as file:
+        return json.load(file)
+
+
+def gating_v2(data: dict, **overrides) -> Gating:
+    """A gating descriptor for a V2 message: for its domain and its primary type."""
+    arguments: dict = {
+        "domain_separator": domain_separator(data),
+        "primary_type_hash": type_hash(data),
+    } | overrides
+    return Gating(
+        TxType.TYPED_DATA,
+        arguments.pop("address", None),
+        "To scan for threats and verify this transaction before signing, use Ledger Multisig.",
+        "ledger.com/ledger-multisig",
+        **arguments,
+    )
+
+
+def provide_gating_v2(app_client: EthAppClient, descriptor: Gating) -> None:
+    response = app_client.provide_gating(descriptor)
+    assert response and response.status == StatusWord.SWO_SUCCESS
+
+
+def check_gated(scenario_navigator: NavigateWithScenario, data: dict) -> None:
+    enable_blind_signing(scenario_navigator)
+    app_client = EthAppClient(scenario_navigator.backend)
+
+    json_to_tlv.process_data(app_client, data, BIP32_PATH)
+    provide_gating_v2(app_client, gating_v2(data))
+    with app_client.eip712_v2_sign():
+        # the warning of a raw review, and the gating one
+        scenario_navigator.review_approve_with_warning(do_comparison=False, nb_warnings=2)
+
+    vrs = ResponseParser.signature(app_client.response().data)
+    assert get_wallet_addr(app_client) == recover_message(data, vrs)
+
+
+def test_gating_eip712_v2(scenario_navigator: NavigateWithScenario) -> None:
+    """A V2 message is gated by its domain separator and the hash of its primary type, as its message info is."""
+    check_gated(scenario_navigator, gating_v2_data())
+
+
+def test_gating_eip712_v2_domain_without_contract(scenario_navigator: NavigateWithScenario) -> None:
+    """A domain without a verifyingContract is gated too: the descriptor names no contract."""
+    check_gated(scenario_navigator, message(1))
+
+
+def test_gating_eip712_v2_through_a_proxy(scenario_navigator: NavigateWithScenario) -> None:
+    """The descriptor of an implementation gates a message whose domain names its proxy."""
+    enable_blind_signing(scenario_navigator)
+    app_client = EthAppClient(scenario_navigator.backend)
+    data = gating_v2_data()
+    implementation = "0x" + "ef" * 20
+
+    json_to_tlv.process_data(app_client, data, BIP32_PATH)
+    provide_proxy_info(app_client, data["domain"]["verifyingContract"], data["domain"]["chainId"], implementation)
+    provide_gating_v2(
+        app_client,
+        gating_v2(data, domain_separator=domain_separator(with_domain(data, verifyingContract=implementation))),
+    )
+    with app_client.eip712_v2_sign():
+        scenario_navigator.review_approve_with_warning(do_comparison=False, nb_warnings=2)
+
+    vrs = ResponseParser.signature(app_client.response().data)
+    assert get_wallet_addr(app_client) == recover_message(data, vrs)
+
+
+def with_domain(data: dict, **fields: object) -> dict:
+    other = copy.deepcopy(data)
+    other["domain"].update(fields)
+    return other
+
+
+def flip_bit(value: bytes, index: int) -> bytes:
+    flipped = bytearray(value)
+    flipped[index] ^= 0x01
+    return bytes(flipped)
+
+
+def v2_descriptors_of_another_message() -> dict[str, Gating]:
+    data = gating_v2_data()
+    separator = domain_separator(data)
+    expected = type_hash(data)
+    sig_ctx: dict = {}
+    InputData.init_signature_context(sig_ctx, data["types"], data["domain"], {})
+    return {
+        "other_domain_name": gating_v2(data, domain_separator=domain_separator(with_domain(data, name="Other"))),
+        "other_chain": gating_v2(data, domain_separator=domain_separator(with_domain(data, chainId=137))),
+        "other_contract": gating_v2(
+            data, domain_separator=domain_separator(with_domain(data, verifyingContract="0x" + "cd" * 20))
+        ),
+        "separator_last_bit_flipped": gating_v2(data, domain_separator=flip_bit(separator, -1)),
+        "other_type": gating_v2(data, primary_type_hash=type_hash(data, "EIP712Domain")),
+        "type_hash_first_bit_flipped": gating_v2(data, primary_type_hash=flip_bit(expected, 0)),
+        "type_hash_last_bit_flipped": gating_v2(data, primary_type_hash=flip_bit(expected, -1)),
+        "hashes_swapped": gating_v2(data, domain_separator=expected, primary_type_hash=separator),
+        # a V1 message is named by its contract and its schema hash, not a V2 one
+        "v1_descriptor": Gating(
+            TxType.TYPED_DATA,
+            bytes.fromhex(data["domain"]["verifyingContract"][2:]),
+            "To scan for threats and verify this transaction before signing, use Ledger Multisig.",
+            "ledger.com/ledger-multisig",
+            data["domain"]["chainId"],
+            bytes(sig_ctx["schema_hash"]),
+        ),
+    }
+
+
+V2_OTHER_DESCRIPTORS = v2_descriptors_of_another_message()
+
+
+@pytest.mark.parametrize("descriptor", V2_OTHER_DESCRIPTORS.values(), ids=V2_OTHER_DESCRIPTORS.keys())
+def test_gating_eip712_v2_other_message_refused(scenario_navigator: NavigateWithScenario, descriptor: Gating) -> None:
+    """A descriptor that does not name the domain and the primary type of the message refuses the review."""
+    enable_blind_signing(scenario_navigator)
+    app_client = EthAppClient(scenario_navigator.backend)
+
+    json_to_tlv.process_data(app_client, gating_v2_data(), BIP32_PATH)
+    provide_gating_v2(app_client, descriptor)
+    with pytest.raises(ExceptionRAPDU) as e:
+        with app_client.eip712_v2_sign():
+            pass
+    assert e.value.status == StatusWord.SWO_INCORRECT_DATA
+    assert_recovers(app_client)
+
+
+V2_CONTRACT_TAGS = {
+    "address": {"address": bytes.fromhex("cd" * 20)},
+    "chain_id": {"chain_id": 1},
+    "selector": {"selector": bytes(28)},
+}
+
+
+@pytest.mark.parametrize("tag", V2_CONTRACT_TAGS.values(), ids=V2_CONTRACT_TAGS.keys())
+def test_gating_eip712_v2_naming_a_contract_refused(scenario_navigator: NavigateWithScenario, tag: dict) -> None:
+    """A V2 descriptor that also names a contract is refused."""
+    app_client = EthAppClient(scenario_navigator.backend)
+
+    with pytest.raises(ExceptionRAPDU) as e:
+        app_client.provide_gating(gating_v2(gating_v2_data(), **tag))
+    assert e.value.status == StatusWord.SWO_INCORRECT_DATA

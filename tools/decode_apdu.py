@@ -1159,14 +1159,14 @@ def main() -> None:
                     decode_sign_apdu(apdu_bytes)
                 elif ins == InsType.PROVIDE_ERC20_TOKEN_INFORMATION:
                     decode_erc20_token_apdu(apdu_bytes)
-                elif ins == InsType.PROVIDE_TRANSACTION_INFO:
+                elif ins == InsType.PROVIDE_OPERATION_INFO:
                     decode_tlv_apdu(
                         apdu_bytes,
                         decode_struct_information_tlv,
-                        "Transaction Info Struct",
+                        "Operation Info Struct",
                     )
-                elif ins == InsType.PROVIDE_TRANSACTION_FIELD_DESC:
-                    decode_tlv_apdu(apdu_bytes, decode_struct_field_tlv, "Transaction Field Struct")
+                elif ins == InsType.PROVIDE_OPERATION_FIELD_DESC:
+                    decode_tlv_apdu(apdu_bytes, decode_struct_field_tlv, "Operation Field Struct")
                 elif ins == InsType.PROVIDE_ENUM_VALUE:
                     decode_tlv_apdu(apdu_bytes, decode_enum_value_tlv, "Enum Value Struct")
                 elif ins == InsType.PROVIDE_PROXY_INFO:

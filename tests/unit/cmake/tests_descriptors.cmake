@@ -265,6 +265,7 @@ ledger_unit_tests_add_test(NAME test_cmd_get_gating
   SOURCES
     ${COMMON_SOURCES_WITH_GLOBALS}
     ${APP_DIR}/features/provide_gating/cmd_get_gating.c
+    ${APP_DIR}/features/sign_message_eip712/eip712_session.c
     ${APP_DIR}/tlv_apdu.c
     ${APP_DIR}/utils/tlv_utils.c
     ${APP_DIR}/utils/utils.c

@@ -1,5 +1,8 @@
+#ifdef HAVE_EIP712_V1
+
 #include "eip712_v1_commands.h"
 #include "eip712_v1_context.h"
+#include "eip712_session.h"
 #include "eip712_v1_ui_logic.h"
 #include "typed_data.h"
 #include "schema_hash.h"
@@ -49,11 +52,18 @@ uint16_t handle_eip712_v1_struct_def(uint8_t p2, const uint8_t *cdata, uint8_t l
     bool ret = true;
     uint16_t sw = SWO_PARAMETER_ERROR_NO_INFO;
 
-    if (eip712_v1_context == NULL) {
-        if (appState != APP_STATE_IDLE) {
+    switch (eip712_session_get()) {
+        case EIP712_SESSION_NONE:
+            if (appState != APP_STATE_IDLE) {
+                return SWO_COMMAND_NOT_ALLOWED;
+            }
+            ret = eip712_v1_context_init();
+            break;
+        case EIP712_SESSION_V1:
+            break;
+        case EIP712_SESSION_V2:
+        default:
             return SWO_COMMAND_NOT_ALLOWED;
-        }
-        ret = eip712_v1_context_init();
     }
     if ((v1_get_root_type() != ROOT_NONE) ||
         (ui_712_get_filtering_mode() == EIP712_FILTERING_FULL)) {
@@ -93,7 +103,7 @@ uint16_t handle_eip712_v1_struct_impl(uint8_t p1,
     bool ret = false;
     uint16_t sw = SWO_PARAMETER_ERROR_NO_INFO;
 
-    if (eip712_v1_context == NULL) {
+    if (eip712_session_get() != EIP712_SESSION_V1) {
         sw = SWO_COMMAND_NOT_ALLOWED;
     } else {
         switch (p2) {
@@ -157,7 +167,7 @@ uint16_t handle_eip712_v1_filtering(uint8_t p1, uint8_t p2, const uint8_t *cdata
     uint32_t path_crc = 0;
     uint16_t sw = SWO_PARAMETER_ERROR_NO_INFO;
 
-    if (eip712_v1_context == NULL) {
+    if (eip712_session_get() != EIP712_SESSION_V1) {
         return SWO_COMMAND_NOT_ALLOWED;
     }
     if ((p2 != P2_FILT_ACTIVATE) && (ui_712_get_filtering_mode() != EIP712_FILTERING_FULL)) {
@@ -267,7 +277,7 @@ uint16_t handle_eip712_v1_sign(const uint8_t *cdata, uint8_t length) {
     uint16_t sw = SWO_PARAMETER_ERROR_NO_INFO;
     e_eip712_filtering_mode filt_mode = ui_712_get_filtering_mode();
 
-    if (eip712_v1_context == NULL) {
+    if (eip712_session_get() != EIP712_SESSION_V1) {
         sw = SWO_COMMAND_NOT_ALLOWED;
     } else if (!v1_is_complete()) {
         PRINTF("impl not complete\n");
@@ -339,3 +349,5 @@ uint16_t handle_eip712_v1_sign(const uint8_t *cdata, uint8_t length) {
     }
     return SWO_NO_RESPONSE;
 }
+
+#endif  // HAVE_EIP712_V1

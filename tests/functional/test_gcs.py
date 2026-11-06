@@ -187,7 +187,7 @@ def test_gcs_nft(scenario_navigator: NavigateWithScenario):
         "batch transfer NFTs",
     )
 
-    app_client.provide_transaction_info(tx_info.serialize())
+    app_client.provide_operation_info(tx_info.serialize())
     challenge = ResponseParser.challenge(app_client.get_challenge().data)
     app_client.provide_trusted_name(
         TrustedName(
@@ -203,7 +203,7 @@ def test_gcs_nft(scenario_navigator: NavigateWithScenario):
     app_client.provide_nft_metadata("OpenSea Shared Storefront", tx_params["to"], tx_params["chainId"])
 
     for field in fields:
-        app_client.provide_transaction_field_desc(field.serialize())
+        app_client.provide_operation_field_desc(field.serialize())
 
     with app_client.sign(mode=SignMode.START_FLOW):
         scenario_navigator.review_approve()
@@ -333,10 +333,10 @@ def test_gcs_poap(scenario_navigator: NavigateWithScenario, simu_params: TxSimu 
         deploy_date=1646305200,
     )
 
-    app_client.provide_transaction_info(tx_info.serialize())
+    app_client.provide_operation_info(tx_info.serialize())
 
     for field in fields:
-        app_client.provide_transaction_field_desc(field.serialize())
+        app_client.provide_operation_field_desc(field.serialize())
 
     with app_client.sign(mode=SignMode.START_FLOW):
         if simu_params is not None:
@@ -456,12 +456,12 @@ def test_gcs_1inch(scenario_navigator: NavigateWithScenario):
         deploy_date=1707724800,
     )
 
-    app_client.provide_transaction_info(tx_info.serialize())
+    app_client.provide_operation_info(tx_info.serialize())
 
     app_client.provide_token_metadata("USDC", bytes.fromhex("A0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"), 6, 1)
 
     for field in fields:
-        app_client.provide_transaction_field_desc(field.serialize())
+        app_client.provide_operation_field_desc(field.serialize())
 
     with app_client.sign(mode=SignMode.START_FLOW):
         scenario_navigator.review_approve()
@@ -537,7 +537,7 @@ def gcs_proxy_provide(app_client: EthAppClient, contract_name: str | None = "Del
 
     app_client.provide_proxy_info(proxy_info.serialize())
 
-    app_client.provide_transaction_info(tx_info.serialize())
+    app_client.provide_operation_info(tx_info.serialize())
 
     # also test proxy trusted names
     impl_contract = bytes.fromhex("1111111111111111111111111111111111111111")
@@ -563,7 +563,7 @@ def gcs_proxy_provide(app_client: EthAppClient, contract_name: str | None = "Del
     )
 
     for field in fields:
-        app_client.provide_transaction_field_desc(field.serialize())
+        app_client.provide_operation_field_desc(field.serialize())
 
 
 def test_gcs_proxy(scenario_navigator: NavigateWithScenario):
@@ -752,7 +752,7 @@ def test_gcs_4226(scenario_navigator: NavigateWithScenario, known_tokens: bool):
         deploy_date=1726817291,
     )
 
-    app_client.provide_transaction_info(tx_info.serialize())
+    app_client.provide_operation_info(tx_info.serialize())
 
     if known_tokens:
         app_client.provide_token_metadata("rSWELL", tx_params["to"], 18, 1)
@@ -761,7 +761,7 @@ def test_gcs_4226(scenario_navigator: NavigateWithScenario, known_tokens: bool):
         scenario_navigator.test_name += "_unknown_tokens"
 
     for field in fields:
-        app_client.provide_transaction_field_desc(field.serialize())
+        app_client.provide_operation_field_desc(field.serialize())
 
     with app_client.sign(mode=SignMode.START_FLOW):
         scenario_navigator.review_approve()
@@ -828,15 +828,15 @@ def test_gcs_unknown_token_not_cached(scenario_navigator: NavigateWithScenario):
         contract_name="rSWELL Token",
         deploy_date=1726817291,
     )
-    app_client.provide_transaction_info(tx_info.serialize())
+    app_client.provide_operation_info(tx_info.serialize())
 
     # SWELL is unknown when its FIELD is parsed
-    app_client.provide_transaction_field_desc(fields[0].serialize())
+    app_client.provide_operation_field_desc(fields[0].serialize())
     response = app_client.provide_token_metadata("rSWELL", tx_params["to"], 18, 1)
     assert response.data[0] == 0, f"Unexpected token index {response.data[0]}"
 
     for field in fields[1:]:
-        app_client.provide_transaction_field_desc(field.serialize())
+        app_client.provide_operation_field_desc(field.serialize())
 
     with app_client.sign(mode=SignMode.START_FLOW):
         scenario_navigator.review_approve()
@@ -954,7 +954,7 @@ def test_gcs_nested_createProxyWithNonce(scenario_navigator: NavigateWithScenari
         creator_url="safe.global",
     )
 
-    app_client.provide_transaction_info(tx_info.serialize())
+    app_client.provide_operation_info(tx_info.serialize())
 
     param_paths = get_all_paths(f"{ABIS_FOLDER}/safe_1.4.1.abi.json", "setup")
     sub_fields = [
@@ -1100,15 +1100,15 @@ def test_gcs_nested_createProxyWithNonce(scenario_navigator: NavigateWithScenari
     )
 
     for field in fields:
-        app_client.provide_transaction_field_desc(field.serialize())
+        app_client.provide_operation_field_desc(field.serialize())
         if field.param.type == ParamType.CALLDATA:
-            app_client.provide_transaction_info(sub_tx_info.serialize())
+            app_client.provide_operation_info(sub_tx_info.serialize())
             for sub_field in sub_fields:
-                app_client.provide_transaction_field_desc(sub_field.serialize())
+                app_client.provide_operation_field_desc(sub_field.serialize())
                 if sub_field.param.type == ParamType.CALLDATA:
-                    app_client.provide_transaction_info(sub_sub_tx_info.serialize())
+                    app_client.provide_operation_info(sub_sub_tx_info.serialize())
                     for sub_sub_field in sub_sub_fields:
-                        app_client.provide_transaction_field_desc(sub_sub_field.serialize())
+                        app_client.provide_operation_field_desc(sub_sub_field.serialize())
 
     with app_client.sign(mode=SignMode.START_FLOW):
         scenario_navigator.review_approve()
@@ -1202,10 +1202,10 @@ def test_gcs_nested_execTransaction_send(scenario_navigator: NavigateWithScenari
         creator_url="safe.global",
     )
 
-    app_client.provide_transaction_info(tx_info.serialize())
+    app_client.provide_operation_info(tx_info.serialize())
 
     for field in fields:
-        app_client.provide_transaction_field_desc(field.serialize())
+        app_client.provide_operation_field_desc(field.serialize())
 
     with app_client.sign(mode=SignMode.START_FLOW):
         scenario_navigator.review_approve()
@@ -1411,7 +1411,7 @@ def test_gcs_nested_execTransaction_addOwnerWithThreshold(
         creator_url="safe.global",
     )
 
-    app_client.provide_transaction_info(tx_info.serialize())
+    app_client.provide_operation_info(tx_info.serialize())
 
     param_paths = get_all_paths(f"{ABIS_FOLDER}/safe_1.4.1.abi.json", "addOwnerWithThreshold")
     sub_fields = [
@@ -1472,11 +1472,11 @@ def test_gcs_nested_execTransaction_addOwnerWithThreshold(
         )
 
     for field in fields:
-        app_client.provide_transaction_field_desc(field.serialize())
+        app_client.provide_operation_field_desc(field.serialize())
         if field.param.type == ParamType.CALLDATA:
-            app_client.provide_transaction_info(sub_tx_info.serialize())
+            app_client.provide_operation_info(sub_tx_info.serialize())
             for sub_field in sub_fields:
-                app_client.provide_transaction_field_desc(sub_field.serialize())
+                app_client.provide_operation_field_desc(sub_field.serialize())
 
     with app_client.sign(mode=SignMode.START_FLOW):
         scenario_navigator.review_approve()
@@ -1681,7 +1681,7 @@ def test_gcs_nested_execTransaction_changeThreshold(
         creator_url="safe.global",
     )
 
-    app_client.provide_transaction_info(tx_info.serialize())
+    app_client.provide_operation_info(tx_info.serialize())
 
     param_paths = get_all_paths(f"{ABIS_FOLDER}/safe_1.4.1.abi.json", "changeThreshold")
     sub_fields = [
@@ -1726,11 +1726,11 @@ def test_gcs_nested_execTransaction_changeThreshold(
     )
 
     for field in fields:
-        app_client.provide_transaction_field_desc(field.serialize())
+        app_client.provide_operation_field_desc(field.serialize())
         if field.param.type == ParamType.CALLDATA:
-            app_client.provide_transaction_info(sub_tx_info.serialize())
+            app_client.provide_operation_info(sub_tx_info.serialize())
             for sub_field in sub_fields:
-                app_client.provide_transaction_field_desc(sub_field.serialize())
+                app_client.provide_operation_field_desc(sub_field.serialize())
 
     with app_client.sign(mode=SignMode.START_FLOW):
         scenario_navigator.review_approve()
@@ -1817,7 +1817,7 @@ def test_gcs_nested_no_param(scenario_navigator: NavigateWithScenario):
         creator_url="safe.global",
     )
 
-    app_client.provide_transaction_info(tx_info.serialize())
+    app_client.provide_operation_info(tx_info.serialize())
 
     sub_tx_info = TxInfo(
         1,
@@ -1832,9 +1832,9 @@ def test_gcs_nested_no_param(scenario_navigator: NavigateWithScenario):
     )
 
     for field in fields:
-        app_client.provide_transaction_field_desc(field.serialize())
+        app_client.provide_operation_field_desc(field.serialize())
         if field.param.type == ParamType.CALLDATA:
-            app_client.provide_transaction_info(sub_tx_info.serialize())
+            app_client.provide_operation_info(sub_tx_info.serialize())
 
     with app_client.sign(mode=SignMode.START_FLOW):
         scenario_navigator.review_approve()
@@ -1912,7 +1912,7 @@ def test_gcs_nested_map_entry_wrong_contract(scenario_navigator: NavigateWithSce
         "execute a Safe action",
         creator_name="Safe",
     )
-    app_client.provide_transaction_info(tx_info.serialize())
+    app_client.provide_operation_info(tx_info.serialize())
 
     # The nested call labels its amount through a MAP_REF
     sub_param_paths = get_all_paths(f"{ABIS_FOLDER}/erc20.json", "transfer")
@@ -1964,12 +1964,12 @@ def test_gcs_nested_map_entry_wrong_contract(scenario_navigator: NavigateWithSce
     )
 
     for field in fields:
-        app_client.provide_transaction_field_desc(field.serialize())
+        app_client.provide_operation_field_desc(field.serialize())
         if field.param.type == ParamType.CALLDATA:
-            app_client.provide_transaction_info(sub_tx_info.serialize())
+            app_client.provide_operation_info(sub_tx_info.serialize())
             with pytest.raises(ExceptionRAPDU) as e:
                 for sub_field in sub_fields:
-                    app_client.provide_transaction_field_desc(sub_field.serialize())
+                    app_client.provide_operation_field_desc(sub_field.serialize())
             assert e.value.status == StatusWord.SWO_INCORRECT_DATA
 
 
@@ -2009,7 +2009,7 @@ def test_gcs_no_param(scenario_navigator: NavigateWithScenario):
         creator_url="weth.io",
     )
 
-    app_client.provide_transaction_info(tx_info.serialize())
+    app_client.provide_operation_info(tx_info.serialize())
 
     with app_client.sign(mode=SignMode.START_FLOW):
         scenario_navigator.review_approve()
@@ -2109,7 +2109,7 @@ def test_gcs_trusted_name_token(scenario_navigator: NavigateWithScenario):
         deploy_date=1707724800,
     )
 
-    app_client.provide_transaction_info(tx_info.serialize())
+    app_client.provide_operation_info(tx_info.serialize())
 
     for i, field in enumerate(fields):
         challenge = ResponseParser.challenge(app_client.get_challenge().data)
@@ -2124,7 +2124,7 @@ def test_gcs_trusted_name_token(scenario_navigator: NavigateWithScenario):
                 challenge=challenge,
             )
         )
-        app_client.provide_transaction_field_desc(field.serialize())
+        app_client.provide_operation_field_desc(field.serialize())
 
     with app_client.sign(mode=SignMode.START_FLOW):
         scenario_navigator.review_approve()
@@ -2264,7 +2264,7 @@ def test_gcs_batch(scenario_navigator: NavigateWithScenario):
         creator_url="weth.io",
     )
 
-    app_client.provide_transaction_info(tx_info.serialize())
+    app_client.provide_operation_info(tx_info.serialize())
 
     # compute instructions hash
     sub_inst_hash = compute_inst_hash(sub_fields)
@@ -2289,7 +2289,7 @@ def test_gcs_batch(scenario_navigator: NavigateWithScenario):
     ]
 
     for field in fields:
-        app_client.provide_transaction_field_desc(field.serialize())
+        app_client.provide_operation_field_desc(field.serialize())
         for idx, sub_info in enumerate(sub_tx_info):
             app_client.provide_token_metadata(
                 tokens[idx]["ticker"],
@@ -2297,9 +2297,9 @@ def test_gcs_batch(scenario_navigator: NavigateWithScenario):
                 tokens[idx]["decimals"],
                 tx_params["chainId"],
             )
-            app_client.provide_transaction_info(sub_info.serialize())
+            app_client.provide_operation_info(sub_info.serialize())
             for sub_field in sub_fields:
-                app_client.provide_transaction_field_desc(sub_field.serialize())
+                app_client.provide_operation_field_desc(sub_field.serialize())
 
     with app_client.sign(mode=SignMode.START_FLOW):
         scenario_navigator.review_approve()
@@ -2646,25 +2646,25 @@ def test_gcs_batch_2(scenario_navigator: NavigateWithScenario):
         app_client.provide_network_info(DynamicNetwork(name, ticker, tx_params["chainId"], icon))
 
     # Send top level transaction info
-    app_client.provide_transaction_info(L0_tx_info.serialize())
+    app_client.provide_operation_info(L0_tx_info.serialize())
 
     # Send all fields and subfields info
     for f0 in L0_fields:
         # Send top level fields description
-        app_client.provide_transaction_field_desc(f0.serialize())
+        app_client.provide_operation_field_desc(f0.serialize())
         if f0.param.type == ParamType.CALLDATA:
             # Intermediate execTransaction description
             for _, i1 in enumerate(L1_tx_info):
                 # Send intermediate execTransaction info description
-                app_client.provide_transaction_info(i1.serialize())
+                app_client.provide_operation_info(i1.serialize())
                 for f1 in L1_fields:
                     # Send intermediate execTransaction fields description
-                    app_client.provide_transaction_field_desc(f1.serialize())
+                    app_client.provide_operation_field_desc(f1.serialize())
 
                 # Lower batchExecute description
                 for idx, i2 in enumerate(L2_tx_info):
                     # Send lower batchExecute info description
-                    app_client.provide_transaction_info(i2.serialize())
+                    app_client.provide_operation_info(i2.serialize())
                     app_client.provide_token_metadata(
                         tokens[idx]["ticker"],
                         tokens[idx]["address"],
@@ -2673,7 +2673,7 @@ def test_gcs_batch_2(scenario_navigator: NavigateWithScenario):
                     )
                     for f2 in L2_fields:
                         # Send lower batchExecute fields description
-                        app_client.provide_transaction_field_desc(f2.serialize())
+                        app_client.provide_operation_field_desc(f2.serialize())
 
     # Send the full transaction
     with app_client.sign(mode=SignMode.START_FLOW):
@@ -2770,9 +2770,9 @@ def batch_empty_tx_common(
         name, ticker, icon = get_network_config(backend.device.type, nested_chain_id)
         if name and ticker:
             app_client.provide_network_info(DynamicNetwork(name, ticker, nested_chain_id, icon))
-    app_client.provide_transaction_info(tx_info.serialize())
+    app_client.provide_operation_info(tx_info.serialize())
     for field in fields:
-        app_client.provide_transaction_field_desc(field.serialize())
+        app_client.provide_operation_field_desc(field.serialize())
 
     with app_client.sign(mode=SignMode.START_FLOW):
         scenario_navigator.review_approve(test_name=test_name)
@@ -2979,7 +2979,7 @@ def test_gcs_batch_complex(scenario_navigator: NavigateWithScenario) -> None:
         creator_legal_name="Ledger",
     )
 
-    app_client.provide_transaction_info(tx_info.serialize())
+    app_client.provide_operation_info(tx_info.serialize())
 
     app_client.provide_trusted_name(
         TrustedName(
@@ -3030,7 +3030,7 @@ def test_gcs_batch_complex(scenario_navigator: NavigateWithScenario) -> None:
     ]
 
     for field in fields:
-        app_client.provide_transaction_field_desc(field.serialize())
+        app_client.provide_operation_field_desc(field.serialize())
         for idx, sub_info in enumerate(sub_tx_info):
             app_client.provide_token_metadata(
                 tokens[idx]["ticker"],
@@ -3038,9 +3038,9 @@ def test_gcs_batch_complex(scenario_navigator: NavigateWithScenario) -> None:
                 tokens[idx]["decimals"],
                 tx_params["chainId"],
             )
-            app_client.provide_transaction_info(sub_info.serialize())
+            app_client.provide_operation_info(sub_info.serialize())
             for sub_field in sub_fields:
-                app_client.provide_transaction_field_desc(sub_field.serialize())
+                app_client.provide_operation_field_desc(sub_field.serialize())
 
     with app_client.sign(mode=SignMode.START_FLOW):
         scenario_navigator.review_approve()
@@ -3129,7 +3129,7 @@ def test_gcs_batch_two_empty_then_call(scenario_navigator: NavigateWithScenario)
         creator_name="Ledger Multisig",
         creator_legal_name="Ledger",
     )
-    app_client.provide_transaction_info(tx_info.serialize())
+    app_client.provide_operation_info(tx_info.serialize())
     sub_tx_info = TxInfo(
         1,
         tx_params["chainId"],
@@ -3139,11 +3139,11 @@ def test_gcs_batch_two_empty_then_call(scenario_navigator: NavigateWithScenario)
         "Transfer token",
     )
     for field in fields:
-        app_client.provide_transaction_field_desc(field.serialize())
+        app_client.provide_operation_field_desc(field.serialize())
         app_client.provide_token_metadata(token["ticker"], token["address"], token["decimals"], tx_params["chainId"])
-        app_client.provide_transaction_info(sub_tx_info.serialize())
+        app_client.provide_operation_info(sub_tx_info.serialize())
         for sub_field in sub_fields:
-            app_client.provide_transaction_field_desc(sub_field.serialize())
+            app_client.provide_operation_field_desc(sub_field.serialize())
 
     with app_client.sign(mode=SignMode.START_FLOW):
         scenario_navigator.review_approve()
@@ -3237,9 +3237,9 @@ def _provide_gcs_metadata(app_client: EthAppClient, tx_params: dict, fields: lis
         contract_name="PoapBridge",
         deploy_date=1646305200,
     )
-    app_client.provide_transaction_info(tx_info.serialize())
+    app_client.provide_operation_info(tx_info.serialize())
     for field in fields:
-        app_client.provide_transaction_field_desc(field.serialize())
+        app_client.provide_operation_field_desc(field.serialize())
 
 
 def test_gcs_root_value_no_metadata(scenario_navigator: NavigateWithScenario):
@@ -3360,7 +3360,7 @@ def test_gcs_enum_noncanonical_value(scenario_navigator: NavigateWithScenario):
         "execute a Safe action",
         creator_name="Safe",
     )
-    app_client.provide_transaction_info(tx_info.serialize())
+    app_client.provide_operation_info(tx_info.serialize())
 
     app_client.provide_enum_value(
         EnumValue(1, tx_info.chain_id, tx_info.contract_addr, tx_info.selector, 0, 0, "Call").serialize()
@@ -3368,7 +3368,7 @@ def test_gcs_enum_noncanonical_value(scenario_navigator: NavigateWithScenario):
 
     with pytest.raises(ExceptionRAPDU) as err:
         for field in fields:
-            app_client.provide_transaction_field_desc(field.serialize())
+            app_client.provide_operation_field_desc(field.serialize())
     assert err.value.status == StatusWord.SWO_INCORRECT_DATA
 
 

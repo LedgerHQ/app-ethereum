@@ -1,3 +1,4 @@
+import hashlib
 import struct
 from enum import IntEnum
 
@@ -19,14 +20,19 @@ class TxInfoTag(IntEnum):
     CREATOR_URL = 0x08
     CONTRACT_NAME = 0x09
     DEPLOY_DATE = 0x0A
+    DOMAIN_SEPARATOR = 0x0B
+    PRIMARY_TYPE_HASH = 0x0C
     SIGNATURE = 0xFF
 
 
-class TxInfo(TlvSerializable):
+class _TxInfoBase(TlvSerializable):
+    """What TRANSACTION_INFO and EIP712_MESSAGE_INFO have in common.
+
+    Both share one wire format: only the tags that identify what is signed (see `_type_id_field`)
+    differ.
+    """
+
     version: int
-    chain_id: int
-    contract_addr: bytes
-    selector: bytes
     fields_hash: bytes
     operation_type: str
     creator_name: str | None
@@ -39,9 +45,6 @@ class TxInfo(TlvSerializable):
     def __init__(
         self,
         version: int,
-        chain_id: int,
-        contract_addr: bytes,
-        selector: bytes,
         fields_hash: bytes,
         operation_type: str,
         creator_name: str | None = None,
@@ -52,9 +55,6 @@ class TxInfo(TlvSerializable):
         signature: bytes | None = None,
     ):
         self.version = version
-        self.chain_id = chain_id
-        self.contract_addr = contract_addr
-        self.selector = selector
         self.fields_hash = fields_hash
         self.operation_type = operation_type
         self.creator_name = creator_name
@@ -64,12 +64,15 @@ class TxInfo(TlvSerializable):
         self.deploy_date = deploy_date
         self.signature = signature
 
+    def _type_id_field(self) -> bytes:
+        """The serialized tags that identify what is signed: the chain, the contract and the function of
+        a transaction, or the domain and the type of a message."""
+        raise NotImplementedError
+
     def serialize(self) -> bytes:
         payload = bytearray()
         payload += self.serialize_field(TxInfoTag.VERSION, self.version)
-        payload += self.serialize_field(TxInfoTag.CHAIN_ID, self.chain_id)
-        payload += self.serialize_field(TxInfoTag.CONTRACT_ADDR, self.contract_addr)
-        payload += self.serialize_field(TxInfoTag.SELECTOR, self.selector)
+        payload += self._type_id_field()
         payload += self.serialize_field(TxInfoTag.FIELDS_HASH, self.fields_hash)
         payload += self.serialize_field(TxInfoTag.OPERATION_TYPE, self.operation_type)
         if self.creator_name is not None:
@@ -87,6 +90,92 @@ class TxInfo(TlvSerializable):
             signature = CALLDATA_PARTNER.sign(bytes(payload))
         payload += self.serialize_field(TxInfoTag.SIGNATURE, signature)
         return bytes(payload)
+
+
+class TxInfo(_TxInfoBase):
+    chain_id: int
+    contract_addr: bytes
+    selector: bytes
+
+    def __init__(
+        self,
+        version: int,
+        chain_id: int,
+        contract_addr: bytes,
+        selector: bytes,
+        fields_hash: bytes,
+        operation_type: str,
+        creator_name: str | None = None,
+        creator_legal_name: str | None = None,
+        creator_url: str | None = None,
+        contract_name: str | None = None,
+        deploy_date: int | None = None,
+        signature: bytes | None = None,
+    ):
+        super().__init__(
+            version,
+            fields_hash,
+            operation_type,
+            creator_name,
+            creator_legal_name,
+            creator_url,
+            contract_name,
+            deploy_date,
+            signature,
+        )
+        self.chain_id = chain_id
+        self.contract_addr = contract_addr
+        self.selector = selector
+
+    def _type_id_field(self) -> bytes:
+        return (
+            self.serialize_field(TxInfoTag.CHAIN_ID, self.chain_id)
+            + self.serialize_field(TxInfoTag.CONTRACT_ADDR, self.contract_addr)
+            + self.serialize_field(TxInfoTag.SELECTOR, self.selector)
+        )
+
+
+class Eip712MessageInfo(_TxInfoBase):
+    """EIP712_MESSAGE_INFO: the domain separator covers the chain and the contract of the message.
+
+    `domain_separator` is hashStruct(domain), the `header` of `eth_account.messages.encode_typed_data`.
+    """
+
+    domain_separator: bytes
+    primary_type_hash: bytes
+
+    def __init__(
+        self,
+        version: int,
+        domain_separator: bytes,
+        primary_type_hash: bytes,
+        fields_hash: bytes,
+        operation_type: str,
+        creator_name: str | None = None,
+        creator_legal_name: str | None = None,
+        creator_url: str | None = None,
+        contract_name: str | None = None,
+        deploy_date: int | None = None,
+        signature: bytes | None = None,
+    ):
+        super().__init__(
+            version,
+            fields_hash,
+            operation_type,
+            creator_name,
+            creator_legal_name,
+            creator_url,
+            contract_name,
+            deploy_date,
+            signature,
+        )
+        self.domain_separator = domain_separator
+        self.primary_type_hash = primary_type_hash
+
+    def _type_id_field(self) -> bytes:
+        return self.serialize_field(TxInfoTag.DOMAIN_SEPARATOR, self.domain_separator) + self.serialize_field(
+            TxInfoTag.PRIMARY_TYPE_HASH, self.primary_type_hash
+        )
 
 
 class ParamType(IntEnum):
@@ -223,6 +312,55 @@ class ContainerPath(IntEnum):
     CHAIN_ID = 0x03
 
 
+class Eip712PathField(TlvSerializable):
+    """Step into a field of a struct, given its index in the type definition."""
+
+    index: int
+
+    def __init__(self, index: int):
+        self.index = index
+
+    def serialize(self) -> bytes:
+        return struct.pack("B", self.index)
+
+
+class Eip712PathArray(PathSlice):
+    """Step into the elements of an array, all of them or the ones a slice selects."""
+
+
+class Eip712PathLeafSlice(PathSlice):
+    """Keep a range of the bytes of a bytes, bytesN or string leaf."""
+
+
+class Eip712Path(TlvSerializable):
+    """EIP712_PATH: where a descriptor reads in the values of an EIP-712 V2 message.
+
+    Same tag as DataPath in a VALUE: which one it is depends on what is being described.
+    """
+
+    version: int
+    path: list[TlvSerializable]
+
+    def __init__(self, version: int, path: list[TlvSerializable]):
+        self.version = version
+        self.path = path
+
+    def serialize(self) -> bytes:
+        payload = bytearray()
+        payload += self.serialize_field(0x00, self.version)
+        for node in self.path:
+            if isinstance(node, Eip712PathField):
+                tag = 0x01
+            elif isinstance(node, Eip712PathArray):
+                tag = 0x02
+            elif isinstance(node, Eip712PathLeafSlice):
+                tag = 0x03
+            else:
+                raise AssertionError(f"Unknown path node type : {type(node)}")
+            payload += self.serialize_field(tag, node.serialize())
+        return bytes(payload)
+
+
 class MapRef(TlvSerializable):
     version: int
     id: int
@@ -246,6 +384,7 @@ class Value(TlvSerializable):
     type_family: TypeFamily
     type_size: int | None
     data_path: DataPath | None
+    eip712_path: Eip712Path | None
     container_path: ContainerPath | None
     constant: bytes | None
     map_ref: MapRef | None
@@ -259,11 +398,15 @@ class Value(TlvSerializable):
         container_path: ContainerPath | None = None,
         constant: bytes | None = None,
         map_ref: MapRef | None = None,
+        eip712_path: Eip712Path | None = None,
     ):
+        # both are the tag 0x03 on the wire: which one is meant depends on what is being described
+        assert data_path is None or eip712_path is None, "a value has one path"
         self.version = version
         self.type_family = type_family
         self.type_size = type_size
         self.data_path = data_path
+        self.eip712_path = eip712_path
         self.container_path = container_path
         self.constant = constant
         self.map_ref = map_ref
@@ -276,6 +419,8 @@ class Value(TlvSerializable):
             payload += self.serialize_field(0x02, self.type_size)
         if self.data_path is not None:
             payload += self.serialize_field(0x03, self.data_path.serialize())
+        if self.eip712_path is not None:
+            payload += self.serialize_field(0x03, self.eip712_path.serialize())
         if self.container_path is not None:
             payload += self.serialize_field(0x04, self.container_path)
         if self.constant is not None:
@@ -686,3 +831,11 @@ class ParamGroup(FieldParam):
         for field in self.fields:
             payload += self.serialize_field(0x02, field.serialize())
         return bytes(payload)
+
+
+def fields_hash(fields: list[Field]) -> bytes:
+    """What a TRANSACTION_INFO or an EIP712_MESSAGE_INFO announces for the descriptors it names."""
+    digest = hashlib.sha3_256()
+    for field in fields:
+        digest.update(field.serialize())
+    return digest.digest()

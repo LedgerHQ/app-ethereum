@@ -128,6 +128,7 @@ def test_blind_sign(
     nb_warnings = 1
     if gating_params is not None:
         if with_proxy:
+            assert gating_params.address is not None
             proxy_info = ProxyInfo(
                 ResponseParser.challenge(app_client.get_challenge().data),
                 tx_params["to"],

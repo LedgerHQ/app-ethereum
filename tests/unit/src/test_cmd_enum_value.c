@@ -90,6 +90,11 @@ static void reset(void) {
 // APDU framing
 // =============================================================================
 
+void test_p1_p2_rejected(void) {
+    TEST_ASSERT_EQUAL(SWO_INCORRECT_P1_P2, handle_enum_value(0x02, 0, 0, NULL));
+    TEST_ASSERT_EQUAL(SWO_INCORRECT_P1_P2, handle_enum_value(P1_FIRST_CHUNK, 1, 0, NULL));
+}
+
 void test_p1_first_chunk_forwards_true(void) {
     s_tlv_ret = TLV_APDU_SUCCESS;
     uint16_t sw = handle_enum_value(P1_FIRST_CHUNK, /*p2*/ 0, /*lc*/ 24, (uint8_t *) "");
@@ -170,6 +175,7 @@ void tearDown(void) {
 
 int main(void) {
     UNITY_BEGIN();
+    RUN_TEST(test_p1_p2_rejected);
     RUN_TEST(test_p1_first_chunk_forwards_true);
     RUN_TEST(test_p1_not_first_chunk_forwards_false);
     RUN_TEST(test_tlv_apdu_error_returns_incorrect_data);

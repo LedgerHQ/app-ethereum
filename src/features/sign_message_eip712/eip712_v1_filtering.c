@@ -1,3 +1,5 @@
+#ifdef HAVE_EIP712_V1
+
 #include "eip712_v1_filtering.h"
 #include "public_keys.h"
 #include "manage_asset_info.h"
@@ -1368,3 +1370,5 @@ bool filtering_compute_current_path_crc(uint32_t *path_crc) {
     // reuse the path hashing; the magic byte does not matter for a CRC
     return hash_filtering_path((cx_hash_t *) &hash_ctx, false, path_crc);
 }
+
+#endif  // HAVE_EIP712_V1

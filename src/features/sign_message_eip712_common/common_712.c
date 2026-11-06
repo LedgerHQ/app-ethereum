@@ -74,26 +74,34 @@ void eip712_hash_strs_cleanup(void) {
     APP_MEM_FREE_AND_NULL((void **) &s_message_hash_str);
 }
 
+void eip712_format_hash_strs(char *domain_str, char *message_str) {
+    messageSigningContext712_t *ctx = &tmpCtx.messageSigningContext712;
+
+    array_bytes_string(domain_str, EIP712_HASH_STR_SIZE, ctx->domainHash, CX_KECCAK_256_SIZE);
+    array_bytes_string(message_str, EIP712_HASH_STR_SIZE, ctx->messageHash, CX_KECCAK_256_SIZE);
+}
+
+void eip712_set_hash_pairs(nbgl_contentTagValue_t *pairs, char *domain_str, char *message_str) {
+    eip712_format_hash_strs(domain_str, message_str);
+    pairs[0].item = EIP712_DOMAIN_HASH_LABEL;
+    pairs[0].value = domain_str;
+    pairs[1].item = EIP712_MESSAGE_HASH_LABEL;
+    pairs[1].value = message_str;
+}
+
 bool eip712_format_hash(uint8_t index) {
-    if ((g_pairs == NULL) || (g_pairsList == NULL) || (index + 1 >= g_pairsList->nbPairs)) {
+    if ((g_pairs == NULL) || (g_pairsList == NULL) ||
+        (index + EIP712_HASH_ROWS > g_pairsList->nbPairs)) {
         return false;
     }
-    const size_t hash_str_size = 2 * CX_KECCAK_256_SIZE + 3;
     if (((s_domain_hash_str == NULL) &&
-         !APP_MEM_CALLOC((void **) &s_domain_hash_str, hash_str_size)) ||
+         !APP_MEM_CALLOC((void **) &s_domain_hash_str, EIP712_HASH_STR_SIZE)) ||
         ((s_message_hash_str == NULL) &&
-         !APP_MEM_CALLOC((void **) &s_message_hash_str, hash_str_size))) {
+         !APP_MEM_CALLOC((void **) &s_message_hash_str, EIP712_HASH_STR_SIZE))) {
         eip712_hash_strs_cleanup();
         return false;
     }
-    messageSigningContext712_t *ctx = &tmpCtx.messageSigningContext712;
-    array_bytes_string(s_domain_hash_str, hash_str_size, ctx->domainHash, CX_KECCAK_256_SIZE);
-    array_bytes_string(s_message_hash_str, hash_str_size, ctx->messageHash, CX_KECCAK_256_SIZE);
-    g_pairs[index].item = "Domain hash";
-    g_pairs[index].value = s_domain_hash_str;
-    index++;
-    g_pairs[index].item = "Message hash";
-    g_pairs[index].value = s_message_hash_str;
+    eip712_set_hash_pairs(&g_pairs[index], s_domain_hash_str, s_message_hash_str);
     return true;
 }
 

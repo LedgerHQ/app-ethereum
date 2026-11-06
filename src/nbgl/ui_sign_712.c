@@ -2,14 +2,15 @@
 #include "common_ui.h"
 #include "common_712.h"
 #include "ui_nbgl.h"
+#include "ui_sign_712.h"
 #include "ui_icons.h"
 #include "cmd_get_tx_simulation.h"
 #include "ui_utils.h"
 #include "mem_utils.h"
 #include "cmd_get_gating.h"
-#include "proxy_info.h"
+#include "utils.h"  // SET_BIT
 
-static void ui_typed_message_review_choice(bool confirm) {
+void ui_712_review_choice(bool confirm) {
     if (confirm) {
         ui_712_approve_cb();
         nbgl_useCaseReviewStatus(STATUS_TYPE_MESSAGE_SIGNED, ui_idle);
@@ -17,21 +18,27 @@ static void ui_typed_message_review_choice(bool confirm) {
         ui_712_reject_cb();
         nbgl_useCaseReviewStatus(STATUS_TYPE_MESSAGE_REJECTED, ui_idle);
     }
-    ui_all_cleanup();
-    proxy_cleanup();
 }
 
 /**
- * @brief Trigger the EIP712 review flow
+ * @brief Whether the user can skip to the end of the review of a typed message
  *
- * @param blind whether the values are shown raw, which is blind signing
- * @param operationType the type of operation to review
- * @param choiceCallback the callback to call when the user makes a choice
- * @return whether the review could be started
+ * @return whether the review has a skip option
  */
-static bool ui_712_start_review(bool blind,
-                                nbgl_operationType_t operationType,
-                                nbgl_choiceCallback_t choiceCallback) {
+static bool is_review_skippable(void) {
+    // In verbose mode, we allow skipping
+    if (N_storage.verbose_eip712) {
+        return true;
+    }
+    // A raw message is long, and has the skip option on touch devices
+#ifdef SCREEN_SIZE_WALLET
+    return (warning.predefinedSet & SET_BIT(BLIND_SIGNING_WARN)) != 0;
+#else
+    return false;
+#endif
+}
+
+bool ui_712_start_review(nbgl_operationType_t operationType, nbgl_choiceCallback_t choiceCallback) {
 #ifdef HAVE_TRANSACTION_CHECKS
     set_tx_simulation_warning();
 #endif
@@ -39,7 +46,6 @@ static bool ui_712_start_review(bool blind,
     const char *tx_check_str = ui_tx_simulation_finish_str();
     const char *title_suffix = " typed message?";
 #else
-    UNUSED(blind);
     const char *tx_check_str = "Sign";
     const char *title_suffix = " message";
 #endif
@@ -53,17 +59,8 @@ static bool ui_712_start_review(bool blind,
     }
     snprintf(g_finishMsg, finish_len, "%s%s", tx_check_str, title_suffix);
 
-    // Use review with skip button in case of raw message
-#ifdef SCREEN_SIZE_WALLET
-    if (blind) {
+    if (is_review_skippable()) {
         operationType |= SKIPPABLE_OPERATION;
-    } else
-#endif
-    {
-        if (N_storage.verbose_eip712) {
-            // In verbose mode, we allow skipping
-            operationType |= SKIPPABLE_OPERATION;
-        }
     }
 
     nbgl_useCaseAdvancedReview(operationType,
@@ -78,6 +75,7 @@ static bool ui_712_start_review(bool blind,
     return true;
 }
 
+#ifdef HAVE_EIP712_V1
 /**
  * @brief Start EIP712 signature review flow
  *
@@ -96,10 +94,9 @@ bool ui_sign_712_v1(e_eip712_filtering_mode filtering_mode) {
         }
     }
 
-    return ui_712_start_review(filtering_mode == EIP712_FILTERING_BASIC,
-                               TYPE_MESSAGE,
-                               ui_typed_message_review_choice);
+    return ui_712_start_review(TYPE_MESSAGE, ui_712_review_choice);
 }
+#endif  // HAVE_EIP712_V1
 
 /**
  * @brief Start EIP712 signature review flow in Legacy (v0) mode
@@ -121,5 +118,5 @@ bool ui_sign_712_v0(void) {
         return false;
     }
 
-    return ui_712_start_review(true, TYPE_TRANSACTION, ui_typed_message_review_choice);
+    return ui_712_start_review(TYPE_TRANSACTION, ui_712_review_choice);
 }

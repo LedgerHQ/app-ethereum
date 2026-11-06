@@ -38,3 +38,29 @@ bool handle_slice_struct(const buffer_t *buf, s_path_slice_context *context) {
     TLV_reception_t received_tags;
     return slice_tlv_parser(buf, context, &received_tags);
 }
+
+s_slice_bounds slice_resolve(const s_slice_args *slice, uint16_t length) {
+    s_slice_bounds bounds = {
+        .start = slice->has_start ? slice->start : 0,
+        .end = slice->has_end ? slice->end : length,
+    };
+
+    if (bounds.start < 0) {
+        bounds.start += length;
+    }
+    if (bounds.end < 0) {
+        bounds.end += length;
+    }
+    return bounds;
+}
+
+bool slice_bytes(const s_slice_args *slice, uint16_t length, uint16_t *offset, uint16_t *size) {
+    s_slice_bounds bounds = slice_resolve(slice, length);
+
+    if ((bounds.start < 0) || (bounds.start >= bounds.end) || (bounds.end > length)) {
+        return false;
+    }
+    *offset = (uint16_t) bounds.start;
+    *size = (uint16_t) (bounds.end - bounds.start);
+    return true;
+}

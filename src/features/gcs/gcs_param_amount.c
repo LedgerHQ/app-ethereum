@@ -53,11 +53,10 @@ __attribute__((noinline)) bool format_param_amount(const s_param_amount *param, 
     size_t buf_size = sizeof(strings.tmp.tmp);
 
     if ((ret = value_get(&param->value, &collec))) {
-        if (get_current_tx_info() == NULL) {
+        if (!get_current_operation_chain_id(&chain_id)) {
             ret = false;
             goto end;
         }
-        chain_id = get_current_tx_info()->chain_id;
         ticker = get_displayable_ticker(&chain_id, g_chain_config, true);
         for (int i = 0; i < collec.size; ++i) {
             if ((collec.value[i].length == 0) || (collec.value[i].length > INT256_LENGTH)) {

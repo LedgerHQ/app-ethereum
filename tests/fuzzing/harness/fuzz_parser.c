@@ -17,10 +17,17 @@
 #include "shared_context.h"
 #include "buffer.h"
 #include "gcs_field.h"
-#include "gtp_tx_info.h"
+#include "operation_info.h"
 #include "enum_value.h"
 #include "eip712_v1_commands.h"
 #include "eip712_v1_context.h"
+#include "eip712_session.h"
+#include "eip712_v2_schema.h"
+#include "eip712_v2_values.h"
+#include "eip712_v2_message_info.h"
+#include "eip712_v2_path.h"
+#include "typed_data.h"
+#include "operation_ctx.h"  // operation_ctx_has_message()
 #include "calldata.h"
 #include "mem_utils.h"  // app_mem_init()
 
@@ -28,20 +35,28 @@
 
 enum {
     PARSER_GCS_FIELD,
-    PARSER_GTP_TX_INFO,
+    PARSER_OPERATION_INFO,
     PARSER_ENUM_VALUE,
     PARSER_EIP712,
     PARSER_CALLDATA,
+    PARSER_EIP712_V2_SCHEMA,
+    PARSER_EIP712_V2_VALUES,
+    PARSER_EIP712_V2_MESSAGE_INFO,
+    PARSER_EIP712_PATH,
     PARSER_COUNT,
 };
 
 #define PARSER_ROW(idx) {.ins = (idx), .flags = FUZZ_CMD_HAS_DATA}
 const fuzz_command_spec_t fuzz_commands[] = {
     PARSER_ROW(PARSER_GCS_FIELD),
-    PARSER_ROW(PARSER_GTP_TX_INFO),
+    PARSER_ROW(PARSER_OPERATION_INFO),
     PARSER_ROW(PARSER_ENUM_VALUE),
     PARSER_ROW(PARSER_EIP712),
     PARSER_ROW(PARSER_CALLDATA),
+    PARSER_ROW(PARSER_EIP712_V2_SCHEMA),
+    PARSER_ROW(PARSER_EIP712_V2_VALUES),
+    PARSER_ROW(PARSER_EIP712_V2_MESSAGE_INFO),
+    PARSER_ROW(PARSER_EIP712_PATH),
 };
 FUZZ_COMMAND_COUNT();
 _Static_assert(ARRAYLEN(fuzz_commands) == PARSER_COUNT, "parser tables out of sync");
@@ -70,13 +85,19 @@ static void run_gcs_field(buffer_t *buf) {
     (void) format_field(&field, 0);
 }
 
-static void run_gtp_tx_info(buffer_t *buf) {
-    s_tx_info tx_info = {0};
-    s_tx_info_ctx ctx = {.tx_info = &tx_info};
+/* The same struct is a TRANSACTION_INFO and an EIP712_MESSAGE_INFO depending on the command it
+ * comes in, so every input goes through both. */
+static void run_operation_info(buffer_t *buf) {
+    const e_operation_info_context contexts[] = {OPERATION_INFO_CTX_SIGN_TX,
+                                                 OPERATION_INFO_CTX_EIP712};
 
-    cx_sha256_init(&ctx.struct_hash);
-    if (handle_tx_info_struct(buf, &ctx)) {
-        (void) verify_tx_info_struct(&ctx);
+    for (size_t i = 0; i < ARRAYLEN(contexts); i++) {
+        buffer_t payload = *buf;
+        s_operation_info *info = new_operation_info(&payload, contexts[i]);
+
+        if (info != NULL) {
+            delete_operation_info(info);
+        }
     }
 }
 
@@ -135,6 +156,8 @@ static void run_eip712(fuzz_cursor_t *cur) {
         }
     }
     eip712_v1_context_deinit();
+    td_deinit();
+    eip712_session_close();
 }
 
 /* Append/read program over one calldata store. The store is local so it cannot
@@ -174,7 +197,52 @@ static void run_calldata(fuzz_cursor_t *cur) {
     calldata_delete(calldata);
 }
 
-/* The GCS and enum handlers each take one complete TLV payload. */
+/*
+ * An EIP-712 V2 message, built by one TLV payload per step: its schema, then its values, then its
+ * message info. Each step checks what its command checks, so the steps after it meet the state a
+ * real flow leaves; once a message info is in, the FIELD steps read their EIP712_PATH against the
+ * message.
+ */
+
+// The schema opens a new flow, as its first chunk does after the app was reset
+static void run_eip712_v2_schema(buffer_t *buf) {
+    reset_app_context();
+    if (!eip712_session_open(EIP712_SESSION_V2) || !td_init()) {
+        return;
+    }
+    (void) handle_eip712_v2_schema_struct(buf);
+}
+
+// The values fill a complete schema, once
+static void run_eip712_v2_values(buffer_t *buf) {
+    if ((eip712_session_get() != EIP712_SESSION_V2) || !td_has_schema() || td_has_domain() ||
+        td_has_message()) {
+        return;
+    }
+    (void) handle_eip712_v2_values_struct(buf);
+}
+
+// The info is bound to a message that has its values, and a message has one
+static void run_eip712_v2_message_info(buffer_t *buf) {
+    if ((eip712_session_get() != EIP712_SESSION_V2) || !td_has_domain() || !td_has_message() ||
+        operation_ctx_has_message()) {
+        return;
+    }
+    (void) handle_eip712_v2_message_info_struct(buf);
+}
+
+// A path is resolved against the message, when the steps before built one
+static void run_eip712_path(buffer_t *buf) {
+    s_eip712_path path;
+    s_eip712_path_context ctx = {.path = &path};
+    s_parsed_value_collection collection;
+
+    if (handle_eip712_path_struct(buf, &ctx)) {
+        (void) eip712_path_get(&path, &collection);
+    }
+}
+
+/* The GCS, enum and EIP-712 V2 handlers each take one complete TLV payload. */
 static void run_tlv_step(uint8_t parser, fuzz_cursor_t *cur) {
     size_t len;
     const uint8_t *payload = fuzz_take_slice16(cur, &len);
@@ -184,11 +252,25 @@ static void run_tlv_step(uint8_t parser, fuzz_cursor_t *cur) {
         case PARSER_GCS_FIELD:
             run_gcs_field(&buf);
             break;
-        case PARSER_GTP_TX_INFO:
-            run_gtp_tx_info(&buf);
+        case PARSER_OPERATION_INFO:
+            run_operation_info(&buf);
+            break;
+        case PARSER_ENUM_VALUE:
+            run_enum_value(&buf);
+            break;
+        case PARSER_EIP712_V2_SCHEMA:
+            run_eip712_v2_schema(&buf);
+            break;
+        case PARSER_EIP712_V2_VALUES:
+            run_eip712_v2_values(&buf);
+            break;
+        case PARSER_EIP712_V2_MESSAGE_INFO:
+            run_eip712_v2_message_info(&buf);
+            break;
+        case PARSER_EIP712_PATH:
+            run_eip712_path(&buf);
             break;
         default:
-            run_enum_value(&buf);
             break;
     }
 }

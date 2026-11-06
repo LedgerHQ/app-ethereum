@@ -4,9 +4,10 @@
  *        src/features/gcs/gcs_value.c.
  *
  * `s_value` is the polymorphic descriptor every GCS parameter carries
- * to say "where do I read my bytes from". Four sources are supported,
+ * to say "where do I read my bytes from". Five sources are supported,
  * exposed through value_get():
  *   - SOURCE_CALLDATA: walk a data_path against the live calldata,
+ *   - SOURCE_EIP712: follow a path in the value tree of the typed message,
  *   - SOURCE_RLP: pull from the running tx's RLP envelope by
  *     container_path (FROM / TO / VALUE / CHAIN_ID),
  *   - SOURCE_CONSTANT: an inline byte buffer attached to the value,
@@ -36,7 +37,7 @@
 #include "gcs_value.h"
 #include "gtp_data_path.h"
 #include "gcs_parsed_value.h"
-#include "gtp_tx_info.h"
+#include "operation_info.h"
 #include "map_entry.h"
 // wraps.h removed: all stubs are local
 
@@ -61,23 +62,45 @@ void data_path_cleanup(const s_parsed_value_collection *collection) {
 
 // handle_data_path_struct is called by handle_value_struct on TAG_DATA_PATH.
 // The wrap accepts anything and reports success.
+static int g_dp_parse_calls = 0;
 bool handle_data_path_struct(const buffer_t *buf, s_data_path_context *context) {
     (void) buf;
     (void) context;
+    g_dp_parse_calls++;
     return true;
 }
 
-// RLP getters
+// message side: the path in the value tree
+static bool g_eip712_parse_ret = true;
+static int g_eip712_parse_calls = 0;
+bool handle_eip712_path_struct(const buffer_t *buf, s_eip712_path_context *context) {
+    (void) buf;
+    (void) context;
+    g_eip712_parse_calls++;
+    return g_eip712_parse_ret;
+}
+
+static bool g_eip712_get_ret = true;
+static int g_eip712_get_calls = 0;
+static s_parsed_value_collection g_eip712_collection;
+bool eip712_path_get(const s_eip712_path *path, s_parsed_value_collection *collection) {
+    (void) path;
+    *collection = g_eip712_collection;
+    g_eip712_get_calls++;
+    return g_eip712_get_ret;
+}
+
+// What the descriptor is evaluated against: the operation being described
 static const uint8_t *g_tx_from = NULL;
 static const uint8_t *g_tx_to = NULL;
 static const uint8_t *g_tx_amount = NULL;
-const uint8_t *get_current_tx_from(void) {
+const uint8_t *get_current_operation_from(void) {
     return g_tx_from;
 }
-const uint8_t *get_current_tx_to(void) {
+const uint8_t *get_current_operation_to(void) {
     return g_tx_to;
 }
-const uint8_t *get_current_tx_amount(void) {
+const uint8_t *get_current_operation_amount(void) {
     return g_tx_amount;
 }
 
@@ -90,9 +113,26 @@ const s_map_entry *get_matching_map_entry(uint8_t id, const uint8_t *key, uint8_
     return g_map_entry_ret;
 }
 
-static const s_tx_info *s_tx_info_ret = NULL;
-const s_tx_info *get_current_tx_info(void) {
+static const s_operation_info *s_tx_info_ret = NULL;
+const s_operation_info *get_current_operation_info(void) {
     return s_tx_info_ret;
+}
+bool get_current_operation_chain_id(uint64_t *chain_id) {
+    if (s_tx_info_ret == NULL) {
+        return false;
+    }
+    *chain_id = s_tx_info_ret->chain_id;
+    return true;
+}
+
+// What decides whether the review must add its own row for the sender
+static bool g_is_root = false;
+static int g_root_from_shown_calls = 0;
+bool operation_ctx_is_root(void) {
+    return g_is_root;
+}
+void operation_ctx_set_root_from_shown(void) {
+    g_root_from_shown_calls++;
 }
 
 // =============================================================================
@@ -103,10 +143,18 @@ static void reset(void) {
     g_dp_get_ret = true;
     memset(&g_dp_collection, 0, sizeof(g_dp_collection));
     g_dp_cleanup_calls = 0;
+    g_dp_parse_calls = 0;
+    g_eip712_parse_ret = true;
+    g_eip712_parse_calls = 0;
+    g_eip712_get_ret = true;
+    g_eip712_get_calls = 0;
+    memset(&g_eip712_collection, 0, sizeof(g_eip712_collection));
     g_tx_from = NULL;
     g_tx_to = NULL;
     g_tx_amount = NULL;
     s_tx_info_ret = NULL;
+    g_is_root = false;
+    g_root_from_shown_calls = 0;
     g_map_entry_ret = NULL;
 }
 
@@ -178,7 +226,7 @@ void test_value_get_rlp_amount(void) {
 }
 
 void test_value_get_rlp_chain_id_bigendian(void) {
-    static s_tx_info info;
+    static s_operation_info info;
     info.chain_id = 0x1234;
     s_tx_info_ret = &info;
 
@@ -192,6 +240,111 @@ void test_value_get_rlp_chain_id_bigendian(void) {
     // BE encoding of 0x1234 padded to 8 bytes
     static const uint8_t expected[8] = {0, 0, 0, 0, 0, 0, 0x12, 0x34};
     TEST_ASSERT_EQUAL_MEMORY(collec.value[0].ptr, expected, 8);
+}
+
+static bool get_from(void) {
+    s_value v = {0};
+    s_parsed_value_collection collec = {0};
+
+    v.source = SOURCE_RLP;
+    v.container_path = CP_FROM;
+    return value_get(&v, &collec);
+}
+
+static const s_operation_info s_transaction_info = {.context = OPERATION_INFO_CTX_SIGN_TX};
+static const s_operation_info s_message_info = {.context = OPERATION_INFO_CTX_EIP712};
+
+// The review adds its own row for the sender unless a descriptor of the root operation shows it
+void test_from_of_a_transaction_root_is_marked_as_shown(void) {
+    static const uint8_t addr[ADDRESS_LENGTH] = {0xAA};
+
+    g_tx_from = addr;
+    s_tx_info_ret = &s_transaction_info;
+    g_is_root = true;
+    TEST_ASSERT_TRUE(get_from());
+    TEST_ASSERT_EQUAL(1, g_root_from_shown_calls);
+}
+
+void test_from_of_a_call_that_is_not_root_is_not_marked_as_shown(void) {
+    static const uint8_t addr[ADDRESS_LENGTH] = {0xAA};
+
+    g_tx_from = addr;
+    s_tx_info_ret = &s_transaction_info;
+    g_is_root = false;
+    TEST_ASSERT_TRUE(get_from());
+    TEST_ASSERT_EQUAL(0, g_root_from_shown_calls);
+}
+
+// the review of a message shows the sender of the message: the message is the root of the
+// operations, and the calls it names are not
+void test_from_of_a_message_is_marked_as_shown(void) {
+    static const uint8_t addr[ADDRESS_LENGTH] = {0xBB};
+
+    g_tx_from = addr;
+    s_tx_info_ret = &s_message_info;
+    g_is_root = true;
+    TEST_ASSERT_TRUE(get_from());
+    TEST_ASSERT_EQUAL(1, g_root_from_shown_calls);
+}
+
+void test_from_of_a_call_in_a_message_is_not_marked_as_shown(void) {
+    static const uint8_t addr[ADDRESS_LENGTH] = {0xAA};
+
+    g_tx_from = addr;
+    s_tx_info_ret = &s_transaction_info;
+    g_is_root = false;
+    TEST_ASSERT_TRUE(get_from());
+    TEST_ASSERT_EQUAL(0, g_root_from_shown_calls);
+}
+
+// The container paths read what the operation being described holds, whatever it is
+static bool get_container(e_container_path path, s_parsed_value_collection *collec) {
+    s_value v = {0};
+
+    v.source = SOURCE_RLP;
+    v.container_path = path;
+    return value_get(&v, collec);
+}
+
+void test_container_to_is_the_callee_of_the_operation(void) {
+    static const uint8_t callee[ADDRESS_LENGTH] = {0xC0};
+    s_parsed_value_collection collec = {0};
+
+    s_tx_info_ret = &s_message_info;
+    g_tx_to = callee;
+    TEST_ASSERT_TRUE(get_container(CP_TO, &collec));
+    TEST_ASSERT_EQUAL(1, collec.size);
+    TEST_ASSERT_EQUAL_PTR(callee, collec.value[0].ptr);
+    TEST_ASSERT_EQUAL(ADDRESS_LENGTH, collec.value[0].length);
+}
+
+// an operation with no callee leaves the descriptor nothing to show
+void test_container_to_refused_when_the_operation_has_no_callee(void) {
+    s_parsed_value_collection collec = {0};
+
+    s_tx_info_ret = &s_message_info;
+    g_tx_to = NULL;
+    TEST_ASSERT_FALSE(get_container(CP_TO, &collec));
+}
+
+void test_container_chain_id_is_the_chain_of_the_operation_big_endian(void) {
+    static const uint8_t expected[8] = {0, 0, 0, 0, 0, 0, 0x01, 0x2C};
+    s_operation_info info = {.chain_id = 300};
+    s_parsed_value_collection collec = {0};
+
+    s_tx_info_ret = &info;
+    TEST_ASSERT_TRUE(get_container(CP_CHAIN_ID, &collec));
+    TEST_ASSERT_EQUAL(sizeof(uint64_t), collec.value[0].length);
+    TEST_ASSERT_EQUAL_MEMORY(expected, collec.value[0].ptr, sizeof(expected));
+}
+
+// an operation that sends no amount leaves the descriptor nothing to show
+void test_container_value_refused_when_the_operation_sends_no_amount(void) {
+    s_parsed_value_collection collec = {0};
+
+    s_tx_info_ret = &s_message_info;
+    g_tx_amount = NULL;
+    TEST_ASSERT_FALSE(get_container(CP_VALUE, &collec));
 }
 
 void test_value_get_rlp_from_null_rejected(void) {
@@ -244,6 +397,92 @@ void test_handle_value_struct_data_path_tag_sets_source_calldata(void) {
 //
 // Actually: handle_data_path_struct is wrapped to ALWAYS return true,
 // so the error branch isn't reachable from this suite. Skipping.
+
+// =============================================================================
+// The path tag in a transaction and in a message
+// =============================================================================
+
+// Tag 0x03 is a path in the calldata for a transaction, in the value tree for a message
+void test_path_tag_is_a_data_path_in_a_transaction(void) {
+    uint8_t bytes[] = {0x00, 0x01, 0x01, 0x01, 0x01, (uint8_t) TF_BYTES, 0x03, 0x00};
+    buffer_t buf = {.ptr = bytes, .size = sizeof(bytes), .offset = 0};
+    s_value v = {0};
+    s_value_context ctx = {.value = &v};
+
+    s_tx_info_ret = &s_transaction_info;
+    TEST_ASSERT_TRUE(handle_value_struct(&buf, &ctx));
+    TEST_ASSERT_EQUAL(SOURCE_CALLDATA, v.source);
+    TEST_ASSERT_EQUAL(1, g_dp_parse_calls);
+    TEST_ASSERT_EQUAL(0, g_eip712_parse_calls);
+}
+
+void test_path_tag_is_a_message_path_in_a_message(void) {
+    uint8_t bytes[] = {0x00, 0x01, 0x01, 0x01, 0x01, (uint8_t) TF_BYTES, 0x03, 0x00};
+    buffer_t buf = {.ptr = bytes, .size = sizeof(bytes), .offset = 0};
+    s_value v = {0};
+    s_value_context ctx = {.value = &v};
+
+    s_tx_info_ret = &s_message_info;
+    TEST_ASSERT_TRUE(handle_value_struct(&buf, &ctx));
+    TEST_ASSERT_EQUAL(SOURCE_EIP712, v.source);
+    TEST_ASSERT_EQUAL(0, g_dp_parse_calls);
+    TEST_ASSERT_EQUAL(1, g_eip712_parse_calls);
+}
+
+void test_message_path_that_does_not_parse_is_refused(void) {
+    uint8_t bytes[] = {0x00, 0x01, 0x01, 0x01, 0x01, (uint8_t) TF_BYTES, 0x03, 0x00};
+    buffer_t buf = {.ptr = bytes, .size = sizeof(bytes), .offset = 0};
+    s_value v = {0};
+    s_value_context ctx = {.value = &v};
+
+    s_tx_info_ret = &s_message_info;
+    g_eip712_parse_ret = false;
+    TEST_ASSERT_FALSE(handle_value_struct(&buf, &ctx));
+}
+
+void test_value_get_message_path_delegates_to_the_path(void) {
+    s_value v = {0};
+    s_parsed_value_collection collec = {0};
+
+    v.source = SOURCE_EIP712;
+    g_eip712_collection.size = 3;
+    s_tx_info_ret = &s_message_info;
+    TEST_ASSERT_TRUE(value_get(&v, &collec));
+    TEST_ASSERT_EQUAL(3, collec.size);
+    TEST_ASSERT_EQUAL(1, g_eip712_get_calls);
+}
+
+void test_value_get_message_path_failure_propagates(void) {
+    s_value v = {0};
+    s_parsed_value_collection collec = {0};
+
+    v.source = SOURCE_EIP712;
+    g_eip712_get_ret = false;
+    s_tx_info_ret = &s_message_info;
+    TEST_ASSERT_FALSE(value_get(&v, &collec));
+}
+
+// A message path is only read for a message, a data path only for a transaction
+void test_value_get_message_path_is_refused_for_a_transaction(void) {
+    s_value v = {0};
+    s_parsed_value_collection collec = {0};
+
+    v.source = SOURCE_EIP712;
+    s_tx_info_ret = &s_transaction_info;
+    TEST_ASSERT_FALSE(value_get(&v, &collec));
+    s_tx_info_ret = NULL;
+    TEST_ASSERT_FALSE(value_get(&v, &collec));
+    TEST_ASSERT_EQUAL(0, g_eip712_get_calls);
+}
+
+void test_value_get_data_path_is_refused_for_a_message(void) {
+    s_value v = {0};
+    s_parsed_value_collection collec = {0};
+
+    v.source = SOURCE_CALLDATA;
+    s_tx_info_ret = &s_message_info;
+    TEST_ASSERT_FALSE(value_get(&v, &collec));
+}
 
 void test_value_get_rlp_to_null_rejected(void) {
     g_tx_to = NULL;
@@ -438,7 +677,7 @@ void test_value_cleanup_calldata_calls_data_path_cleanup(void) {
 }
 
 void test_value_cleanup_non_calldata_is_noop(void) {
-    for (e_value_source src = SOURCE_RLP; src <= SOURCE_MAP_REF; ++src) {
+    for (e_value_source src = SOURCE_RLP; src <= SOURCE_EIP712; ++src) {
         if (src == SOURCE_CALLDATA) continue;
         s_value v = {0};
         v.source = src;
@@ -678,9 +917,24 @@ int main(void) {
     RUN_TEST(test_value_get_rlp_to);
     RUN_TEST(test_value_get_rlp_amount);
     RUN_TEST(test_value_get_rlp_chain_id_bigendian);
+    RUN_TEST(test_from_of_a_transaction_root_is_marked_as_shown);
+    RUN_TEST(test_from_of_a_call_that_is_not_root_is_not_marked_as_shown);
+    RUN_TEST(test_from_of_a_message_is_marked_as_shown);
+    RUN_TEST(test_from_of_a_call_in_a_message_is_not_marked_as_shown);
+    RUN_TEST(test_container_to_is_the_callee_of_the_operation);
+    RUN_TEST(test_container_to_refused_when_the_operation_has_no_callee);
+    RUN_TEST(test_container_chain_id_is_the_chain_of_the_operation_big_endian);
+    RUN_TEST(test_container_value_refused_when_the_operation_sends_no_amount);
     RUN_TEST(test_value_get_rlp_from_null_rejected);
     RUN_TEST(test_value_get_rlp_chain_id_null_tx_info_rejected);
     RUN_TEST(test_handle_value_struct_data_path_tag_sets_source_calldata);
+    RUN_TEST(test_path_tag_is_a_data_path_in_a_transaction);
+    RUN_TEST(test_path_tag_is_a_message_path_in_a_message);
+    RUN_TEST(test_message_path_that_does_not_parse_is_refused);
+    RUN_TEST(test_value_get_message_path_delegates_to_the_path);
+    RUN_TEST(test_value_get_message_path_failure_propagates);
+    RUN_TEST(test_value_get_message_path_is_refused_for_a_transaction);
+    RUN_TEST(test_value_get_data_path_is_refused_for_a_message);
     RUN_TEST(test_value_get_rlp_to_null_rejected);
     RUN_TEST(test_value_get_rlp_amount_null_rejected);
     RUN_TEST(test_value_get_rlp_invalid_container_path_rejected);

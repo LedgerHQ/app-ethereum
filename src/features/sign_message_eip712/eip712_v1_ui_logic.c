@@ -1,12 +1,14 @@
+#ifdef HAVE_EIP712_V1
+
 #include "eip712_v1_ui_logic.h"
 #include "app_mem_utils.h"
 #include "mem_utils.h"
 #include "os_io.h"
-#include "format.h"
-#include "common_utils.h"  // uint256_to_decimal
+#include "common_utils.h"  // getEthDisplayableAddress
 #include "common_712.h"
 #include "eip712_v1_context.h"  // eip712_v1_context
 #include "typed_data.h"
+#include "typed_data_format.h"
 #include "common_ui.h"
 #include "eip712_v1_filtering.h"
 #include "eip712_v1_parse.h"
@@ -270,151 +272,6 @@ bool ui_712_message_hash(void) {
     return ui_712_continue_or_finish();
 }
 
-/**
- * Format a given data as a string
- *
- * @param[in] data the data that needs formatting
- * @param[in] length its length
- */
-static bool ui_712_format_str(const uint8_t *data, size_t length) {
-    size_t max_len = sizeof(strings.tmp.tmp) - 1;
-    size_t cur_len = strlen(strings.tmp.tmp);
-    size_t available;
-    size_t to_copy;
-
-    // The value is hashed in full (length-delimited) but displayed as a C string:
-    // an embedded NUL would hide the trailing bytes from the review while still
-    // being signed.
-    if (memchr(data, '\0', length) != NULL) {
-        PRINTF("Error: EIP-712 string with embedded NUL\n");
-        return false;
-    }
-
-    if (cur_len >= max_len) {
-        // Buffer is full; any further byte is dropped and the display must say so.
-        // Overwrite the last 3 bytes of content so the string length stays max_len
-        // and a re-entry keeps this path instead of erasing the marker.
-        strings.tmp.tmp[max_len] = '\0';
-        if (length > 0) {
-            memcpy(strings.tmp.tmp + max_len - 3, "...", 3);
-        }
-        return true;
-    }
-
-    available = max_len - cur_len;
-    to_copy = MIN(available, length);
-
-    memcpy(strings.tmp.tmp + cur_len, data, to_copy);
-    strings.tmp.tmp[cur_len + to_copy] = '\0';
-
-    // truncated - add ellipsis if we couldn't fit everything
-    if (to_copy < length) {
-        memcpy(strings.tmp.tmp + max_len - 3, "...", 3);
-        strings.tmp.tmp[max_len] = '\0';
-    }
-    return true;
-}
-
-/**
- * Format a given data as a string representation of an address
- *
- * @param[in] data the data that needs formatting
- * @param[in] length its length
- * @return if the formatting was successful
- */
-static bool ui_712_format_addr(const uint8_t *data, size_t length) {
-    // no reason for an address to be received over multiple chunks
-    if (length != ADDRESS_LENGTH) {
-        return false;
-    }
-    if (!getEthDisplayableAddress((uint8_t *) data,
-                                  strings.tmp.tmp,
-                                  sizeof(strings.tmp.tmp),
-                                  g_chain_config->chain_id)) {
-        return false;
-    }
-    return true;
-}
-
-/**
- * Format given data as a string representation of a boolean
- *
- * @param[in] data the data that needs formatting
- * @param[in] length its length
- * @return if the formatting was successful
- */
-static bool ui_712_format_bool(const uint8_t *data, size_t length) {
-    size_t max_len = sizeof(strings.tmp.tmp) - 1;
-    const char *true_str = "true";
-    const char *false_str = "false";
-    const char *str;
-
-    if (length != 1) {
-        return false;
-    }
-    str = *data ? true_str : false_str;
-    memcpy(strings.tmp.tmp, str, MIN(max_len, strlen(str)));
-    return true;
-}
-
-/**
- * Format given data as a string representation of bytes
- *
- * @param[in] data the data that needs formatting
- * @param[in] length its length
- * @return if the formatting was successful
- */
-static bool ui_712_format_bytes(const uint8_t *data, size_t length) {
-    size_t max_len = sizeof(strings.tmp.tmp) - 1;
-    size_t cur_len = strlen(strings.tmp.tmp);
-
-    memcpy(strings.tmp.tmp, "0x", MIN(max_len, 2));
-    cur_len += 2;
-    if (format_hex(data,
-                   MIN((max_len - cur_len) / 2, length),
-                   strings.tmp.tmp + cur_len,
-                   max_len + 1 - cur_len) < 0) {
-        return false;
-    }
-    // truncated
-    if (((max_len - cur_len) / 2) < length) {
-        memcpy(strings.tmp.tmp + max_len - 3, "...", 3);
-    }
-    return true;
-}
-
-/**
- * Format given data as a string representation of an integer
- *
- * @param[in] data the data that needs formatting
- * @param[in] length its length
- * @param[in] field_ptr pointer to the EIP-712 field
- * @return if the formatting was successful
- */
-static bool ui_712_format_int(const uint8_t *data,
-                              size_t length,
-                              const s_struct_712_field *field_ptr) {
-    if (!format_signed_int_be(data,
-                              length,
-                              field_ptr->type_size,
-                              strings.tmp.tmp,
-                              sizeof(strings.tmp.tmp))) {
-        return false;
-    }
-    return true;
-}
-
-/**
- * Format given data as a string representation of an unsigned integer
- *
- * @param[in] data the data that needs formatting
- * @param[in] length its length
- * @return if the formatting was successful
- */
-static bool ui_712_format_uint(const uint8_t *data, size_t length) {
-    return uint256_to_decimal(data, length, strings.tmp.tmp, sizeof(strings.tmp.tmp));
-}
-
 static s_amount_join *get_amount_join(uint8_t id) {
     s_amount_join *tmp;
     s_amount_join *new;
@@ -556,7 +413,7 @@ static bool ui_712_format_trusted_name(const uint8_t *data, size_t length) {
     }
 #endif  // HAVE_ADDRESS_BOOK
     // Fall back to a Trusted Name; if none matches, strings.tmp.tmp retains the raw
-    // hex address already written by ui_712_format_addr().
+    // hex address already written by td_format_value().
     if ((trusted_name = get_trusted_name(ui_ctx->tn_type_count,
                                          ui_ctx->tn_types,
                                          ui_ctx->tn_source_count,
@@ -850,7 +707,11 @@ static bool update_calldata(const uint8_t *data,
         if (g_parked_calldata == NULL) {
             if (!handle_fallback_empty_calldata(calldata_info)) return false;
         } else {
-            if (!operation_ctx_init(g_parked_calldata,
+            // the first call is the root of the operations, and is made once per calldata
+            bool is_root = (get_operation_ctx_count() == 0);
+
+            if ((is_root && calldata_info->processed) ||
+                !operation_ctx_init(g_parked_calldata,
                                     calldata_info->spender,
                                     calldata_info->callee,
                                     calldata_info->amount,
@@ -858,6 +719,9 @@ static bool update_calldata(const uint8_t *data,
                 calldata_delete(g_parked_calldata);
                 g_parked_calldata = NULL;
                 return false;
+            }
+            if (is_root) {
+                calldata_info->processed = true;
             }
             g_parked_calldata = NULL;
         }
@@ -883,41 +747,10 @@ bool ui_712_accumulate_value(const s_struct_712_field *field_ptr,
     // Clear accumulation buffer for fresh formatting.
     explicit_bzero(strings.tmp.tmp, sizeof(strings.tmp.tmp));
 
-    if (ui_712_field_shown()) {
-        switch (field_ptr->type) {
-            case TYPE_SOL_STRING:
-                if (!ui_712_format_str(data, length)) {
-                    return false;
-                }
-                break;
-            case TYPE_SOL_ADDRESS:
-                if (!ui_712_format_addr(data, length)) {
-                    return false;
-                }
-                break;
-            case TYPE_SOL_BOOL:
-                if (!ui_712_format_bool(data, length)) {
-                    return false;
-                }
-                break;
-            case TYPE_SOL_BYTES_FIX:
-            case TYPE_SOL_BYTES_DYN:
-                if (!ui_712_format_bytes(data, length)) {
-                    return false;
-                }
-                break;
-            case TYPE_SOL_INT:
-                if (!ui_712_format_int(data, length, field_ptr)) {
-                    return false;
-                }
-                break;
-            case TYPE_SOL_UINT:
-                if (!ui_712_format_uint(data, length)) {
-                    return false;
-                }
-                break;
-            default:
-                break;
+    // a type with no text representation is left to the specialised formatters below
+    if (ui_712_field_shown() && (td_format_value_size(field_ptr, length) > 0)) {
+        if (!td_format_value(field_ptr, data, length, strings.tmp.tmp, sizeof(strings.tmp.tmp))) {
+            return false;
         }
     }
 
@@ -1284,40 +1117,11 @@ static bool format_node_for_verbose_internal(const s_struct_712_value *node,
     explicit_bzero(strings.tmp.tmp, sizeof(strings.tmp.tmp));
 
     // Format value based on type
-    switch (field->type) {
-        case TYPE_SOL_STRING:
-            if (!ui_712_format_str(data, length)) {
-                return false;
-            }
-            break;
-        case TYPE_SOL_ADDRESS:
-            if (!ui_712_format_addr(data, length)) {
-                return false;
-            }
-            break;
-        case TYPE_SOL_BOOL:
-            if (!ui_712_format_bool(data, length)) {
-                return false;
-            }
-            break;
-        case TYPE_SOL_BYTES_FIX:
-        case TYPE_SOL_BYTES_DYN:
-            if (!ui_712_format_bytes(data, length)) {
-                return false;
-            }
-            break;
-        case TYPE_SOL_INT:
-            if (!ui_712_format_int(data, length, field)) {
-                return false;
-            }
-            break;
-        case TYPE_SOL_UINT:
-            if (!ui_712_format_uint(data, length)) {
-                return false;
-            }
-            break;
-        default:
-            return true;  // Skip unknown types
+    if (td_format_value_size(field, length) == 0) {
+        return true;  // Skip types with no text representation
+    }
+    if (!td_format_value(field, data, length, strings.tmp.tmp, sizeof(strings.tmp.tmp))) {
+        return false;
     }
 
     // Set value. The flattened g_pairs display array is (re)built once, by the
@@ -1575,10 +1379,6 @@ s_eip712_calldata_info *get_calldata_info(uint8_t index) {
     return NULL;
 }
 
-s_eip712_calldata_info *get_current_calldata_info(void) {
-    return get_calldata_info(ui_ctx->calldata_index);
-}
-
 bool all_calldata_info_processed(void) {
     for (const s_eip712_calldata_info *tmp = ui_ctx->calldata_info; tmp != NULL;
          tmp = (const s_eip712_calldata_info *) ((const flist_node_t *) tmp)->next) {
@@ -1629,3 +1429,5 @@ bool calldata_info_all_received(const s_eip712_calldata_info *calldata_info) {
     }
     return true;
 }
+
+#endif  // HAVE_EIP712_V1

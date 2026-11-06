@@ -16,35 +16,45 @@ The application interface can be accessed over HID or BLE.
 
 The following APDUs are managed by the application. They are detailed in the following chapters.
 
-| Description                       | Instruction |
-|-----------------------------------|-------------|
-| GET ETH PUBLIC ADDRESS            | 0x02        |
-| SIGN ETH TRANSACTION              | 0x04        |
-| GET APP CONFIGURATION             | 0x06        |
-| SIGN ETH PERSONAL MESSAGE         | 0x08        |
-| PROVIDE ERC 20 TOKEN INFORMATION  | 0x0A        |
-| SIGN ETH EIP 712                  | 0x0C        |
-| GET ETH2 PUBLIC KEY               | 0x0E        |
-| SET ETH2 WITHDRAWAL INDEX         | 0x10        |
-| SET EXTERNAL PLUGIN               | 0x12        |
-| PROVIDE NFT INFORMATION           | 0x14        |
-| SET PLUGIN                        | 0x16        |
-| PERFORM PRIVACY OPERATION         | 0x18        |
-| EIP712 SEND STRUCT DEFINITION     | 0x1A        |
-| EIP712 SEND STRUCT IMPLEMENTATION | 0x1C        |
-| EIP712 FILTERING                  | 0x1E        |
-| GET CHALLENGE                     | 0x20        |
-| PROVIDE TRUSTED NAME              | 0x22        |
-| PROVIDE ENUM VALUE                | 0x24        |
-| TRANSACTION INFO                  | 0x26        |
-| TRANSACTION FIELD DESCRIPTION     | 0x28        |
-| PROVIDE PROXY INFO                | 0x2A        |
-| PROVIDE NETWORK INFO              | 0x30        |
-| PROVIDE TX SIMULATION             | 0x32        |
-| SIGN EIP 7702 AUTHORIZATION       | 0x34        |
-| PROVIDE SAFE ACCOUNT              | 0x36        |
-| PROVIDE GATING                    | 0x38        |
-| PROVIDE MAP ENTRY                 | 0x3A        |
+| Description                         | Instruction |
+|-------------------------------------|-------------|
+| GET ETH PUBLIC ADDRESS              | 0x02        |
+| SIGN ETH TRANSACTION                | 0x04        |
+| GET APP CONFIGURATION               | 0x06        |
+| SIGN ETH PERSONAL MESSAGE           | 0x08        |
+| PROVIDE ERC 20 TOKEN INFORMATION    | 0x0A        |
+| SIGN ETH EIP 712                    | 0x0C        |
+| GET ETH2 PUBLIC KEY                 | 0x0E        |
+| SET ETH2 WITHDRAWAL INDEX           | 0x10        |
+| SET EXTERNAL PLUGIN                 | 0x12        |
+| PROVIDE NFT INFORMATION             | 0x14        |
+| SET PLUGIN                          | 0x16        |
+| PERFORM PRIVACY OPERATION           | 0x18        |
+| EIP712 SEND STRUCT DEFINITION       | 0x1A        |
+| EIP712 SEND STRUCT IMPLEMENTATION   | 0x1C        |
+| EIP712 FILTERING                    | 0x1E        |
+| GET CHALLENGE                       | 0x20        |
+| PROVIDE TRUSTED NAME                | 0x22        |
+| PROVIDE ENUM VALUE                  | 0x24        |
+| PROVIDE OPERATION INFO              | 0x26        |
+| PROVIDE OPERATION FIELD DESCRIPTION | 0x28        |
+| PROVIDE PROXY INFO                  | 0x2A        |
+| PROVIDE NETWORK INFO                | 0x30        |
+| PROVIDE TX SIMULATION               | 0x32        |
+| SIGN EIP 7702 AUTHORIZATION         | 0x34        |
+| PROVIDE SAFE ACCOUNT                | 0x36        |
+| PROVIDE GATING                      | 0x38        |
+| PROVIDE MAP ENTRY                   | 0x3A        |
+
+### EIP-712 versions
+
+A typed message is signed in one of two ways, V1 or V2, which never mix. A signing flow is a V1 one
+from its first V1 command and a V2 one from its schema. Until the flow ends, by a signature, a
+rejection or an error, the device refuses every command of the other version with `0x6980`:
+
+- the V2 commands (`P2 = 02`) in a V1 flow;
+- the V0 and V1 commands in a V2 flow: `EIP712 SEND STRUCT DEFINITION`,
+  `EIP712 SEND STRUCT IMPLEMENTATION`, `EIP712 FILTERING` and `SIGN ETH EIP 712` with another `P2`.
 
 ## General purpose APDUs
 
@@ -303,15 +313,24 @@ This command has been supported since app version 1.5.0.
 The full implementation uses all the JSON data and does all the hashing on the device, it has been supported since app
 version 1.9.19. This command should come last, after all the EIP712 SEND STRUCT DEFINITION & SEND STRUCT IMPLEMENTATION.
 
+The V2 implementation computes the hashes and signs after the schema and the values have been
+delivered with EIP712 SEND STRUCT DEFINITION and EIP712 SEND STRUCT IMPLEMENTATION (V2 branches,
+`P2 = 02`). It carries no input data: the BIP 32 path is part of the
+[EIP712_VALUES struct](tlv_structs.md#eip712_values).
+
 #### Coding
 
 _Command:_
 
-| CLA | INS | P1  | P2                                                                 | Lc       | Le       |
-|-----|-----|-----|--------------------------------------------------------------------|----------|----------|
-| E0  | 0C  | 00  | `00`: V0 (legacy) implementation<br>`01`: V1 (full) implementation | variable | variable |
+| CLA | INS | P1  | P2                                                                                            | Lc       | Le       |
+|-----|-----|-----|-----------------------------------------------------------------------------------------------|----------|----------|
+| E0  | 0C  | 00  | `00`: V0 (legacy) implementation<br>`01`: V1 (full) implementation<br>`02`: V2 implementation | variable | variable |
+
+Any other P2 is refused with `0x6B00`.
 
 _Input data:_
+
+##### If P2 == V0 or V1 implementation
 
 | Description                                      | Length |
 |--------------------------------------------------|--------|
@@ -321,6 +340,35 @@ _Input data:_
 | Last derivation index (big endian)               | 4      |
 | Domain hash _(only for V0)_                      | 32     |
 | Message hash _(only for V0)_                     | 32     |
+
+##### If P2 == V2 implementation
+
+None. `P1` must be `00` and `Lc` must be `0`: the command is `e0 0c 00 02 00`. It starts the review of
+the message sent with the previous V2 commands, and returns the signature once the user approves it.
+If the user rejects the review, it answers `0x6985`.
+
+The device refuses the command, and shows nothing, with:
+
+- `0x6A86` if `P1` is not `00`;
+- `0x6A80` if `Lc` is not `0`;
+- `0x6980` when the schema or the values were not received, and when the message was already
+  signed;
+- `0x6A80` if the descriptors received are not the announced ones: any that is missing, added,
+  altered or out of order;
+- `0x6A88` if a call they named is not described, or not completely;
+- `0x6A80` if the device cannot hash the message or build the review, see below.
+
+When the message info announced field descriptors, the device has to have received all of them first
+([PROVIDE OPERATION FIELD DESCRIPTION](#provide-operation-field-description), `P2 = 02`), along with the
+description of every call they named. The review is then the one of the described message, see
+[Reviewing a described message](eip712.md#reviewing-a-described-message). It is not blind
+signing: it needs no setting and shows no warning.
+
+Without announced descriptors, the review shows every value raw, see
+[Reviewing a message without descriptors](eip712.md#reviewing-a-message-without-descriptors).
+It is blind signing: it needs the "Blind signing" or the "Raw messages" setting of the app, and the
+device refuses the command with neither. It shows the warning. The name of each field it shows has
+to be printable ASCII with a visible character, see [Names](eip712.md#names).
 
 _Output data:_
 
@@ -575,13 +623,16 @@ _Output data:_
 This command sends the message definition with all its types.
 These commands should come before the EIP712 SEND STRUCT IMPLEMENTATION ones.
 
+This description is the V1 one. The V2 schema is a single TLV payload, see
+[the V2 branch](#if-p2--v2-schema).
+
 #### Coding
 
 _Command:_
 
-| CLA | INS | P1  | P2                                      | LC       | Le       |
-|-----|-----|-----|-----------------------------------------|----------|----------|
-| E0  | 1A  | 00  | `00`: struct name<br>`FF`: struct field | variable | variable |
+| CLA | INS | P1                                                                        | P2                                                                   | LC       | Le       |
+|-----|-----|---------------------------------------------------------------------------|----------------------------------------------------------------------|----------|----------|
+| E0  | 1A  | `00`: unused (V1)<br>`01`: first chunk (V2)<br>`00`: following chunk (V2) | `00`: struct name (V1)<br>`FF`: struct field (V1)<br>`02`: V2 schema | variable | variable |
 
 _Input data:_
 
@@ -659,6 +710,31 @@ Types of array level:
 
 Each fixed-sized array level is followed by a byte indicating its size (number of elements).
 
+##### If P2 == V2 schema
+
+With this P2, P1 is the chunk flag: `01` first chunk, `00` following chunk.
+
+###### If P1 == first chunk
+
+| Description                                          | Length (byte) |
+|------------------------------------------------------|---------------|
+| struct size (BE)                                     | 2             |
+| [EIP712_SCHEMA struct](tlv_structs.md#eip712_schema) | variable      |
+
+###### If P1 == following chunk
+
+| Description                                          | Length (byte) |
+|------------------------------------------------------|---------------|
+| [EIP712_SCHEMA struct](tlv_structs.md#eip712_schema) | variable      |
+
+The device locks the schema once it has received and accepted a full `EIP712_SCHEMA`. It answers:
+
+- `0x6A86` for a `P1` other than `01` and `00`;
+- `0x6980` for a first chunk when the app is not idle (this includes a second schema in the same
+  session), and for a following chunk when no incomplete schema is in progress;
+- `0x6A80` for a payload that is malformed or that the device refuses, see
+  [EIP712_SCHEMA](tlv_structs.md#eip712_schema).
+
 _Output data:_
 
 None
@@ -670,13 +746,16 @@ None
 This command sends the message implementation with all its values.
 These commands should come after the EIP712 SEND STRUCT DEFINITION ones.
 
+This description is the V1 one. The V2 values are a single TLV payload, see
+[the V2 branch](#if-p2--v2-values).
+
 #### Coding
 
 _Command:_
 
-| CLA | INS | P1                                                      | P2                                                     | LC       | Le       |
-|-----|-----|---------------------------------------------------------|--------------------------------------------------------|----------|----------|
-| E0  | 1C  | `00`: complete send<br>`01`: partial send, more to come | `00`: root struct<br>`0F`: array<br>`FF`: struct field | variable | variable |
+| CLA | INS | P1                                                                                                                        | P2                                                                                       | LC       | Le       |
+|-----|-----|---------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------|----------|----------|
+| E0  | 1C  | `00`: complete send (V1)<br>`01`: partial send, more to come (V1)<br>`01`: first chunk (V2)<br>`00`: following chunk (V2) | `00`: root struct (V1)<br>`0F`: array (V1)<br>`FF`: struct field (V1)<br>`02`: V2 values | variable | variable |
 
 _Input data:_
 
@@ -708,6 +787,36 @@ Sets the raw value of the next field in order in the current root structure.
 Raw as in, an integer in the JSON file represented as "128" would only be 1 byte long (`0x80`)
 instead of 3 as an array of ASCII characters, same for addresses and so on.
 
+##### If P2 == V2 values
+
+With this P2, P1 is the chunk flag: `01` first chunk, `00` following chunk.
+
+###### If P1 == first chunk
+
+| Description                                          | Length (byte) |
+|------------------------------------------------------|---------------|
+| struct size (BE)                                     | 2             |
+| [EIP712_VALUES struct](tlv_structs.md#eip712_values) | variable      |
+
+###### If P1 == following chunk
+
+| Description                                          | Length (byte) |
+|------------------------------------------------------|---------------|
+| [EIP712_VALUES struct](tlv_structs.md#eip712_values) | variable      |
+
+This call requires the `EIP712_SCHEMA` (see EIP712 SEND STRUCT DEFINITION, V2 branch) to be
+locked, and the device accepts the values once per session. It answers:
+
+- `0x6A86` for a `P1` other than `01` and `00`;
+- `0x6980` when no schema was received, and for a first chunk when the values
+  were already received;
+- `0x6A80` for a payload that is malformed or that the device refuses, see
+  [EIP712_VALUES](tlv_structs.md#eip712_values), and for a following chunk that continues no first
+  chunk.
+
+It may be followed by an [EIP712_MESSAGE_INFO struct](eip712.md#eip712_message_info), sent with
+PROVIDE OPERATION INFO and `P2 = 02`, before EIP712 SIGN.
+
 _Output data:_
 
 None
@@ -721,6 +830,9 @@ more meaningful ones.
 
 This mode can be overridden by the in-app setting to fully clear-sign [EIP-712](https://eips.ethereum.org/EIPS/eip-712)
 messages.
+
+This command is part of V1. A V2 message has no filtering command: its field descriptors do the same job, see
+[EIP712_FIELD_DESCRIPTOR](tlv_structs.md#eip712_field_descriptor).
 
 For the signatures:
 
@@ -1130,13 +1242,27 @@ None
 
 ### PROVIDE ENUM VALUE
 
+#### Description
+
+This command provides the app with a signed enum value, which labels a numeric value of an
+operation (see [ENUM_VALUE](tlv_structs.md#enum_value)). It comes before the FIELD descriptor that
+uses it, and may come before the [PROVIDE OPERATION INFO](#provide-operation-info) of the operation (or,
+for a typed message, its EIP712_MESSAGE_INFO).
+
+The value is attached to a function of a contract for a transaction (its chain, its contract and its
+selector), and to a primary type of a domain for a typed message (the domain separator and the hash
+of the primary type): its tags tell which. A call a typed message names is a transaction, keyed by
+its function.
+
 #### Coding
 
 _Command:_
 
 | CLA | INS | P1                                         | P2  | LC  |
 |-----|-----|--------------------------------------------|-----|-----|
-| E0  | 24  | `01`: first chunk<br>`00`: following chunk | 00  | 00  |
+| E0  | 24  | `01`: first chunk<br>`00`: following chunk | 00  | variable |
+
+Any other P1 or P2 is refused with `0x6A86`.
 
 _Input data:_
 
@@ -1157,52 +1283,120 @@ _Output data:_
 
 None
 
-### TRANSACTION INFO
+### PROVIDE OPERATION INFO
 
 #### Description
+
+This command provides the [OPERATION_INFO struct](tlv_structs.md#operation_info) of what is signed:
+a transaction or an EIP-712 message.
+
+##### If P2 == transaction
+
+The struct, in its `TRANSACTION_INFO` context, describes the transaction being signed.
+
+##### If P2 == V2 message
+
+The struct, in its [EIP712_MESSAGE_INFO](eip712.md#eip712_message_info) context, has a domain
+separator and a primary type hash instead of a chain, a contract and a selector. It describes the
+message of the EIP-712 V2 flow in progress:
+
+- it has to come after the values (EIP712 SEND STRUCT IMPLEMENTATION, V2 branch), and before
+  EIP712 SIGN; otherwise `0x6980` is returned;
+- there is at most one per message, a second one is refused with `0x6980`;
+- it is bound to the message, and refused with `0x6A80` if its domain separator is not the one of
+  the message's domain, if its primary type hash is not the one of the message's type, or if the
+  domain has a `chainId` that is not a chain or a `verifyingContract` that is not a contract. A
+  signature that does not verify, a missing required tag, a tag of a transaction or a version other
+  than `01` are refused with the same status.
+
+The info announces the field descriptors of the message through its `FIELDS_HASH`. The device
+receives them with [PROVIDE OPERATION FIELD DESCRIPTION](#provide-operation-field-description) (`P2 = 02`),
+after the info. When the `FIELDS_HASH` is the hash of no descriptors, the message is reviewed raw,
+as it is when no info is sent.
 
 #### Coding
 
 _Command:_
 
-| CLA | INS | P1                                         | P2  | LC  |
-|-----|-----|--------------------------------------------|-----|-----|
-| E0  | 26  | `01`: first chunk<br>`00`: following chunk | 00  | 00  |
+| CLA | INS | P1                                         | P2                                      | LC  |
+|-----|-----|--------------------------------------------|-----------------------------------------|-----|
+| E0  | 26  | `01`: first chunk<br>`00`: following chunk | `00`: transaction<br>`02`: V2 message   | variable |
+
+Any other P1 or P2 is refused with `0x6A86`.
 
 _Input data:_
 
 ##### If P1 == first chunk
 
-| Description                                                | Length (byte) |
-|------------------------------------------------------------|---------------|
-| struct size (BE)                                           | 2             |
-| [TRANSACTION_INFO struct](tlv_structs.md#transaction_info) | variable      |
+| Description                                                                | Length (byte) |
+|----------------------------------------------------------------------------|---------------|
+| struct size (BE)                                                           | 2             |
+| [OPERATION_INFO struct](tlv_structs.md#operation_info) (P2 == transaction) | variable      |
+| [OPERATION_INFO struct](tlv_structs.md#operation_info) (P2 == V2 message)  | variable      |
 
 ##### If P1 == following chunk
 
-| Description                                                | Length (byte) |
-|------------------------------------------------------------|---------------|
-| [TRANSACTION_INFO struct](tlv_structs.md#transaction_info) | variable      |
+| Description                                                                | Length (byte) |
+|----------------------------------------------------------------------------|---------------|
+| [OPERATION_INFO struct](tlv_structs.md#operation_info) (P2 == transaction) | variable      |
+| [OPERATION_INFO struct](tlv_structs.md#operation_info) (P2 == V2 message)  | variable      |
 
 _Output data:_
 
 None
 
-### TRANSACTION FIELD DESCRIPTION
+### PROVIDE OPERATION FIELD DESCRIPTION
 
 #### Description
 
-This command provides a field description for the Generic Transaction Parser (GCS).
+This command provides a field description of a transaction or of an EIP-712 message.
 
 See [FIELD struct](tlv_structs.md#field) for the full field layout and parameter types.
+
+##### If P2 == transaction
+
+The field describes the transaction being signed, or a call it made, after its
+[PROVIDE OPERATION INFO](#provide-operation-info). The same goes for the calls a typed message names, described
+as transactions: they have a `PROVIDE OPERATION INFO` (`P2 = 00`) of their own, and their fields follow
+it.
+
+##### If P2 == V2 message
+
+The field describes the message of the EIP-712 V2 flow in progress, with the paths of the
+[EIP712_FIELD_DESCRIPTOR](tlv_structs.md#eip712_field_descriptor). It is accepted when:
+
+- the message info the message came with announced field descriptors, that is when its `FIELDS_HASH`
+  is not the one of no descriptors;
+- the message is complete and the review has not started: after the values and the message info,
+  and before EIP712 SIGN;
+- no call is being described: the fields of a call that a descriptor named are sent with `P2 = 00`,
+  after the info of that call, and the ones of the message resume when it is complete.
+
+Otherwise `0x6980` is returned. A field that cannot be applied to the message, whose path leads to
+no value for example, or whose path selects more than 16 values, is refused with `0x6A80`. The
+descriptors are hashed as they come: whether they are the announced ones is checked by EIP712 SIGN.
+
+The 50-byte `Send` descriptor of the [example](eip712.md#receiving-descriptors) fits in one
+command, with the size of the struct in front of it:
+
+```text
+e0 28 01 02 34                                    CLA INS P1 P2 Lc
+00 32                                             struct size, 50
+00 01 01 01 04 53 65 6e 64 02 01 02 03 24 00 01   FIELD
+01 01 11 00 01 01 01 01 01 02 01 20 03 06 00 01
+01 01 01 02 02 0c 00 01 01 01 01 05 02 01 14 04
+01 01
+```
 
 #### Coding
 
 _Command:_
 
-| CLA | INS | P1                                         | P2  | LC  |
-|-----|-----|--------------------------------------------|-----|-----|
-| E0  | 28  | `01`: first chunk<br>`00`: following chunk | 00  | 00  |
+| CLA | INS | P1                                         | P2                                      | LC  |
+|-----|-----|--------------------------------------------|-----------------------------------------|-----|
+| E0  | 28  | `01`: first chunk<br>`00`: following chunk | `00`: transaction<br>`02`: V2 message   | variable |
+
+Any other P1 or P2 is refused with `0x6A86`.
 
 _Input data:_
 
@@ -1230,6 +1424,8 @@ None
 This command provides the app with the knowledge that a contract address is a proxy to another contract on a specific
 chain.
 This can also (optionally) be restricted to a specific function within the contract.
+Without a function, it also applies to the `verifyingContract` of an EIP-712 domain, see
+[EIP712_MESSAGE_INFO](eip712.md#eip712_message_info).
 
 #### Coding
 
@@ -1542,10 +1738,15 @@ None
 
 #### Description
 
-This command provides the app with a key/value entry for a specific contract, function selector, and chain ID. The entry
-is signed by CAL and stored on the device until a new signing session starts. When the Generic Transaction Parser
-encounters a `MAP_REF` parameter, the device looks up the stored entries and resolves the display value from the
-matching `MAP_ENTRY`.
+This command provides the app with a key/value entry for a specific function of a contract on a chain (or primary type of
+a domain). The entry is signed by CAL and stored on the device until a new signing session starts. When the Generic
+Transaction Parser encounters a `MAP_REF` parameter, the device looks up the stored entries and resolves the display
+value from the matching `MAP_ENTRY`.
+
+The entry comes before the FIELD descriptor that uses it, and may come before the
+[PROVIDE OPERATION INFO](#provide-operation-info) of the operation (or, for a typed message, its EIP712_MESSAGE_INFO). It is
+attached to a function of a contract for a transaction, and to a primary type of a domain for a typed message: its tags
+tell which. A call a typed message names is a transaction, keyed by its function.
 
 The descriptor is sent in TLV (Tag-Length-Value) mode.
 
@@ -1556,6 +1757,8 @@ _Command:_
 | CLA | INS | P1                                         | P2  | Lc       |
 |-----|-----|--------------------------------------------|-----|----------|
 | E0  | 3A  | `01`: first chunk<br>`00`: following chunk | 00  | variable |
+
+Any other P1 or P2 is refused with `0x6A86`.
 
 _Input data:_
 

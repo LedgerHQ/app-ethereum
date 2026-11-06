@@ -18,7 +18,7 @@
  *
  * Format follows the same conventions as the pre-existing
  * test_param_token_amount / test_param_calldata suites: value_get,
- * value_cleanup, handle_value_struct, get_current_tx_info,
+ * value_cleanup, handle_value_struct, get_current_operation_chain_id,
  * get_displayable_ticker and add_to_field_table are all wrapped via
  * linker --wrap.
  */
@@ -31,7 +31,7 @@
 #include "gcs_param_amount.h"
 #include "gcs_parsed_value.h"
 #include "gcs_value.h"
-#include "gtp_tx_info.h"
+#include "operation_info.h"
 #include "gcs_field.h"
 #include "shared_context.h"
 #include "network.h"
@@ -80,16 +80,20 @@ bool add_to_field_table(e_param_type type,
     return (bool) g_add_to_field_table_ret;
 }
 
-static const s_tx_info *s_tx_info_ret = NULL;
-const s_tx_info *get_current_tx_info(void) {
-    return s_tx_info_ret;
+static const s_operation_info *s_tx_info_ret = NULL;
+bool get_current_operation_chain_id(uint64_t *chain_id) {
+    if (s_tx_info_ret == NULL) {
+        return false;
+    }
+    *chain_id = s_tx_info_ret->chain_id;
+    return true;
 }
 
 // =============================================================================
 // Test fixtures
 // =============================================================================
 
-static s_tx_info g_fake_tx_info;
+static s_operation_info g_fake_tx_info;
 
 static void reset(void) {
     memset(&g_vg, 0, sizeof(g_vg));

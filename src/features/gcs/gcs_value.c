@@ -73,7 +73,7 @@ static bool handle_map_ref(const tlv_data_t *data, s_value_context *context) {
     X(0x00, TAG_VERSION, handle_version, ENFORCE_UNIQUE_TAG)               \
     X(0x01, TAG_TYPE_FAMILY, handle_type_family, ENFORCE_UNIQUE_TAG)       \
     X(0x02, TAG_TYPE_SIZE, handle_type_size, ENFORCE_UNIQUE_TAG)           \
-    X(0x03, TAG_DATA_PATH, handle_data_path, ENFORCE_UNIQUE_TAG)           \
+    X(0x03, TAG_PATH, handle_path, ENFORCE_UNIQUE_TAG)                     \
     X(0x04, TAG_CONTAINER_PATH, handle_container_path, ENFORCE_UNIQUE_TAG) \
     X(0x05, TAG_CONSTANT, handle_constant, ENFORCE_UNIQUE_TAG)             \
     X(0x06, TAG_MAP_REF, handle_map_ref, ENFORCE_UNIQUE_TAG)
@@ -110,6 +110,32 @@ static bool handle_data_path(const tlv_data_t *data, s_value_context *context) {
     return true;
 }
 
+static bool handle_eip712_path(const tlv_data_t *data, s_value_context *context) {
+    s_eip712_path_context ctx = {.path = &context->value->eip712_path};
+
+    if (!handle_eip712_path_struct(&data->value, &ctx)) {
+        return false;
+    }
+    context->value->source = SOURCE_EIP712;
+    return true;
+}
+
+// Whether the operation being described is a typed message, as opposed to a transaction
+static bool is_message_operation(void) {
+    const s_operation_info *info = get_current_operation_info();
+
+    return (info != NULL) && (info->context == OPERATION_INFO_CTX_EIP712);
+}
+
+// The same tag is a path in the calldata for a transaction, and a path in the value tree for a
+// message: which one it is depends on the operation the descriptor is for
+static bool handle_path(const tlv_data_t *data, s_value_context *context) {
+    if (is_message_operation()) {
+        return handle_eip712_path(data, context);
+    }
+    return handle_data_path(data, context);
+}
+
 static bool handle_container_path(const tlv_data_t *data, s_value_context *context) {
     uint8_t cp;
     if (!tlv_get_uint8_range(data, &cp, 0, UINT8_MAX)) {
@@ -138,7 +164,7 @@ static bool handle_constant(const tlv_data_t *data, s_value_context *context) {
 DEFINE_TLV_PARSER(VALUE_TAGS, NULL, value_tlv_parser)
 
 static size_t count_received_sources(TLV_reception_t received) {
-    const TLV_tag_t sources[] = {TAG_DATA_PATH, TAG_CONTAINER_PATH, TAG_CONSTANT, TAG_MAP_REF};
+    const TLV_tag_t sources[] = {TAG_PATH, TAG_CONTAINER_PATH, TAG_CONSTANT, TAG_MAP_REF};
     size_t count = 0;
 
     for (size_t i = 0; i < sizeof(sources) / sizeof(sources[0]); i++) {
@@ -172,26 +198,26 @@ static bool value_get_rlp(const s_value *value, s_parsed_value_collection *colle
     // Held static because its address is exposed to the caller via the
     // collection and must remain valid after this function returns.
     static uint64_t chain_id = 0;
-    const s_tx_info *tx_info = NULL;
 
     switch (value->container_path) {
         // Sender address (20 bytes)
         case CP_FROM:
-            if ((collection->value[0].ptr = get_current_tx_from()) == NULL) {
+            if ((collection->value[0].ptr = get_current_operation_from()) == NULL) {
                 return false;
             }
             collection->value[0].length = ADDRESS_LENGTH;
             collection->size = 1;
+            // The descriptor already shows the sender of the root operation: the review must
+            // not add its own row for it. The calls a typed message names do not count, the
+            // review of a message shows the sender of the message.
             if (operation_ctx_is_root()) {
-                // The descriptor already shows the root sender; the GCS
-                // review must not add its own duplicate row for it.
                 operation_ctx_set_root_from_shown();
             }
             break;
 
         // Recipient address (20 bytes)
         case CP_TO:
-            if ((collection->value[0].ptr = get_current_tx_to()) == NULL) {
+            if ((collection->value[0].ptr = get_current_operation_to()) == NULL) {
                 return false;
             }
             collection->value[0].length = ADDRESS_LENGTH;
@@ -200,7 +226,7 @@ static bool value_get_rlp(const s_value *value, s_parsed_value_collection *colle
 
         // Native amount transferred (256-bit big-endian)
         case CP_VALUE:
-            if ((collection->value[0].ptr = get_current_tx_amount()) == NULL) {
+            if ((collection->value[0].ptr = get_current_operation_amount()) == NULL) {
                 return false;
             }
             collection->value[0].length = INT256_LENGTH;
@@ -214,11 +240,9 @@ static bool value_get_rlp(const s_value *value, s_parsed_value_collection *colle
 
         // Chain ID, normalized to a big-endian 64-bit value
         case CP_CHAIN_ID:
-            tx_info = get_current_tx_info();
-            if (tx_info == NULL) {
+            if (!get_current_operation_chain_id(&chain_id)) {
                 return false;
             }
-            chain_id = tx_info->chain_id;
             // Convert to big-endian byte array
             chain_id = u64_from_BE((const uint8_t *) &chain_id, sizeof(uint64_t));
             collection->value[0].ptr = (const uint8_t *) &chain_id;
@@ -284,8 +308,18 @@ bool value_get(const s_value *value, s_parsed_value_collection *collection) {
     switch (value->source) {
         // Value extracted from the transaction calldata via a data path
         case SOURCE_CALLDATA:
+            if (is_message_operation()) {
+                return false;
+            }
             collection->size = 0;
             if (!data_path_get(&value->data_path, collection)) {
+                return false;
+            }
+            break;
+
+        // Value extracted from the message's value tree via a path
+        case SOURCE_EIP712:
+            if (!is_message_operation() || !eip712_path_get(&value->eip712_path, collection)) {
                 return false;
             }
             break;

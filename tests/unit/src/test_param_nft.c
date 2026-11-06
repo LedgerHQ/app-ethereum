@@ -11,7 +11,7 @@
  *
  * Beyond the broadcast rule, the formatter chains a few hard
  * preconditions:
- *   - get_current_tx_info must be non-NULL,
+ *   - the operation being described must be on a chain,
  *   - both value_get calls must succeed,
  *   - collections.size cannot be zero,
  *   - each get_matching_nft_info lookup must hit a registered entry,
@@ -29,7 +29,7 @@
 #include "gcs_parsed_value.h"
 #include "gcs_value.h"
 #include "gcs_field.h"
-#include "gtp_tx_info.h"
+#include "operation_info.h"
 #include "nft_info.h"
 #include "shared_context.h"
 #include "wraps.h"
@@ -66,7 +66,7 @@ bool handle_value_struct(const buffer_t *buf, s_value_context *context) {
     return g_hvs_ret;
 }
 
-static s_tx_info g_fake_tx_info;
+static s_operation_info g_fake_tx_info;
 
 const s_nft_info *get_matching_nft_info(const uint64_t *chain_id, const uint8_t *address) {
     (void) chain_id;
@@ -81,9 +81,13 @@ bool add_to_field_table(e_param_type type,
     return (bool) g_add_to_field_table_ret;
 }
 
-static const s_tx_info *s_tx_info_ret = NULL;
-const s_tx_info *get_current_tx_info(void) {
-    return s_tx_info_ret;
+static const s_operation_info *s_tx_info_ret = NULL;
+bool get_current_operation_chain_id(uint64_t *chain_id) {
+    if (s_tx_info_ret == NULL) {
+        return false;
+    }
+    *chain_id = s_tx_info_ret->chain_id;
+    return true;
 }
 
 // =============================================================================

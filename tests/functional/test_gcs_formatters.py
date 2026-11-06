@@ -157,10 +157,10 @@ def test_gcs_map_entry(scenario_navigator: NavigateWithScenario):
         ).serialize()
     )
 
-    app_client.provide_transaction_info(tx_info.serialize())
+    app_client.provide_operation_info(tx_info.serialize())
 
     for field in fields:
-        app_client.provide_transaction_field_desc(field.serialize())
+        app_client.provide_operation_field_desc(field.serialize())
 
     with app_client.sign(mode=SignMode.START_FLOW):
         scenario_navigator.review_approve()
@@ -266,10 +266,10 @@ def test_gcs_map_entry_chain_id_key(scenario_navigator: NavigateWithScenario):
         ).serialize()
     )
 
-    app_client.provide_transaction_info(tx_info.serialize())
+    app_client.provide_operation_info(tx_info.serialize())
 
     for field in fields:
-        app_client.provide_transaction_field_desc(field.serialize())
+        app_client.provide_operation_field_desc(field.serialize())
 
     with app_client.sign(mode=SignMode.START_FLOW):
         scenario_navigator.review_approve()
@@ -387,10 +387,10 @@ def test_gcs_group_sequential(scenario_navigator: NavigateWithScenario):
         deploy_date=1646305200,
     )
 
-    app_client.provide_transaction_info(tx_info.serialize())
+    app_client.provide_operation_info(tx_info.serialize())
 
     for field in fields:
-        app_client.provide_transaction_field_desc(field.serialize())
+        app_client.provide_operation_field_desc(field.serialize())
 
     with app_client.sign(mode=SignMode.START_FLOW):
         scenario_navigator.review_approve()
@@ -449,11 +449,11 @@ def test_gcs_array_bound_past_declared_size(scenario_navigator: NavigateWithScen
         "batch transfer",
         creator_name="OpenSea",
     )
-    app_client.provide_transaction_info(tx_info.serialize())
+    app_client.provide_operation_info(tx_info.serialize())
 
     with pytest.raises(ExceptionRAPDU) as e:
         for field in fields:
-            app_client.provide_transaction_field_desc(field.serialize())
+            app_client.provide_operation_field_desc(field.serialize())
     assert e.value.status == StatusWord.SWO_INCORRECT_DATA
 
 
@@ -537,17 +537,17 @@ def check_ids_array(scenario_navigator: NavigateWithScenario, array: PathArray, 
         "batch transfer",
         creator_name="OpenSea",
     )
-    app_client.provide_transaction_info(tx_info.serialize())
+    app_client.provide_operation_info(tx_info.serialize())
 
     if accepted:
         for field in fields:
-            app_client.provide_transaction_field_desc(field.serialize())
+            app_client.provide_operation_field_desc(field.serialize())
         with app_client.sign(mode=SignMode.START_FLOW):
             scenario_navigator.review_approve(do_comparison=False)
     else:
         with pytest.raises(ExceptionRAPDU) as e:
             for field in fields:
-                app_client.provide_transaction_field_desc(field.serialize())
+                app_client.provide_operation_field_desc(field.serialize())
         assert e.value.status == StatusWord.SWO_INCORRECT_DATA
 
 
@@ -665,10 +665,10 @@ def test_gcs_group_sequential_arrays(scenario_navigator: NavigateWithScenario):
         deploy_date=1646305200,
     )
 
-    app_client.provide_transaction_info(tx_info.serialize())
+    app_client.provide_operation_info(tx_info.serialize())
 
     for field in fields:
-        app_client.provide_transaction_field_desc(field.serialize())
+        app_client.provide_operation_field_desc(field.serialize())
 
     with app_client.sign(mode=SignMode.START_FLOW):
         scenario_navigator.review_approve()
@@ -742,7 +742,7 @@ def start_nested_poap_mint(app_client: EthAppClient, depths: list[int]) -> list[
         contract_name="PoapBridge",
         deploy_date=1646305200,
     )
-    app_client.provide_transaction_info(tx_info.serialize())
+    app_client.provide_operation_info(tx_info.serialize())
     return fields
 
 
@@ -755,7 +755,7 @@ def test_gcs_group_nested(scenario_navigator: NavigateWithScenario):
 
     fields = start_nested_poap_mint(app_client, list(range(1, GROUP_MAX_DEPTH + 1)))
     for field in fields:
-        app_client.provide_transaction_field_desc(field.serialize())
+        app_client.provide_operation_field_desc(field.serialize())
 
     with app_client.sign(mode=SignMode.START_FLOW):
         scenario_navigator.review_approve(do_comparison=False)
@@ -767,7 +767,7 @@ def test_gcs_group_nested_too_deep(scenario_navigator: NavigateWithScenario):
 
     fields = start_nested_poap_mint(app_client, [GROUP_MAX_DEPTH + 1])
     with pytest.raises(ExceptionRAPDU) as e:
-        app_client.provide_transaction_field_desc(fields[0].serialize())
+        app_client.provide_operation_field_desc(fields[0].serialize())
     assert e.value.status == StatusWord.SWO_INCORRECT_DATA
 
 
@@ -855,10 +855,10 @@ def test_gcs_separator(scenario_navigator: NavigateWithScenario):
         deploy_date=1646305200,
     )
 
-    app_client.provide_transaction_info(tx_info.serialize())
+    app_client.provide_operation_info(tx_info.serialize())
 
     for field in fields:
-        app_client.provide_transaction_field_desc(field.serialize())
+        app_client.provide_operation_field_desc(field.serialize())
 
     with app_client.sign(mode=SignMode.START_FLOW):
         scenario_navigator.review_approve()
@@ -995,10 +995,10 @@ def test_gcs_formatter(scenario_navigator: NavigateWithScenario, test_config: st
         if name and ticker:
             app_client.provide_network_info(DynamicNetwork(name, ticker, tx_params["chainId"], icon))
 
-    app_client.provide_transaction_info(tx_info.serialize())
+    app_client.provide_operation_info(tx_info.serialize())
 
     for field in fields:
-        app_client.provide_transaction_field_desc(field.serialize())
+        app_client.provide_operation_field_desc(field.serialize())
 
     with app_client.sign(mode=SignMode.START_FLOW):
         scenario_navigator.review_approve(test_name=scenario_navigator.test_name + f"_{test_config}")
@@ -1189,16 +1189,16 @@ def test_gcs_constraints(
         deploy_date=1646305200,
     )
 
-    app_client.provide_transaction_info(tx_info.serialize())
+    app_client.provide_operation_info(tx_info.serialize())
 
     if test_config == "must_be_0":
         with pytest.raises(ExceptionRAPDU) as err:
             for field in fields:
-                app_client.provide_transaction_field_desc(field.serialize())
+                app_client.provide_operation_field_desc(field.serialize())
             assert err.value.status == StatusWord.SWO_CONDITIONS_NOT_SATISFIED
     else:
         for field in fields:
-            app_client.provide_transaction_field_desc(field.serialize())
+            app_client.provide_operation_field_desc(field.serialize())
 
         with app_client.sign(mode=SignMode.START_FLOW):
             scenario_navigator.review_approve(test_name=scenario_navigator.test_name + f"_{test_config}")
@@ -1269,11 +1269,11 @@ def test_gcs_interoperable_address_constraint_chain(scenario_navigator: Navigate
         "mint POAP",
         creator_name="POAP",
     )
-    app_client.provide_transaction_info(tx_info.serialize())
+    app_client.provide_operation_info(tx_info.serialize())
 
     with pytest.raises(ExceptionRAPDU) as e:
         for field in fields:
-            app_client.provide_transaction_field_desc(field.serialize())
+            app_client.provide_operation_field_desc(field.serialize())
     assert e.value.status == StatusWord.SWO_INCORRECT_DATA
 
 
@@ -1361,9 +1361,9 @@ def test_gcs_interoperable_address(scenario_navigator: NavigateWithScenario, tes
             )
         )
 
-    app_client.provide_transaction_info(tx_info.serialize())
+    app_client.provide_operation_info(tx_info.serialize())
     for field in fields:
-        app_client.provide_transaction_field_desc(field.serialize())
+        app_client.provide_operation_field_desc(field.serialize())
 
     with app_client.sign(mode=SignMode.START_FLOW):
         scenario_navigator.review_approve(test_name=scenario_navigator.test_name + f"_{test_config}")
@@ -1454,11 +1454,11 @@ def test_gcs_iteration_broadcast(scenario_navigator: NavigateWithScenario):
         deploy_date=1704067200,
     )
 
-    app_client.provide_transaction_info(tx_info.serialize())
+    app_client.provide_operation_info(tx_info.serialize())
     app_client.provide_token_metadata("USDC", usdc_address, usdc_decimals, tx_params["chainId"])
 
     for field in fields:
-        app_client.provide_transaction_field_desc(field.serialize())
+        app_client.provide_operation_field_desc(field.serialize())
 
     with app_client.sign(mode=SignMode.START_FLOW):
         scenario_navigator.review_approve()
@@ -1522,9 +1522,9 @@ def test_gcs_constraint_on_unsupported_param_type(scenario_navigator: NavigateWi
         "mint POAP",
         creator_name="POAP",
     )
-    app_client.provide_transaction_info(tx_info.serialize())
+    app_client.provide_operation_info(tx_info.serialize())
 
     with pytest.raises(ExceptionRAPDU) as err:
         for field in fields:
-            app_client.provide_transaction_field_desc(field.serialize())
+            app_client.provide_operation_field_desc(field.serialize())
     assert err.value.status == StatusWord.SWO_INCORRECT_DATA

@@ -29,7 +29,7 @@
 #include "cmd_get_gating.h"
 #include "apdu_constants.h"
 #include "tlv_apdu.h"
-#include "eip712_v1_context.h"
+#include "eip712_session.h"
 #include "nbgl_use_case.h"
 #include "nbgl_types.h"
 #include "wraps.h"
@@ -51,9 +51,6 @@ static uint64_t get_tx_chain_id_stub(int cmock_num_calls) {
 // =============================================================================
 // Globals required by linked translation units
 // =============================================================================
-
-s_eip712_v1_context g_eip712_storage;
-s_eip712_v1_context *eip712_v1_context = NULL;
 
 // LARGE_LEDGER_ICON maps to C_Ledger_64px or C_Ledger_14px depending on
 // SCREEN_SIZE_WALLET. Define both so the linker is satisfied either way.
@@ -91,10 +88,37 @@ bool finalize_hash(cx_hash_t *hash_ctx, uint8_t *out, size_t out_len) {
 }
 
 static bool g_compute_schema_hash_ret = true;
+static int g_compute_schema_hash_calls = 0;
 static uint8_t g_schema_hash_buf[CX_SHA224_SIZE];
 bool compute_schema_hash(uint8_t hash[CX_SHA224_SIZE]) {
+    g_compute_schema_hash_calls += 1;
     memcpy(hash, g_schema_hash_buf, CX_SHA224_SIZE);
     return g_compute_schema_hash_ret;
+}
+
+// The primary type of the V2 message being signed, and its hash
+static const char *g_primary_type = "Mail";
+static bool g_type_hash_ret = true;
+static int g_type_hash_calls = 0;
+static uint8_t g_type_hash_buf[32];
+const char *td_get_message_type_name(void) {
+    return g_primary_type;
+}
+bool type_hash(const char *struct_name, uint8_t *hash_buf) {
+    g_type_hash_calls += 1;
+    if ((g_primary_type == NULL) || (strcmp(struct_name, g_primary_type) != 0)) {
+        return false;
+    }
+    memcpy(hash_buf, g_type_hash_buf, sizeof(g_type_hash_buf));
+    return g_type_hash_ret;
+}
+
+// The domain separator of the V2 message being signed
+static bool g_hash_domain_ret = true;
+static uint8_t g_domain_separator_buf[32];
+bool eip712_v2_is_domain_separator(const uint8_t separator[32]) {
+    return g_hash_domain_ret &&
+           (memcmp(separator, g_domain_separator_buf, sizeof(g_domain_separator_buf)) == 0);
 }
 
 static uint8_t g_domain_contract_addr[ADDRESS_LENGTH];
@@ -152,7 +176,9 @@ void nvm_write(void *dst, void *src, unsigned int len) {
 //   0x02 STRUCTURE_VERSION   = 0x01
 //   0x22 ADDRESS             = 20 bytes
 //   0x23 CHAIN_ID            = 1+ bytes
-//   0x40 HASH_SELECTOR       = 4 bytes (Tx) or 28 bytes (EIP-712)
+//   0x28 DOMAIN_SEPARATOR    = 32 bytes (EIP-712 V2)
+//   0x2a PRIMARY_TYPE_HASH   = 32 bytes (EIP-712 V2)
+//   0x40 HASH_SELECTOR       = 4 bytes (Tx) or 28 bytes (EIP-712 V1)
 //   0x82 INTRO_MSG           = string (long-form)
 //   0x83 TINY_URL            = string (long-form)
 //   0x84 TX_TYPE             = 1 byte (long-form): 0=Tx, 1=TypedData
@@ -161,11 +187,16 @@ void nvm_write(void *dst, void *src, unsigned int len) {
 #define ECDSA_SIG_MIN 67
 #define ECDSA_SIG_MAX 72
 
+#define DOMAIN_SEPARATOR_BYTE  0xDD
+#define PRIMARY_TYPE_HASH_BYTE 0xEE
+
 typedef struct {
     uint8_t struct_type;
     uint8_t struct_version;
     uint8_t chain_id;
     bool include_chain_id;
+    bool include_domain_separator;
+    bool include_primary_type_hash;
     bool include_hash_selector;
     bool include_address;
     bool include_intro_msg;
@@ -174,6 +205,8 @@ typedef struct {
     bool include_signature;
     bool address_zero;
     uint8_t hash_selector_size;
+    uint8_t domain_separator_size;
+    uint8_t primary_type_hash_size;
     uint8_t tx_type;
     uint8_t address_byte;
     uint8_t selector_byte;
@@ -191,6 +224,8 @@ static s_opts default_tx_opts(void) {
                 .include_tiny_url = true,
                 .include_tx_type = true,
                 .include_signature = true,
+                .domain_separator_size = 32,
+                .primary_type_hash_size = 32,
                 .hash_selector_size = 4,  // SignTx = selector
                 .tx_type = 0,             // TX_TYPE_TRANSACTION (0 in wire, +1 in struct)
                 .address_byte = 0xAA,
@@ -202,8 +237,19 @@ static s_opts default_tx_opts(void) {
 static s_opts default_eip712_opts(void) {
     s_opts o = default_tx_opts();
     o.include_chain_id = false;
-    o.hash_selector_size = 28;  // CX_SHA224_SIZE
+    o.hash_selector_size = 28;  // CX_SHA224_SIZE, the schema hash of a V1 message
     o.tx_type = 1;              // TX_TYPE_TYPED_DATA wire value
+    return o;
+}
+
+// a V2 message is named by its domain separator and the hash of its primary type, not by a
+// contract
+static s_opts default_eip712_v2_opts(void) {
+    s_opts o = default_eip712_opts();
+    o.include_address = false;
+    o.include_hash_selector = false;
+    o.include_domain_separator = true;
+    o.include_primary_type_hash = true;
     return o;
 }
 
@@ -233,6 +279,20 @@ static size_t build_tlv(uint8_t *out, size_t out_size, s_opts opts) {
         w(out, &off, 0x23);
         w(out, &off, 0x01);
         w(out, &off, opts.chain_id);
+    }
+    // DOMAIN_SEPARATOR
+    if (opts.include_domain_separator) {
+        w(out, &off, 0x28);
+        w(out, &off, opts.domain_separator_size);
+        memset(out + off, DOMAIN_SEPARATOR_BYTE, opts.domain_separator_size);
+        off += opts.domain_separator_size;
+    }
+    // PRIMARY_TYPE_HASH
+    if (opts.include_primary_type_hash) {
+        w(out, &off, 0x2a);
+        w(out, &off, opts.primary_type_hash_size);
+        memset(out + off, PRIMARY_TYPE_HASH_BYTE, opts.primary_type_hash_size);
+        off += opts.primary_type_hash_size;
     }
     // HASH_SELECTOR
     if (opts.include_hash_selector) {
@@ -298,12 +358,18 @@ static bool send_descriptor(const uint8_t *tlv, size_t len) {
 static void reset(void) {
     clear_gating();
     memset(&g_n_storage_writable, 0, sizeof(g_n_storage_writable));
-    memset(&g_eip712_storage, 0, sizeof(g_eip712_storage));
-    eip712_v1_context = NULL;
+    eip712_session_close();
     s_tx_chain_id = 1;
     s_sig_check_ret = true;
     s_finalize_hash_ret = true;
     g_compute_schema_hash_ret = true;
+    g_compute_schema_hash_calls = 0;
+    g_primary_type = "Mail";
+    g_type_hash_ret = true;
+    g_type_hash_calls = 0;
+    memset(g_type_hash_buf, 0, sizeof(g_type_hash_buf));
+    g_hash_domain_ret = true;
+    memset(g_domain_separator_buf, 0, sizeof(g_domain_separator_buf));
     g_implem_contract_ret = NULL;
     g_proxy_contract_ret = NULL;
     memset(g_schema_hash_buf, 0, sizeof(g_schema_hash_buf));
@@ -373,6 +439,89 @@ void test_hash_selector_too_big_rejected(void) {
     uint8_t tlv[500];
     s_opts opts = default_tx_opts();
     opts.hash_selector_size = 32;  // > CX_SHA224_SIZE
+    size_t len = build_tlv(tlv, sizeof(tlv), opts);
+    TEST_ASSERT_FALSE(send_descriptor(tlv, len));
+}
+
+void test_happy_path_typed_data_v2(void) {
+    appState = APP_STATE_SIGNING_EIP712;
+    uint8_t tlv[500];
+    s_opts opts = default_eip712_v2_opts();
+    size_t len = build_tlv(tlv, sizeof(tlv), opts);
+    TEST_ASSERT_TRUE(send_descriptor(tlv, len));
+}
+
+void test_typed_data_v2_without_domain_separator_rejected(void) {
+    uint8_t tlv[500];
+    s_opts opts = default_eip712_v2_opts();
+    opts.include_domain_separator = false;
+    size_t len = build_tlv(tlv, sizeof(tlv), opts);
+    TEST_ASSERT_FALSE(send_descriptor(tlv, len));
+}
+
+void test_typed_data_v2_without_primary_type_hash_rejected(void) {
+    uint8_t tlv[500];
+    s_opts opts = default_eip712_v2_opts();
+    opts.include_primary_type_hash = false;
+    size_t len = build_tlv(tlv, sizeof(tlv), opts);
+    TEST_ASSERT_FALSE(send_descriptor(tlv, len));
+}
+
+void test_typed_data_v2_hashes_of_wrong_size_rejected(void) {
+    uint8_t tlv[500];
+    s_opts opts = default_eip712_v2_opts();
+    opts.domain_separator_size = 31;
+    size_t len = build_tlv(tlv, sizeof(tlv), opts);
+    TEST_ASSERT_FALSE(send_descriptor(tlv, len));
+
+    opts = default_eip712_v2_opts();
+    opts.primary_type_hash_size = 33;
+    len = build_tlv(tlv, sizeof(tlv), opts);
+    TEST_ASSERT_FALSE(send_descriptor(tlv, len));
+}
+
+// A V2 descriptor names no contract: one that also has a tag of a contract is refused, whichever.
+void test_typed_data_v2_with_a_contract_tag_rejected(void) {
+    uint8_t tlv[500];
+    s_opts opts;
+    size_t len;
+
+    opts = default_eip712_v2_opts();
+    opts.include_address = true;
+    len = build_tlv(tlv, sizeof(tlv), opts);
+    TEST_ASSERT_FALSE(send_descriptor(tlv, len));
+
+    opts = default_eip712_v2_opts();
+    opts.include_chain_id = true;
+    len = build_tlv(tlv, sizeof(tlv), opts);
+    TEST_ASSERT_FALSE(send_descriptor(tlv, len));
+
+    opts = default_eip712_v2_opts();
+    opts.include_hash_selector = true;
+    len = build_tlv(tlv, sizeof(tlv), opts);
+    TEST_ASSERT_FALSE(send_descriptor(tlv, len));
+}
+
+void test_typed_data_v1_with_a_message_tag_rejected(void) {
+    uint8_t tlv[500];
+    s_opts opts;
+    size_t len;
+
+    opts = default_eip712_opts();
+    opts.include_domain_separator = true;
+    len = build_tlv(tlv, sizeof(tlv), opts);
+    TEST_ASSERT_FALSE(send_descriptor(tlv, len));
+
+    opts = default_eip712_opts();
+    opts.include_primary_type_hash = true;
+    len = build_tlv(tlv, sizeof(tlv), opts);
+    TEST_ASSERT_FALSE(send_descriptor(tlv, len));
+}
+
+void test_transaction_named_by_a_message_rejected(void) {
+    uint8_t tlv[500];
+    s_opts opts = default_eip712_v2_opts();
+    opts.tx_type = 0;  // TX_TYPE_TRANSACTION wire value
     size_t len = build_tlv(tlv, sizeof(tlv), opts);
     TEST_ASSERT_FALSE(send_descriptor(tlv, len));
 }
@@ -595,9 +744,15 @@ void test_set_warning_proxy_descriptor_on_called_contract(void) {
     TEST_ASSERT_TRUE(set_gating_warning());
 }
 
-void test_set_warning_typed_data_happy_path(void) {
+// the state a typed message of the given version is in once its review started
+static void start_review(e_eip712_session session) {
+    appState = APP_STATE_IDLE;
+    TEST_ASSERT_TRUE(eip712_session_open(session));
     appState = APP_STATE_SIGNING_EIP712;
-    eip712_v1_context = &g_eip712_storage;
+}
+
+void test_set_warning_typed_data_happy_path(void) {
+    start_review(EIP712_SESSION_V1);
     memset(g_domain_contract_addr, 0xAA, ADDRESS_LENGTH);
     memset(g_schema_hash_buf, 0xCC, sizeof(g_schema_hash_buf));
 
@@ -611,8 +766,7 @@ void test_set_warning_typed_data_happy_path(void) {
 }
 
 void test_set_warning_typed_data_schema_hash_mismatch(void) {
-    appState = APP_STATE_SIGNING_EIP712;
-    eip712_v1_context = &g_eip712_storage;
+    start_review(EIP712_SESSION_V1);
     memset(g_domain_contract_addr, 0xAA, ADDRESS_LENGTH);
     memset(g_schema_hash_buf, 0x33, sizeof(g_schema_hash_buf));  // mismatch
 
@@ -625,8 +779,7 @@ void test_set_warning_typed_data_schema_hash_mismatch(void) {
 }
 
 void test_set_warning_typed_data_compute_schema_failure(void) {
-    appState = APP_STATE_SIGNING_EIP712;
-    eip712_v1_context = &g_eip712_storage;
+    start_review(EIP712_SESSION_V1);
     memset(g_domain_contract_addr, 0xAA, ADDRESS_LENGTH);
     g_compute_schema_hash_ret = false;
 
@@ -636,6 +789,123 @@ void test_set_warning_typed_data_compute_schema_failure(void) {
     TEST_ASSERT_TRUE(send_descriptor(tlv, len));
 
     TEST_ASSERT_FALSE(set_gating_warning());
+}
+
+// A typed data review of a V2 session: the descriptor names the message by its domain separator
+// and the hash of its primary type, and the schema hash of V1 is never computed.
+static void prime_v2_descriptor(void) {
+    uint8_t tlv[500];
+    s_opts opts = default_eip712_v2_opts();
+    size_t len = build_tlv(tlv, sizeof(tlv), opts);
+
+    start_review(EIP712_SESSION_V2);
+    memset(g_domain_separator_buf, DOMAIN_SEPARATOR_BYTE, sizeof(g_domain_separator_buf));
+    memset(g_type_hash_buf, PRIMARY_TYPE_HASH_BYTE, sizeof(g_type_hash_buf));
+    TEST_ASSERT_TRUE(send_descriptor(tlv, len));
+}
+
+void test_set_warning_typed_data_v2_happy_path(void) {
+    prime_v2_descriptor();
+
+    TEST_ASSERT_TRUE(set_gating_warning());
+    TEST_ASSERT_EQUAL(g_captured_counter, 1);
+    TEST_ASSERT_EQUAL(1, g_type_hash_calls);
+    TEST_ASSERT_EQUAL(0, g_compute_schema_hash_calls);
+}
+
+void test_set_warning_typed_data_v2_domain_separator_mismatch(void) {
+    prime_v2_descriptor();
+    // one bit off, in the last byte: the whole of the 32 bytes is compared
+    g_domain_separator_buf[31] ^= 0x01;
+
+    TEST_ASSERT_FALSE(set_gating_warning());
+    TEST_ASSERT_EQUAL(g_nvm_write_calls, 0);
+}
+
+void test_set_warning_typed_data_v2_hash_mismatch(void) {
+    prime_v2_descriptor();
+    g_type_hash_buf[31] ^= 0x01;
+
+    TEST_ASSERT_FALSE(set_gating_warning());
+    TEST_ASSERT_EQUAL(g_nvm_write_calls, 0);
+}
+
+void test_set_warning_typed_data_v2_hash_domain_failure(void) {
+    prime_v2_descriptor();
+    g_hash_domain_ret = false;
+
+    TEST_ASSERT_FALSE(set_gating_warning());
+}
+
+void test_set_warning_typed_data_v2_type_hash_failure(void) {
+    prime_v2_descriptor();
+    g_type_hash_ret = false;
+
+    TEST_ASSERT_FALSE(set_gating_warning());
+}
+
+void test_set_warning_typed_data_v2_without_message_is_rejected(void) {
+    prime_v2_descriptor();
+    g_primary_type = NULL;
+
+    TEST_ASSERT_FALSE(set_gating_warning());
+    TEST_ASSERT_EQUAL(0, g_type_hash_calls);
+}
+
+// the review of a V0 message, which has no session
+void test_set_warning_typed_data_without_a_session_is_rejected(void) {
+    prime_v2_descriptor();
+    eip712_session_close();
+    appState = APP_STATE_SIGNING_EIP712;
+
+    TEST_ASSERT_FALSE(set_gating_warning());
+    TEST_ASSERT_EQUAL(0, g_type_hash_calls);
+    TEST_ASSERT_EQUAL(0, g_compute_schema_hash_calls);
+}
+
+void test_set_warning_typed_data_v2_descriptor_of_a_v1_message_rejected(void) {
+    uint8_t tlv[500];
+    s_opts opts = default_eip712_v2_opts();
+    size_t len = build_tlv(tlv, sizeof(tlv), opts);
+
+    start_review(EIP712_SESSION_V1);
+    memset(g_domain_separator_buf, DOMAIN_SEPARATOR_BYTE, sizeof(g_domain_separator_buf));
+    memset(g_type_hash_buf, PRIMARY_TYPE_HASH_BYTE, sizeof(g_type_hash_buf));
+    TEST_ASSERT_TRUE(send_descriptor(tlv, len));
+
+    TEST_ASSERT_FALSE(set_gating_warning());
+    TEST_ASSERT_EQUAL(0, g_type_hash_calls);
+}
+
+void test_set_warning_typed_data_v1_descriptor_of_a_v2_message_rejected(void) {
+    uint8_t tlv[500];
+    s_opts opts = default_eip712_opts();
+    size_t len = build_tlv(tlv, sizeof(tlv), opts);
+
+    start_review(EIP712_SESSION_V2);
+    memset(g_domain_contract_addr, 0xAA, ADDRESS_LENGTH);
+    memset(g_schema_hash_buf, 0xCC, sizeof(g_schema_hash_buf));
+    TEST_ASSERT_TRUE(send_descriptor(tlv, len));
+
+    TEST_ASSERT_FALSE(set_gating_warning());
+    TEST_ASSERT_EQUAL(0, g_compute_schema_hash_calls);
+}
+
+void test_set_warning_typed_data_v1_ignores_the_type_hash(void) {
+    start_review(EIP712_SESSION_V1);
+    memset(g_domain_contract_addr, 0xAA, ADDRESS_LENGTH);
+    memset(g_schema_hash_buf, 0xCC, sizeof(g_schema_hash_buf));
+    // what a V2 descriptor would hold does not match, and must not be looked at
+    memset(g_type_hash_buf, 0x11, sizeof(g_type_hash_buf));
+
+    uint8_t tlv[500];
+    s_opts opts = default_eip712_opts();
+    size_t len = build_tlv(tlv, sizeof(tlv), opts);
+    TEST_ASSERT_TRUE(send_descriptor(tlv, len));
+
+    TEST_ASSERT_TRUE(set_gating_warning());
+    TEST_ASSERT_EQUAL(0, g_type_hash_calls);
+    TEST_ASSERT_EQUAL(1, g_compute_schema_hash_calls);
 }
 
 // =============================================================================
@@ -686,5 +956,22 @@ int main(void) {
     RUN_TEST(test_set_warning_typed_data_happy_path);
     RUN_TEST(test_set_warning_typed_data_schema_hash_mismatch);
     RUN_TEST(test_set_warning_typed_data_compute_schema_failure);
+    RUN_TEST(test_happy_path_typed_data_v2);
+    RUN_TEST(test_typed_data_v2_without_domain_separator_rejected);
+    RUN_TEST(test_typed_data_v2_without_primary_type_hash_rejected);
+    RUN_TEST(test_typed_data_v2_hashes_of_wrong_size_rejected);
+    RUN_TEST(test_typed_data_v2_with_a_contract_tag_rejected);
+    RUN_TEST(test_typed_data_v1_with_a_message_tag_rejected);
+    RUN_TEST(test_transaction_named_by_a_message_rejected);
+    RUN_TEST(test_set_warning_typed_data_v2_happy_path);
+    RUN_TEST(test_set_warning_typed_data_v2_domain_separator_mismatch);
+    RUN_TEST(test_set_warning_typed_data_v2_hash_mismatch);
+    RUN_TEST(test_set_warning_typed_data_v2_hash_domain_failure);
+    RUN_TEST(test_set_warning_typed_data_v2_type_hash_failure);
+    RUN_TEST(test_set_warning_typed_data_v2_without_message_is_rejected);
+    RUN_TEST(test_set_warning_typed_data_without_a_session_is_rejected);
+    RUN_TEST(test_set_warning_typed_data_v2_descriptor_of_a_v1_message_rejected);
+    RUN_TEST(test_set_warning_typed_data_v1_descriptor_of_a_v2_message_rejected);
+    RUN_TEST(test_set_warning_typed_data_v1_ignores_the_type_hash);
     return UNITY_END();
 }

@@ -12,8 +12,9 @@
 
 #include "gcs_param_token_amount.h"
 #include "gcs_parsed_value.h"
+#include "gcs_field.h"  // e_param_type
 #include "gcs_value.h"
-#include "gtp_tx_info.h"
+#include "operation_info.h"
 #include "token_info.h"
 #include "network.h"
 #include "shared_context.h"
@@ -52,10 +53,11 @@ bool handle_value_struct(const buffer_t *buf, s_value_context *context) {
 // Other mocks
 // ===========================================================================
 
-static s_tx_info g_fake_tx_info;
+static s_operation_info g_fake_tx_info;
 
-const s_tx_info *get_current_tx_info(void) {
-    return &g_fake_tx_info;
+bool get_current_operation_chain_id(uint64_t *chain_id) {
+    *chain_id = g_fake_tx_info.chain_id;
+    return true;
 }
 
 const s_token_info *get_matching_token_info_or_dummy(const uint64_t *chain_id,

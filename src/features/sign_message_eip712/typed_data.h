@@ -79,21 +79,41 @@ typedef struct {
 // Maximum nesting depth supported when traversing/building a value tree
 #define TD_MAX_DEPTH 16
 
+// Maximum array dimensions of a field declaration; each consumes a TD_MAX_DEPTH level
+#define TD_MAX_ARRAY_LEVELS 8
+
+// Name identifying the domain struct, defined by the EIP-712 standard itself
+#define TD_DOMAIN_STRUCT_NAME "EIP712Domain"
+
 /**
  * Create a new, empty struct type definition
  *
- * @param[in] name struct type name
+ * @param[in] name struct type name (not required to be NUL-terminated)
  * @return pointer to the new struct definition, or NULL on failure
  */
-s_struct_712 *td_create_struct_def(const char *name);
+s_struct_712 *td_create_struct_def(const uint8_t *name, size_t length);
+
+/**
+ * Discard a struct definition created via td_create_struct_def() that was never
+ * registered via td_add_struct_def() (e.g. abandoned mid-assembly). Any fields
+ * already attached via td_add_struct_field_def() are destroyed too.
+ *
+ * @param[in] struct_def struct definition to discard; no-op if NULL
+ */
+void td_discard_struct_def(s_struct_712 *struct_def);
 
 /**
  * Register a struct definition as usable for future field/value declarations
  *
+ * Takes ownership of @p struct_def unconditionally: on success it becomes
+ * registered; on failure (already registered elsewhere, or a struct with the
+ * same name is already registered) it is destroyed. The caller must not use
+ * @p struct_def again after this call.
+ *
  * @param[in] struct_def struct definition to register
  * @return whether the registration succeeded
  */
-bool td_add_struct_def(const s_struct_712 *struct_def);
+bool td_add_struct_def(s_struct_712 *struct_def);
 
 /**
  * Append a field definition to a struct definition
@@ -167,6 +187,37 @@ void td_discard_container_value(s_struct_712_value *node);
 bool td_append_child(s_struct_712_value *parent, const s_struct_712_value *child);
 
 /**
+ * Get the field definition the next value in a node's sequence must conform to
+ *
+ * For a VAL_STRUCT node this walks the struct's declared fields in order, one per value
+ * already attached. For a VAL_ARRAY node every element shares the array's own field, so
+ * that field is always returned.
+ *
+ * @param[in] node VAL_STRUCT/VAL_ARRAY node being filled
+ * @return the expected field definition, or NULL if a struct already holds a value for
+ *         each of its declared fields
+ */
+const s_struct_712_field *td_value_expected_field(const s_struct_712_value *node);
+
+/**
+ * Count the values already attached to a struct or array value node
+ *
+ * @param[in] node VAL_STRUCT/VAL_ARRAY node to count
+ * @return number of attached values; 0 for a VAL_ATOMIC node
+ */
+uint16_t td_value_child_count(const s_struct_712_value *node);
+
+/**
+ * Get one of the values attached to a struct or array value node
+ *
+ * @param[in] node VAL_STRUCT/VAL_ARRAY node
+ * @param[in] index position of the value, in the order the values were attached (the declared
+ *                  field order for a struct)
+ * @return the value, NULL if there is none at that position or @p node is a VAL_ATOMIC
+ */
+const s_struct_712_value *td_value_child(const s_struct_712_value *node, uint16_t index);
+
+/**
  * Write raw bytes into a leaf's value, one chunk at a time
  *
  * @param[in,out] leaf VAL_ATOMIC node to write into
@@ -198,7 +249,7 @@ s_struct_712_field *td_create_field_def(e_type type);
  * Set the byte size of a native (non-struct) field type
  *
  * @param[in,out] field field definition to update
- * @param[in] type_size size in bytes
+ * @param[in] type_size size in bytes, 1..32
  * @return whether the size was set (fails for TYPE_STRUCT fields)
  */
 bool td_field_set_type_size(s_struct_712_field *field, size_t type_size);
@@ -217,7 +268,7 @@ bool td_field_set_struct_name(s_struct_712_field *field, const uint8_t *name, si
  * Set the number of array dimensions a field has, resetting any previously set levels
  *
  * @param[in,out] field field definition to update
- * @param[in] count number of array dimensions
+ * @param[in] count number of array dimensions, at most TD_MAX_ARRAY_LEVELS
  * @return whether the count was set
  */
 bool td_field_set_array_level_count(s_struct_712_field *field, uint8_t count);
@@ -240,7 +291,7 @@ bool td_field_set_array_level(s_struct_712_field *field,
  * Set the key name of a field
  *
  * @param[in,out] field field definition to update
- * @param[in] name key name (not required to be NUL-terminated)
+ * @param[in] name key name (not required to be NUL-terminated, may be NULL when empty)
  * @param[in] length length of name in bytes
  * @return whether the name was set
  */
@@ -255,12 +306,75 @@ bool td_field_set_key_name(s_struct_712_field *field, const uint8_t *name, size_
 const char *td_get_struct_field_typename(const s_struct_712_field *ptr);
 
 /**
+ * Check a struct name, or a reference to one (EIP712_STRUCT NAME, EIP712_FIELD STRUCT_NAME)
+ *
+ * The standard asks for a valid identifier, yet messages in use name their types otherwise (a
+ * primary type of "HyperliquidTransaction:UsdSend"). A name is refused for what would make a
+ * schema ambiguous, not for what it looks like, which the review judges when it shows one. It is
+ * not empty and holds no NUL (names are C strings), no space and none of '(' ')' ',' '[' ']':
+ * they delimit a type in the encoded type string, so that distinct schemas never share a type
+ * hash.
+ *
+ * @param[in] name name to check (not required to be NUL-terminated)
+ * @param[in] length length of name in bytes
+ * @return whether the name is acceptable
+ */
+bool td_is_valid_struct_name(const uint8_t *name, size_t length);
+
+/**
+ * Check a field name (EIP712_FIELD NAME)
+ *
+ * The standard puts no condition on it, so even an empty name is accepted: whether it can be shown
+ * is for the review to judge. A name holds no NUL (names are C strings) and none of '(' ')' ',',
+ * which delimit a member in the encoded type string. A space and '[' ']' are accepted: the first
+ * space of a member ends its type, which never holds one, and the brackets only delimit an array
+ * in a type.
+ *
+ * @param[in] name name to check (not required to be NUL-terminated)
+ * @param[in] length length of name in bytes
+ * @return whether the name is acceptable
+ */
+bool td_is_valid_field_name(const uint8_t *name, size_t length);
+
+/**
+ * Check the bytes received for a leaf of a V2 message against the type of its field
+ *
+ * - uintN, intN: big-endian, from 1 to N bytes, with no leading 00 byte unless the value is zero.
+ *   An intN is negative only when it is N bytes long and its top bit is set (two's complement).
+ * - bytesN: exactly N bytes.
+ * - address: exactly 20 bytes.
+ * - bool: one byte, 00 or 01.
+ * - string, bytes: any length, including none.
+ *
+ * A value has one encoding only, so comparisons on raw bytes (map keys, descriptor lists) are
+ * reliable, and the device never signs a value its type cannot hold.
+ *
+ * @param[in] field the declaration of the field the leaf belongs to
+ * @param[in] value the leaf bytes
+ * @param[in] length length of value in bytes
+ * @return whether the bytes are the encoding of a value of that type
+ */
+bool td_is_valid_leaf(const s_struct_712_field *field, const uint8_t *value, size_t length);
+
+/**
  * Find struct with a given name
  *
- * @param[in] name_ptr struct name
+ * @param[in] name_ptr NUL-terminated struct name
  * @return pointer to struct, or NULL if not found
  */
 const s_struct_712 *td_find_struct(const char *name_ptr);
+
+/**
+ * Find struct with a given name, which is not NUL-terminated (one inside a received payload)
+ *
+ * \p length is the whole name: a name that only starts like the one of a struct, or goes on past
+ * it, finds nothing. A NUL byte in the name finds nothing either, as no struct name holds one.
+ *
+ * @param[in] name struct name
+ * @param[in] length length of name in bytes
+ * @return pointer to struct, or NULL if not found
+ */
+const s_struct_712 *td_find_struct_n(const uint8_t *name, size_t length);
 
 /**
  * Set the message's EIP712Domain root value
@@ -297,6 +411,21 @@ bool td_has_domain(void);
 bool td_has_message(void);
 
 /**
+ * @return whether at least one struct definition has been added
+ */
+bool td_has_schema(void);
+
+/**
+ * @return the name of the struct type the message is an instance of, NULL if there is no message
+ */
+const char *td_get_message_type_name(void);
+
+/**
+ * @return the root value of the message (a VAL_STRUCT), NULL if there is no message
+ */
+const s_struct_712_value *td_get_message_root(void);
+
+/**
  * Initialize the typed data context
  *
  * @return whether the initialization was successful
@@ -316,11 +445,40 @@ void td_deinit(void);
 bool td_hash_pass(void);
 
 /**
+ * Compute the hash of the domain, hashStruct(domain), over the domain value tree
+ *
+ * @param[out] out the hash
+ * @return whether the hash was computed
+ */
+bool td_hash_domain(uint8_t out[CX_KECCAK_256_SIZE]);
+
+/**
+ * Compute the hash of the domain as if its address verifyingContract were another one
+ *
+ * @param[in] contract the address to hash in place of the verifyingContract of the domain
+ * @param[out] out the hash
+ * @return whether the domain has an address verifyingContract and the hash was computed
+ */
+bool td_hash_domain_with_contract(const uint8_t contract[ADDRESS_LENGTH],
+                                  uint8_t out[CX_KECCAK_256_SIZE]);
+
+/**
  * Fill @p chain_id with the chainId from the domain value tree.
+ *
+ * The chainId is an unsigned integer that fits in 64 bits: a field of another type, or a value
+ * that does not fit, gives no chain.
  *
  * @return true if the field was found and copied into @p chain_id, false otherwise.
  */
 bool td_get_domain_chain_id(uint64_t *chain_id);
+
+/**
+ * Whether the domain of the message has a member of that name, whatever its type and value.
+ *
+ * @param[in] name the name of the member, such as "chainId"
+ * @return true if the domain has it, false if it has not or if there is no domain.
+ */
+bool td_domain_has_member(const char *name);
 
 /**
  * Fill @p addr with the verifyingContract from the domain value tree.
@@ -328,6 +486,16 @@ bool td_get_domain_chain_id(uint64_t *chain_id);
  * @return true if the field was found and copied into @p addr, false otherwise.
  */
 bool td_get_domain_contract_addr(uint8_t addr[ADDRESS_LENGTH]);
+
+/**
+ * Fill @p addr with the verifyingContract from the domain value tree, when it is an address.
+ *
+ * Unlike td_get_domain_contract_addr(), this does not take the Ethermint placeholder string for
+ * an address.
+ *
+ * @return true if the field was found, is an address and was copied into @p addr, false otherwise.
+ */
+bool td_get_domain_verifying_address(uint8_t addr[ADDRESS_LENGTH]);
 
 // Visitor callback for value tree traversal. Return false to abort traversal.
 typedef bool (*td_f_value_visitor)(const s_struct_712_value *node, void *context);

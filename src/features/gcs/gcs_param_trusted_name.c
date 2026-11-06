@@ -206,8 +206,7 @@ __attribute__((noinline)) bool format_param_trusted_name(const struct s_field *f
     }
 
     if (!is_interoperable) {
-        chain_id = get_current_tx_chain_id();
-        if (chain_id == 0) {
+        if (!get_current_operation_chain_id(&chain_id)) {
             ret = false;
             goto cleanup;
         }

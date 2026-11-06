@@ -21,6 +21,9 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+// The gated signing screen is displayed once every GATED_SIGNING_MAX_COUNT signatures
+#define GATED_SIGNING_MAX_COUNT 10
+
 uint16_t handle_gating(uint8_t p1, uint8_t p2, const uint8_t *data, uint8_t length);
 
 void clear_gating(void);

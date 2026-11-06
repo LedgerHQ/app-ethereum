@@ -689,11 +689,10 @@ void test_set_warning_selector_mismatch_returns_false(void) {
     TEST_ASSERT_EQUAL(g_nvm_write_calls, 0);
 }
 
-void test_set_warning_counter_skips_non_modulo(void) {
+void test_set_warning_counter_skips_when_not_one(void) {
     prime_tx_descriptor();
-    // Pretend we already showed the prelude once (counter=1) — next call
-    // bumps to 2, which is not 1 mod 10, so warning.prelude must NOT be
-    // rewritten but the call must still succeed.
+    // Prelude already shown once (counter=1): the next call bumps to 2, so
+    // warning.prelude must NOT be rewritten but the call must still succeed.
     g_n_storage_writable.gating_counter = 1;
     warning.prelude = NULL;
     TEST_ASSERT_TRUE(set_gating_warning());
@@ -701,15 +700,23 @@ void test_set_warning_counter_skips_non_modulo(void) {
     TEST_ASSERT_NULL(warning.prelude);
 }
 
-void test_set_warning_counter_wrap_reanchors_to_one(void) {
+void test_set_warning_counter_wraps_to_one(void) {
     prime_tx_descriptor();
-    // Counter at 0xFF wraps to 0; the source must re-anchor to 1 so
-    // the cadence stays aligned across the wrap.
-    g_n_storage_writable.gating_counter = 0xFF;
+    // End of a cycle: the counter goes back to 1 and the prelude is displayed.
+    g_n_storage_writable.gating_counter = GATED_SIGNING_MAX_COUNT;
     warning.prelude = NULL;
     TEST_ASSERT_TRUE(set_gating_warning());
     TEST_ASSERT_EQUAL(g_captured_counter, 1);
     TEST_ASSERT_NOT_NULL(warning.prelude);
+}
+
+void test_set_warning_counter_out_of_range_stays_in_cycle(void) {
+    prime_tx_descriptor();
+    // A stored value outside the cycle must be brought back into 1..GATED_SIGNING_MAX_COUNT.
+    g_n_storage_writable.gating_counter = 0xFF;
+    TEST_ASSERT_TRUE(set_gating_warning());
+    TEST_ASSERT_GREATER_OR_EQUAL_UINT8(1, g_captured_counter);
+    TEST_ASSERT_LESS_OR_EQUAL_UINT8(GATED_SIGNING_MAX_COUNT, g_captured_counter);
 }
 
 void test_set_warning_proxy_implementation_match(void) {
@@ -948,8 +955,9 @@ int main(void) {
     RUN_TEST(test_set_warning_chain_id_mismatch_returns_false);
     RUN_TEST(test_set_warning_address_mismatch_returns_false);
     RUN_TEST(test_set_warning_selector_mismatch_returns_false);
-    RUN_TEST(test_set_warning_counter_skips_non_modulo);
-    RUN_TEST(test_set_warning_counter_wrap_reanchors_to_one);
+    RUN_TEST(test_set_warning_counter_skips_when_not_one);
+    RUN_TEST(test_set_warning_counter_wraps_to_one);
+    RUN_TEST(test_set_warning_counter_out_of_range_stays_in_cycle);
     RUN_TEST(test_set_warning_proxy_implementation_match);
     RUN_TEST(test_set_warning_proxy_implementation_mismatch);
     RUN_TEST(test_set_warning_proxy_descriptor_on_called_contract);

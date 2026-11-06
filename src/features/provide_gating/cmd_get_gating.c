@@ -40,6 +40,7 @@
 #include "eip712_session.h"
 #include "typed_data.h"
 #include "type_hash.h"
+#include "eip712_v2_message_info.h"
 #include "schema_hash.h"
 #include "lcx_sha256.h"
 
@@ -686,7 +687,7 @@ static bool check_gating_selector(void) {
 /**
  * @brief Check the DOMAIN_SEPARATOR and PRIMARY_TYPE_HASH vs the V2 message being signed.
  *
- * They identify the message as they do in its OPERATION_INFO.
+ * They identify the message as they do in its OPERATION_INFO, a proxy contract included.
  *
  * @return whether they match
  */
@@ -694,16 +695,10 @@ static bool check_gating_message(void) {
     uint8_t hash[HASH_SIZE];
     const char *primary_type;
 
-    if (!td_hash_domain(hash)) {
-        PRINTF("[GATING] Failed to compute the domain separator\n");
-        return false;
-    }
-    if (memcmp(GATING->domain_separator, hash, sizeof(hash)) != 0) {
-        PRINTF("[GATING] Domain separator mismatch: %.*h != %.*h\n",
+    if (!eip712_v2_is_domain_separator(GATING->domain_separator)) {
+        PRINTF("[GATING] Domain separator mismatch: %.*h\n",
                sizeof(GATING->domain_separator),
-               GATING->domain_separator,
-               sizeof(hash),
-               hash);
+               GATING->domain_separator);
         return false;
     }
     if (((primary_type = td_get_message_type_name()) == NULL) || !type_hash(primary_type, hash)) {

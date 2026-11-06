@@ -23,7 +23,7 @@ from test_eip712_v2 import (
     enable_blind_signing,
     get_wallet_addr,
 )
-from test_eip712_v2_message_info import domain_separator, message, type_hash
+from test_eip712_v2_message_info import domain_separator, message, provide_proxy_info, type_hash
 
 
 def test_gating_blind_signing(scenario_navigator: NavigateWithScenario) -> None:
@@ -251,6 +251,26 @@ def test_gating_eip712_v2(scenario_navigator: NavigateWithScenario) -> None:
 def test_gating_eip712_v2_domain_without_contract(scenario_navigator: NavigateWithScenario) -> None:
     """A domain without a verifyingContract is gated too: the descriptor names no contract."""
     check_gated(scenario_navigator, message(1))
+
+
+def test_gating_eip712_v2_through_a_proxy(scenario_navigator: NavigateWithScenario) -> None:
+    """The descriptor of an implementation gates a message whose domain names its proxy."""
+    enable_blind_signing(scenario_navigator)
+    app_client = EthAppClient(scenario_navigator.backend)
+    data = gating_v2_data()
+    implementation = "0x" + "ef" * 20
+
+    json_to_tlv.process_data(app_client, data, BIP32_PATH)
+    provide_proxy_info(app_client, data["domain"]["verifyingContract"], data["domain"]["chainId"], implementation)
+    provide_gating_v2(
+        app_client,
+        gating_v2(data, domain_separator=domain_separator(with_domain(data, verifyingContract=implementation))),
+    )
+    with app_client.eip712_v2_sign():
+        scenario_navigator.review_approve_with_warning(do_comparison=False, nb_warnings=2)
+
+    vrs = ResponseParser.signature(app_client.response().data)
+    assert get_wallet_addr(app_client) == recover_message(data, vrs)
 
 
 def with_domain(data: dict, **fields: object) -> dict:

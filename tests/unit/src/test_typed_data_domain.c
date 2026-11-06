@@ -26,6 +26,15 @@ bool value_hash_domain(const s_eip712_impl *impl, uint8_t out[CX_KECCAK_256_SIZE
     return true;
 }
 
+bool value_hash_domain_with_contract(const s_eip712_impl *impl,
+                                     const uint8_t contract[ADDRESS_LENGTH],
+                                     uint8_t out[CX_KECCAK_256_SIZE]) {
+    (void) impl;
+    (void) contract;
+    (void) out;
+    return false;
+}
+
 // Sets the domain to the struct { <type> chainId; } holding the given bytes
 static void build_domain(e_type type, size_t type_size, const uint8_t *data, size_t length) {
     s_struct_712 *def = td_create_struct_def((const uint8_t *) "EIP712Domain", 12);

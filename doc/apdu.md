@@ -1422,6 +1422,8 @@ None
 This command provides the app with the knowledge that a contract address is a proxy to another contract on a specific
 chain.
 This can also (optionally) be restricted to a specific function within the contract.
+Without a function, it also applies to the `verifyingContract` of an EIP-712 domain, see
+[EIP712_MESSAGE_INFO](eip712.md#eip712_message_info).
 
 #### Coding
 

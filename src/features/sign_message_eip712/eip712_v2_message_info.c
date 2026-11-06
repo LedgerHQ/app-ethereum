@@ -8,6 +8,7 @@
 #include "typed_data.h"
 #include "type_hash.h"
 #include "operation_ctx.h"
+#include "proxy_info.h"
 
 /**
  * Get the chain of the domain, when it has one the app supports
@@ -20,13 +21,36 @@ static bool get_domain_chain_id(uint64_t *chain_id) {
            (*chain_id <= MAX_VALID_CHAIN_ID);
 }
 
+bool eip712_v2_is_domain_separator(const uint8_t separator[CX_KECCAK_256_SIZE]) {
+    uint8_t hash[CX_KECCAK_256_SIZE];
+    uint8_t contract[ADDRESS_LENGTH];
+    uint64_t chain_id;
+    const uint8_t *implem;
+
+    if (!td_hash_domain(hash)) {
+        return false;
+    }
+    if (memcmp(hash, separator, sizeof(hash)) == 0) {
+        return true;
+    }
+    // A contract that delegates to another one is described as that one, on the same chain. Only
+    // this comparison sees the other contract: the message is hashed with its own.
+    if (!get_domain_chain_id(&chain_id) || !td_get_domain_verifying_address(contract) ||
+        ((implem = get_implem_contract(&chain_id, contract, NULL)) == NULL)) {
+        return false;
+    }
+    return td_hash_domain_with_contract(implem, hash) &&
+           (memcmp(hash, separator, sizeof(hash)) == 0);
+}
+
 /**
  * Check a message info is about the message it comes with
  *
  * The domain separator and the primary type hash have to be the ones of the message: the domain
- * separator covers every field of the domain and its type, its chain and its contract included. A
- * chain or a contract the domain has also has to be one the app can tell: a chainId that is not a
- * valid chain, a verifyingContract that is not an address, would leave the review without them.
+ * separator covers every field of the domain and its type, its chain and its contract included,
+ * see \ref eip712_v2_is_domain_separator. A chain or a contract the domain has also has to be one
+ * the app can tell: a chainId that is not a valid chain, a verifyingContract that is not an
+ * address, would leave the review without them.
  *
  * @param[in] info the message info
  * @return whether it matches the message
@@ -36,7 +60,6 @@ static bool is_bound_to_message(const s_operation_info *info) {
     const uint8_t *expected_type_hash = get_primary_type_hash(info);
     const uint8_t *expected_domain_separator = get_domain_separator(info);
     uint8_t type_hash_buf[CX_KECCAK_256_SIZE];
-    uint8_t domain_separator[CX_KECCAK_256_SIZE];
     uint64_t domain_chain_id;
     uint8_t domain_contract[ADDRESS_LENGTH];
 
@@ -49,8 +72,7 @@ static bool is_bound_to_message(const s_operation_info *info) {
         PRINTF("EIP712 v2: message info is for another type\n");
         return false;
     }
-    if (!td_hash_domain(domain_separator) ||
-        (memcmp(domain_separator, expected_domain_separator, sizeof(domain_separator)) != 0)) {
+    if (!eip712_v2_is_domain_separator(expected_domain_separator)) {
         PRINTF("EIP712 v2: message info is for another domain\n");
         return false;
     }

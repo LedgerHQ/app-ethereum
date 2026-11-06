@@ -21,6 +21,7 @@ from client.command_builder import InsType, P2Type
 from client.eip712 import InputData, json_to_tlv
 from client.eip712.json_to_tlv import STRUCT_VERSION
 from client.gcs import Eip712MessageInfo, TxInfo, TxInfoTag
+from client.proxy_info import ProxyInfo
 from client.signing_partners import CALLDATA_PARTNER
 from client.status_word import StatusWord
 from eth_account import Account
@@ -223,6 +224,73 @@ def test_eip712_v2_message_info_multiple_chunks(scenario_navigator: NavigateWith
     json_to_tlv.process_data(app_client, data, BIP32_PATH)
     assert app_client.eip712_v2_send_message_info(payload).status == StatusWord.SWO_SUCCESS
     check_signed(scenario_navigator, app_client, data)
+
+
+# --- A domain whose contract is a proxy ----------------------------------------------------------
+
+IMPLEMENTATION = "0x" + "ef" * 20
+
+
+def provide_proxy_info(
+    app_client: EthAppClient, proxy: str, chain_id: int, implementation: str, selector: bytes | None = None
+) -> None:
+    """The PROXY_INFO of CAL: the contract a proxy delegates to, on a chain, for every selector or for one."""
+    proxy_info = ProxyInfo(
+        ResponseParser.challenge(app_client.get_challenge().data),
+        bytes.fromhex(proxy[2:]),
+        chain_id,
+        bytes.fromhex(implementation[2:]),
+        selector=selector,
+    )
+    response = app_client.provide_proxy_info(proxy_info.serialize())
+    assert response.status == StatusWord.SWO_SUCCESS
+
+
+def info_of_the_implementation(data: dict) -> Eip712MessageInfo:
+    """The message info CAL signs for the implementation: for the domain with its address."""
+    implementation = copy.deepcopy(data)
+    implementation["domain"]["verifyingContract"] = IMPLEMENTATION
+    return info_for(data, domain_separator=domain_separator(implementation))
+
+
+def test_eip712_v2_message_info_of_the_implementation_of_a_proxy(scenario_navigator: NavigateWithScenario):
+    """The info of an implementation applies to its proxy, which the message is still signed for."""
+    enable_blind_signing(scenario_navigator)
+    app_client = EthAppClient(scenario_navigator.backend)
+    data = message(1, CONTRACT)
+
+    json_to_tlv.process_data(app_client, data, BIP32_PATH)
+    provide_proxy_info(app_client, CONTRACT, 1, IMPLEMENTATION)
+    response = app_client.eip712_v2_send_message_info(info_of_the_implementation(data).serialize())
+    assert response.status == StatusWord.SWO_SUCCESS
+    check_signed(scenario_navigator, app_client, data)
+
+
+IMPLEMENTATION_REFUSED = {
+    "no_proxy_info": (message(1, CONTRACT), None),
+    "proxy_info_of_another_contract": (message(1, CONTRACT), (OTHER_CONTRACT, 1, IMPLEMENTATION, None)),
+    "proxy_info_on_another_chain": (message(1, CONTRACT), (CONTRACT, 137, IMPLEMENTATION, None)),
+    "proxy_info_of_another_implementation": (message(1, CONTRACT), (CONTRACT, 1, "0x" + "12" * 20, None)),
+    "proxy_info_for_one_selector": (message(1, CONTRACT), (CONTRACT, 1, IMPLEMENTATION, bytes.fromhex("a9059cbb"))),
+    "domain_without_chain": (message(None, CONTRACT), (CONTRACT, 1, IMPLEMENTATION, None)),
+}
+
+
+@pytest.mark.parametrize("data, proxy", IMPLEMENTATION_REFUSED.values(), ids=IMPLEMENTATION_REFUSED.keys())
+def test_eip712_v2_message_info_of_an_implementation_refused(
+    scenario_navigator: NavigateWithScenario, data: dict, proxy: tuple | None
+):
+    """The info of an implementation needs the PROXY_INFO of the contract of the domain, on its chain."""
+    app_client = EthAppClient(scenario_navigator.backend)
+
+    json_to_tlv.process_data(app_client, data, BIP32_PATH)
+    if proxy is not None:
+        provide_proxy_info(app_client, *proxy)
+    expect_status(
+        StatusWord.SWO_INCORRECT_DATA,
+        lambda: app_client.eip712_v2_send_message_info(info_of_the_implementation(data).serialize()),
+    )
+    assert_recovers(app_client)
 
 
 # --- Refused: the struct ------------------------------------------------------------------------

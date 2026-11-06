@@ -677,6 +677,11 @@ bool td_hash_domain(uint8_t out[CX_KECCAK_256_SIZE]) {
     return value_hash_domain(&g_impl, out);
 }
 
+bool td_hash_domain_with_contract(const uint8_t contract[ADDRESS_LENGTH],
+                                  uint8_t out[CX_KECCAK_256_SIZE]) {
+    return value_hash_domain_with_contract(&g_impl, contract, out);
+}
+
 const s_struct_712 *td_find_struct_if(td_f_struct_pred pred, const void *ctx) {
     const s_struct_712 *struct_ptr = g_structs;
 

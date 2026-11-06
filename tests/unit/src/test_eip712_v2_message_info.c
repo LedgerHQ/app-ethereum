@@ -5,9 +5,9 @@
  *        rules) and eip712_v2_message_info.c (the binding of the struct to the message).
  *
  * The struct itself is parsed and verified by operation_info.c, which test_tx_info covers, and the
- * typed data it is bound to lives in typed_data.c: both are stubbed here. So is the context that
- * keeps the accepted message, which test_operation_ctx covers. tlv_from_apdu is the seam through
- * which the payload handler is reached.
+ * typed data it is bound to lives in typed_data.c: both are stubbed here. So are the context that
+ * keeps the accepted message, which test_operation_ctx covers, and the received PROXY_INFO.
+ * tlv_from_apdu is the seam through which the payload handler is reached.
  */
 
 #include "unity.h"
@@ -96,6 +96,36 @@ static uint8_t g_domain_separator[CX_KECCAK_256_SIZE];
 bool td_hash_domain(uint8_t out[CX_KECCAK_256_SIZE]) {
     memcpy(out, g_domain_separator, CX_KECCAK_256_SIZE);
     return g_domain_separator_ret;
+}
+
+// the hash of the domain with another contract: the one of the domain, its last byte xored with
+// the first byte of the contract
+static bool g_domain_separator_with_contract_ret = true;
+static int g_hash_with_contract_calls = 0;
+static void hash_of_the_domain_with(const uint8_t contract[ADDRESS_LENGTH],
+                                    uint8_t out[CX_KECCAK_256_SIZE]);
+bool td_hash_domain_with_contract(const uint8_t contract[ADDRESS_LENGTH],
+                                  uint8_t out[CX_KECCAK_256_SIZE]) {
+    g_hash_with_contract_calls++;
+    hash_of_the_domain_with(contract, out);
+    return g_domain_separator_with_contract_ret;
+}
+
+// the received PROXY_INFO: the implementation of a proxy, on a chain, maybe for a selector only
+static bool g_has_proxy_info = false;
+static uint64_t g_proxy_chain_id = 1;
+static uint8_t g_proxy[ADDRESS_LENGTH];
+static uint8_t g_implem[ADDRESS_LENGTH];
+static bool g_proxy_has_selector = false;
+const uint8_t *get_implem_contract(const uint64_t *chain_id,
+                                   const uint8_t *addr,
+                                   const uint8_t *selector) {
+    if (!g_has_proxy_info || (chain_id == NULL) || (*chain_id != g_proxy_chain_id) ||
+        (memcmp(addr, g_proxy, ADDRESS_LENGTH) != 0) ||
+        (g_proxy_has_selector && (selector == NULL))) {
+        return NULL;
+    }
+    return g_implem;
 }
 
 // the type hash of the message's type
@@ -216,6 +246,12 @@ static e_tlv_apdu_ret tlv_from_apdu_stub(bool first_chunk,
 static const uint8_t g_type_hash_of_mail[INT256_LENGTH] = {0x4D, 0x41, 0x49, 0x4C, 0x01};
 static const uint8_t g_hash_of_the_domain[CX_KECCAK_256_SIZE] = {0xD0, 0x4A, 0x14, 0x01};
 
+static void hash_of_the_domain_with(const uint8_t contract[ADDRESS_LENGTH],
+                                    uint8_t out[CX_KECCAK_256_SIZE]) {
+    memcpy(out, g_hash_of_the_domain, CX_KECCAK_256_SIZE);
+    out[CX_KECCAK_256_SIZE - 1] ^= contract[0];
+}
+
 static void reset(void) {
     appState = APP_STATE_IDLE;
     eip712_session_close();
@@ -233,6 +269,14 @@ static void reset(void) {
     memset(g_domain_contract, 0xAB, sizeof(g_domain_contract));
     g_domain_separator_ret = true;
     memcpy(g_domain_separator, g_hash_of_the_domain, sizeof(g_domain_separator));
+    g_domain_separator_with_contract_ret = true;
+    g_hash_with_contract_calls = 0;
+    // the contract of the domain is a proxy, without PROXY_INFO yet
+    g_has_proxy_info = false;
+    g_proxy_chain_id = 1;
+    memset(g_proxy, 0xAB, sizeof(g_proxy));
+    memset(g_implem, 0xCD, sizeof(g_implem));
+    g_proxy_has_selector = false;
     g_type_hash_ret = true;
     memcpy(g_type_hash, g_type_hash_of_mail, sizeof(g_type_hash));
     g_receive_ret = true;
@@ -409,6 +453,89 @@ void test_domain_contract_that_is_not_a_contract_rejected(void) {
 }
 
 // =============================================================================
+// A domain whose contract is a proxy
+// =============================================================================
+
+// an info for the domain with the implementation of its contract, which CAL describes
+static void receive_the_info_of_the_implementation(void) {
+    hash_of_the_domain_with(g_implem, g_received.domain_separator);
+}
+
+void test_info_of_the_implementation_of_a_proxy_accepted(void) {
+    g_has_proxy_info = true;
+    receive_the_info_of_the_implementation();
+    TEST_ASSERT_EQUAL(send(P1_FIRST_CHUNK), SWO_SUCCESS);
+    TEST_ASSERT_NOT_NULL(g_message);
+    // the message keeps its own contract, the proxy
+    TEST_ASSERT_TRUE(g_message_has_contract);
+    TEST_ASSERT_EQUAL_MEMORY(g_domain_contract, g_message_contract, ADDRESS_LENGTH);
+}
+
+void test_info_of_the_domain_itself_needs_no_proxy(void) {
+    g_has_proxy_info = true;
+    TEST_ASSERT_EQUAL(send(P1_FIRST_CHUNK), SWO_SUCCESS);
+    TEST_ASSERT_EQUAL(g_hash_with_contract_calls, 0);
+}
+
+void test_info_of_an_implementation_without_proxy_info_rejected(void) {
+    receive_the_info_of_the_implementation();
+    TEST_ASSERT_EQUAL(send(P1_FIRST_CHUNK), SWO_INCORRECT_DATA);
+    TEST_ASSERT_NULL(g_message);
+    TEST_ASSERT_EQUAL(g_delete_calls, 1);
+}
+
+void test_info_of_another_implementation_rejected(void) {
+    const uint8_t other[ADDRESS_LENGTH] = {0x11};
+
+    g_has_proxy_info = true;
+    hash_of_the_domain_with(other, g_received.domain_separator);
+    TEST_ASSERT_EQUAL(send(P1_FIRST_CHUNK), SWO_INCORRECT_DATA);
+    TEST_ASSERT_NULL(g_message);
+}
+
+// The PROXY_INFO has to be the one of the contract of the domain, on the chain of the domain, for
+// every selector
+void test_proxy_info_of_another_proxy_chain_or_selector_ignored(void) {
+    g_has_proxy_info = true;
+    receive_the_info_of_the_implementation();
+
+    memset(g_proxy, 0xEF, sizeof(g_proxy));
+    TEST_ASSERT_EQUAL(send(P1_FIRST_CHUNK), SWO_INCORRECT_DATA);
+    memset(g_proxy, 0xAB, sizeof(g_proxy));
+    g_proxy_chain_id = 137;
+    TEST_ASSERT_EQUAL(send(P1_FIRST_CHUNK), SWO_INCORRECT_DATA);
+    g_proxy_chain_id = 1;
+    g_proxy_has_selector = true;
+    TEST_ASSERT_EQUAL(send(P1_FIRST_CHUNK), SWO_INCORRECT_DATA);
+    TEST_ASSERT_NULL(g_message);
+
+    g_proxy_has_selector = false;
+    TEST_ASSERT_EQUAL(send(P1_FIRST_CHUNK), SWO_SUCCESS);
+}
+
+// a domain needs a chain and an address contract to have a proxy
+void test_no_proxy_without_a_chain_or_an_address_contract(void) {
+    g_has_proxy_info = true;
+    receive_the_info_of_the_implementation();
+
+    g_domain_has_chain_id = false;
+    TEST_ASSERT_EQUAL(send(P1_FIRST_CHUNK), SWO_INCORRECT_DATA);
+    g_domain_has_chain_id = true;
+    g_domain_contract_is_an_address = false;
+    TEST_ASSERT_EQUAL(send(P1_FIRST_CHUNK), SWO_INCORRECT_DATA);
+    TEST_ASSERT_NULL(g_message);
+    TEST_ASSERT_EQUAL(g_hash_with_contract_calls, 0);
+}
+
+void test_hash_with_the_implementation_failure_rejected(void) {
+    g_has_proxy_info = true;
+    receive_the_info_of_the_implementation();
+    g_domain_separator_with_contract_ret = false;
+    TEST_ASSERT_EQUAL(send(P1_FIRST_CHUNK), SWO_INCORRECT_DATA);
+    TEST_ASSERT_NULL(g_message);
+}
+
+// =============================================================================
 // The message made of the info
 // =============================================================================
 
@@ -505,6 +632,13 @@ int main(void) {
     RUN_TEST(test_domain_with_neither_chain_nor_contract_accepted);
     RUN_TEST(test_domain_chain_that_is_not_a_chain_rejected);
     RUN_TEST(test_domain_contract_that_is_not_a_contract_rejected);
+    RUN_TEST(test_info_of_the_implementation_of_a_proxy_accepted);
+    RUN_TEST(test_info_of_the_domain_itself_needs_no_proxy);
+    RUN_TEST(test_info_of_an_implementation_without_proxy_info_rejected);
+    RUN_TEST(test_info_of_another_implementation_rejected);
+    RUN_TEST(test_proxy_info_of_another_proxy_chain_or_selector_ignored);
+    RUN_TEST(test_no_proxy_without_a_chain_or_an_address_contract);
+    RUN_TEST(test_hash_with_the_implementation_failure_rejected);
     RUN_TEST(test_the_contract_of_the_domain_is_handed_over);
     RUN_TEST(test_no_contract_is_handed_over_when_the_domain_has_none);
     RUN_TEST(test_no_contract_is_handed_over_when_the_domain_one_is_not_an_address);

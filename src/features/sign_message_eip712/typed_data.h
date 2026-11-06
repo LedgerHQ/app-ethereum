@@ -453,6 +453,16 @@ bool td_hash_pass(void);
 bool td_hash_domain(uint8_t out[CX_KECCAK_256_SIZE]);
 
 /**
+ * Compute the hash of the domain as if its address verifyingContract were another one
+ *
+ * @param[in] contract the address to hash in place of the verifyingContract of the domain
+ * @param[out] out the hash
+ * @return whether the domain has an address verifyingContract and the hash was computed
+ */
+bool td_hash_domain_with_contract(const uint8_t contract[ADDRESS_LENGTH],
+                                  uint8_t out[CX_KECCAK_256_SIZE]);
+
+/**
  * Fill @p chain_id with the chainId from the domain value tree.
  *
  * The chainId is an unsigned integer that fits in 64 bits: a field of another type, or a value

@@ -28,6 +28,15 @@ bool value_hash_domain(const s_eip712_impl *impl, uint8_t out[CX_KECCAK_256_SIZE
     return true;
 }
 
+bool value_hash_domain_with_contract(const s_eip712_impl *impl,
+                                     const uint8_t contract[ADDRESS_LENGTH],
+                                     uint8_t out[CX_KECCAK_256_SIZE]) {
+    (void) impl;
+    (void) contract;
+    (void) out;
+    return false;
+}
+
 // =============================================================================
 // Names
 // =============================================================================

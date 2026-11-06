@@ -60,7 +60,8 @@ has.
 > - `OPERATION_TYPE` completes the title of the review: `Review transaction to <OPERATION_TYPE>` for
 >   a transaction, `Review typed message to <OPERATION_TYPE>` for an EIP-712 message.
 > - For an EIP-712 message, `DOMAIN_SEPARATOR` covers the `chainId` and the `verifyingContract` of
->   the domain, which are the chain and the contract of the message. See
+>   the domain, which are the chain and the contract of the message. A proxy contract can have the
+>   info of its implementation, with a [PROXY_INFO](#proxy_info). See
 >   [EIP712_MESSAGE_INFO](eip712.md#eip712_message_info).
 
 ## ENUM_VALUE
@@ -543,6 +544,9 @@ Embedded as VALUE tag `0x06`. References a stored MAP_ENTRY by ID and key.
 | DELEGATION_TYPE | 0x43 | [DelegationType](#delegationtype-enum) | type of delegation              |          |
 | SIGNATURE       | 0x15 | uint8[]                                | signature of the structure      |          |
 
+A PROXY_INFO without `SELECTOR` also applies to the `verifyingContract` of an EIP-712 domain, on its
+`chainId`. For a V2 message, see [EIP712_MESSAGE_INFO](eip712.md#eip712_message_info).
+
 ### DelegationType enum
 
 | Name                 | Value |
@@ -675,7 +679,8 @@ A descriptor names one of these, with its tags and none of the others:
 - A V2 message: `DOMAIN_SEPARATOR`, `hashStruct(domain)`, and `PRIMARY_TYPE_HASH`,
   `keccak256(encodeType(primaryType))`, as in its [EIP712_MESSAGE_INFO](eip712.md#eip712_message_info).
   The device computes both from the message, whether it has an info or not, and compares all their
-  bytes. The domain separator covers the chain and the contract of the domain, when it has them.
+  bytes. The domain separator covers the chain and the contract of the domain, when it has them,
+  and can be the one of the implementation of a proxy contract, as for the info.
 
 Gating applies to blind signing: a transaction with data, a V1 message in basic filtering mode and a
 V2 message without field descriptors. The review of a described V2 message is not gated. When gating

@@ -116,9 +116,9 @@ bool type_hash(const char *struct_name, uint8_t *hash_buf) {
 // The domain separator of the V2 message being signed
 static bool g_hash_domain_ret = true;
 static uint8_t g_domain_separator_buf[32];
-bool td_hash_domain(uint8_t out[32]) {
-    memcpy(out, g_domain_separator_buf, sizeof(g_domain_separator_buf));
-    return g_hash_domain_ret;
+bool eip712_v2_is_domain_separator(const uint8_t separator[32]) {
+    return g_hash_domain_ret &&
+           (memcmp(separator, g_domain_separator_buf, sizeof(g_domain_separator_buf)) == 0);
 }
 
 static uint8_t g_domain_contract_addr[ADDRESS_LENGTH];

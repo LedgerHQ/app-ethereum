@@ -12,7 +12,7 @@ commands in [apdu.md](../../../../doc/apdu.md).
 | File                             | Tests | Covers                                                          |
 |----------------------------------|-------|-----------------------------------------------------------------|
 | `test_eip712_v2.py`              | 183   | Schema, values, signing, the raw review                         |
-| `test_eip712_v2_message_info.py` | 56    | `EIP712_MESSAGE_INFO`                                           |
+| `test_eip712_v2_message_info.py` | 63    | `EIP712_MESSAGE_INFO`                                           |
 | `test_eip712_v2_fields.py`       | 140   | Field descriptors, the described review, calls, enums and maps  |
 
 The V2 tests of `test_gating.py` are listed at the end.
@@ -113,6 +113,10 @@ The V2 tests of `test_gating.py` are listed at the end.
   `int256`, `bool`, `bytes32`), a contract named by another text than `cosmos`, a bad signature,
   other versions, a `TRANSACTION_INFO`, a chain, a contract or a selector, missing required tags,
   an unknown tag and a tag twice.
+- **Proxy:** with the PROXY_INFO of the contract of the domain, the message info of its
+  implementation is accepted and the message is signed with its own domain. It is refused (6
+  cases) without PROXY_INFO, with the one of another contract, chain or implementation, with one
+  for a single selector, and for a domain without a chain.
 - **The command:** other `P1` and `P2`, a message info without a message, a second one, one that
   does not outlive its flow, and the schema, the message info, the values and `EIP712 SIGN` during
   a V1 session.
@@ -190,7 +194,8 @@ The V2 tests of `test_gating.py` are listed at the end.
 
 - A gating descriptor for a V2 message holds its domain separator and the hash of its primary type.
   The raw review shows the blind signing warning and the gating warning. A domain without a
-  `verifyingContract` is gated too.
+  `verifyingContract` is gated too, and with a PROXY_INFO, the descriptor of an implementation
+  gates a message whose domain names its proxy.
 - 9 descriptors of another message are refused at `EIP712 SIGN`: another domain name, chain or
   contract, another type, flipped bits, the two hashes swapped, and the descriptor of a V1 message.
 - A V2 descriptor that also has an address, a chain ID or a selector is refused.

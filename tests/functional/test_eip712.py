@@ -45,6 +45,7 @@ from fields_utils import get_all_paths, get_all_tuple_array_paths
 from ragger.backend import BackendInterface
 from ragger.error import ExceptionRAPDU
 from ragger.navigator import NavigateWithScenario
+from test_eip712_v2 import reset_app
 from test_gcs import compute_inst_hash
 
 BIP32_PATH = "m/44'/60'/0'/0/0"
@@ -417,6 +418,64 @@ def test_eip712_fixed_bytes_short_value(scenario_navigator: NavigateWithScenario
         [SettingID.BLIND_SIGNING],
     )
     eip712_new_common(scenario_navigator, data, nb_warnings=1)
+
+
+# What makes the encoded type string ambiguous. A struct name holding type text lets a host sign a
+# flat struct whose type hash and encoded data equal those of a nested one, hiding its members.
+TYPE_DELIMITERS = {
+    "comma": "a,b",
+    "open_paren": "a(b",
+    "close_paren": "a)b",
+    "open_bracket": "a[0",
+    "close_bracket": "a]",
+    "space": "a b",
+    "nested_type_text": "Transfer(Details details,uint256 nonce)Details",
+    "empty": "",
+}
+
+
+@pytest.mark.parametrize("name", TYPE_DELIMITERS.values(), ids=TYPE_DELIMITERS.keys())
+def test_eip712_struct_name_ambiguous(backend: BackendInterface, name: str):
+    app_client = EthAppClient(backend)
+
+    with pytest.raises(ExceptionRAPDU) as e:
+        with app_client.eip712_send_struct_def_struct_name(name):
+            pass
+    assert e.value.status == StatusWord.SWO_PARAMETER_ERROR_NO_INFO
+
+
+@pytest.mark.parametrize("name", TYPE_DELIMITERS.values(), ids=TYPE_DELIMITERS.keys())
+def test_eip712_struct_reference_ambiguous(backend: BackendInterface, name: str):
+    app_client = EthAppClient(backend)
+
+    with app_client.eip712_send_struct_def_struct_name("Test"):
+        pass
+    with pytest.raises(ExceptionRAPDU) as e:
+        with app_client.eip712_send_struct_def_struct_field(EIP712FieldType.CUSTOM, name, None, [], "x"):
+            pass
+    assert e.value.status == StatusWord.SWO_PARAMETER_ERROR_NO_INFO
+
+
+@pytest.mark.parametrize(
+    "key_name,accepted",
+    [("a,b", False), ("a(b", False), ("a)b", False), ("a b", True), ("a[0]", True)],
+    ids=["comma", "open_paren", "close_paren", "space", "brackets"],
+)
+def test_eip712_field_name_ambiguous(backend: BackendInterface, key_name: str, accepted: bool):
+    app_client = EthAppClient(backend)
+
+    with app_client.eip712_send_struct_def_struct_name("Test"):
+        pass
+    if accepted:
+        with app_client.eip712_send_struct_def_struct_field(EIP712FieldType.BOOL, "bool", None, [], key_name):
+            pass
+        assert app_client.response().status == StatusWord.SWO_SUCCESS
+        reset_app(app_client)
+    else:
+        with pytest.raises(ExceptionRAPDU) as e:
+            with app_client.eip712_send_struct_def_struct_field(EIP712FieldType.BOOL, "bool", None, [], key_name):
+                pass
+        assert e.value.status == StatusWord.SWO_PARAMETER_ERROR_NO_INFO
 
 
 @pytest.mark.parametrize("address", ["0x01", "0x" + "11" * 21], ids=["short", "long"])

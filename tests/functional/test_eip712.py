@@ -541,6 +541,42 @@ def test_eip712_process_data_concurrent_calls():
         assert client.calls == expected[name], f"{name} received commands of another message"
 
 
+@pytest.mark.parametrize(
+    "field, value",
+    [({"name": "chainId", "type": "uint256"}, 1), ({"name": "name", "type": "string"}, "Fee")],
+    ids=["chainId", "name"],
+)
+def test_eip712_filtered_field_named_as_domain_field(scenario_navigator: NavigateWithScenario, field: dict, value):
+    """A filtered message field sharing its name with an unfiltered domain field must be signed."""
+    data = {
+        "domain": {
+            "chainId": 1,
+            "name": "Advanced test",
+            "verifyingContract": "0xCcCCccccCCCCcCCCCCCcCcCccCcCCCcCcccccccC",
+            "version": "1",
+        },
+        "message": {field["name"]: value, "expiry": 1735689600},
+        "primaryType": "Approval",
+        "types": {
+            "EIP712Domain": [
+                {"name": "name", "type": "string"},
+                {"name": "version", "type": "string"},
+                {"name": "chainId", "type": "uint256"},
+                {"name": "verifyingContract", "type": "address"},
+            ],
+            "Approval": [field, {"name": "expiry", "type": "uint256"}],
+        },
+    }
+    filters = {
+        "name": "Advanced Filtering",
+        "fields": {
+            field["name"]: {"type": "raw", "name": "Field"},
+            "expiry": {"type": "datetime", "name": "Expiry"},
+        },
+    }
+    eip712_new_common(scenario_navigator, data, filters)
+
+
 @pytest.mark.parametrize("delta", [-1, 1], ids=["short", "long"])
 def test_eip712_fixed_bytes_wrong_length(scenario_navigator: NavigateWithScenario, monkeypatch: pytest.MonkeyPatch, delta: int):
     """A bytesN value must be exactly N bytes long."""

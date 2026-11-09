@@ -18,6 +18,8 @@ filtering_paths: dict = {}
 filtering_tokens: list[dict] = []
 filtering_calldatas: list[dict] = []
 current_path: list[str] = []
+# filters only apply to the message, never to the domain
+filters_apply: bool = False
 sig_ctx: dict[str, Any] = {}
 # Serializes the calls using the state above
 state_lock = threading.RLock()
@@ -283,7 +285,7 @@ def send_struct_impl_field(value, field) -> None:
 
     data = encoding_functions[field["enum"]](value, field["typesize"])
 
-    if filtering_paths:
+    if filtering_paths and filters_apply:
         path = ".".join(current_path)
         if path in filtering_paths.keys():
             callback = send_filter(path, False)
@@ -314,7 +316,7 @@ def evaluate_field(structs, data, field, lvls_left, new_level=True):
         assert response.status == StatusWord.SWO_SUCCESS, (
             f"Error sending array {field['name']} of type {field['type']}: {response.status}"
         )
-        if len(data) == 0:
+        if len(data) == 0 and filters_apply:
             for path in filtering_paths.keys():
                 dpath = ".".join(current_path) + ".[]"
                 if path.startswith(dpath):
@@ -607,6 +609,7 @@ def process_data(aclient: EthAppClient, data_json: dict, filters: dict | None = 
 def process_data_locked(aclient: EthAppClient, data_json: dict, filters: dict | None = None) -> None:
     global app_client
     global current_path
+    global filters_apply
     global filtering_paths
     global filtering_tokens
     global filtering_calldatas
@@ -619,6 +622,7 @@ def process_data_locked(aclient: EthAppClient, data_json: dict, filters: dict | 
     # `filters` was omitted, leading to silent cross-test state leakage
     # (CWE-664).
     current_path = []
+    filters_apply = False
     filtering_paths = {}
     filtering_tokens = []
     filtering_calldatas = []
@@ -674,6 +678,7 @@ def process_data_locked(aclient: EthAppClient, data_json: dict, filters: dict | 
             send_filtering_message_info(domain["name"], len(filtering_paths))
 
     # send message implementation
+    filters_apply = True
     with app_client.eip712_send_struct_impl_root_struct(message_typename):
         pass
     response = app_client.response()

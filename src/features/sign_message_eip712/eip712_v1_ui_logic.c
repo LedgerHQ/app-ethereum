@@ -230,6 +230,7 @@ bool ui_712_continue_or_finish(void) {
         if ((ui_ctx->filtering_mode == EIP712_FILTERING_BASIC) && !N_storage.dataAllowed &&
             !N_storage.verbose_eip712) {
             ui_error_blind_signing();
+            ui_hold_error_screen();
             return false;
         }
         if (!ui_712_prepare_review_v1(ui_ctx->filtering_mode)) {

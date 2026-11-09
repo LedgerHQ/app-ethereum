@@ -40,7 +40,7 @@ The V2 tests of `test_gating.py` are listed at the end.
 - A raw message is blind signing: it is refused without the "Blind signing" or the "Raw messages"
   setting, and the "Raw messages" setting alone is enough.
 - The raw review, compared with snapshots, shows the signer, then every value of the domain and of
-  the message, more than the device formats at once. With the "Transaction hash" setting, it ends
+  the message, more than the device formats at once. With the "Show all hashes" setting, it ends
   with the hash of the domain and the hash of the message. The two rows are rows of the review: a
   message a row short of the limit is refused when they are shown.
 - The review has at most 255 rows, 252 on a Nano, the signer's included: a message of that many rows
@@ -133,7 +133,7 @@ The V2 tests of `test_gating.py` are listed at the end.
   creator. Messages with and without a contract, a creator or other information about the
   contract are signed (5 cases).
 - 40 described messages are signed in a row: each review gives back the memory it took.
-- With the "Transaction hash" setting, the review ends with the hash of the domain and the hash of
+- With the "Show all hashes" setting, the review ends with the hash of the domain and the hash of
   the message, and shows none without it.
 - A permit, the message of the V1 advanced filtering test, is described by a token amount in the
   token of the contract and a datetime, with an intent and a creator in the message info. The

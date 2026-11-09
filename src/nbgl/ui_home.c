@@ -171,11 +171,10 @@ static void prepare_and_display_home(const char *appname, const char *tagline, u
 #endif  // HAVE_7702_SUPPORT
 
     switches[DEBUG_ID].initState = N_storage.contractDetails ? ON_STATE : OFF_STATE;
+    switches[DEBUG_ID].text = "Raw contract data";
 #ifdef SCREEN_SIZE_WALLET
-    switches[DEBUG_ID].text = "Debug smart contracts";
     switches[DEBUG_ID].subText = "Display contract data details";
 #else
-    switches[DEBUG_ID].text = "Debug contracts";
     switches[DEBUG_ID].subText = "Display contract\ndata details";
 #endif
     switches[DEBUG_ID].token = DEBUG_TOKEN;
@@ -193,11 +192,11 @@ static void prepare_and_display_home(const char *appname, const char *tagline, u
 #endif  // HAVE_TRANSACTION_CHECKS
 
     switches[HASH_ID].initState = N_storage.displayHash ? ON_STATE : OFF_STATE;
-    switches[HASH_ID].text = "Transaction hash";
+    switches[HASH_ID].text = "Show all hashes";
 #ifdef SCREEN_SIZE_WALLET
     switches[HASH_ID].subText = "Always display the transaction or message hash";
 #else
-    switches[HASH_ID].subText = "Always display the transaction hash";
+    switches[HASH_ID].subText = "Always display the operation hash";
 #endif
     switches[HASH_ID].token = HASH_TOKEN;
 #ifdef HAVE_PIEZO_SOUND

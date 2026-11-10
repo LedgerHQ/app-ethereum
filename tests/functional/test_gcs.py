@@ -1482,6 +1482,113 @@ def test_gcs_nested_execTransaction_addOwnerWithThreshold(
         scenario_navigator.review_approve()
 
 
+def test_gcs_nested_sender_address(scenario_navigator: NavigateWithScenario):
+    """The sender address of a nested call stands for that call's sender, the Safe, not the signer."""
+    backend = scenario_navigator.backend
+    app_client = EthAppClient(backend)
+
+    sender_sentinel = bytes.fromhex("0000000000000000000000000000000000000001")
+    with open(f"{ABIS_FOLDER}/safe_1.4.1.abi.json", encoding="utf-8") as f:
+        contract = Web3().eth.contract(  # type: ignore[call-overload]  # web3 stubs reject raw-bytes addresses reused as contract_addr
+            abi=json.load(f),
+            address=bytes.fromhex("23F8abfC2824C397cCB3DA89ae772984107dDB99"),
+        )
+    sub_data = contract.encode_abi("addOwnerWithThreshold", [sender_sentinel, 2])
+    data = contract.encode_abi(
+        "execTransaction",
+        [
+            contract.address,
+            0,
+            sub_data,
+            0,
+            0,
+            0,
+            0,
+            bytes(20),
+            bytes(20),
+            bytes(65),
+        ],
+    )
+    tx_params = {
+        "nonce": 78,
+        "maxFeePerGas": Web3.to_wei(8.9, "gwei"),
+        "maxPriorityFeePerGas": Web3.to_wei(2, "gwei"),
+        "gas": 168740,
+        "to": contract.address,
+        "data": data,
+        "chainId": 1,
+    }
+    with app_client.sign("m/44'/60'/0'/0/0", tx_params, mode=SignMode.STORE):
+        pass
+
+    param_paths = get_all_paths(f"{ABIS_FOLDER}/safe_1.4.1.abi.json", "execTransaction")
+    fields = [
+        Field(
+            1,
+            "data",
+            ParamCalldata(
+                1,
+                Value(1, TypeFamily.BYTES, data_path=DataPath(1, param_paths["data"])),
+                Value(1, TypeFamily.ADDRESS, data_path=DataPath(1, param_paths["to"])),
+                # the Safe makes the nested call
+                spender=Value(1, TypeFamily.ADDRESS, container_path=ContainerPath.TO),
+            ),
+        ),
+    ]
+    tx_info = TxInfo(
+        1,
+        tx_params["chainId"],
+        tx_params["to"],
+        get_selector_from_data(tx_params["data"]),
+        compute_inst_hash(fields),
+        "execute a Safe action",
+        creator_name="Safe",
+        creator_legal_name="Safe Ecosystem Foundation",
+        creator_url="safe.global",
+    )
+
+    sub_param_paths = get_all_paths(f"{ABIS_FOLDER}/safe_1.4.1.abi.json", "addOwnerWithThreshold")
+    sub_fields = [
+        Field(
+            1,
+            "owner",
+            ParamTrustedName(
+                1,
+                Value(1, TypeFamily.ADDRESS, data_path=DataPath(1, sub_param_paths["owner"])),
+                [TrustedNameType.ACCOUNT],
+                [TrustedNameSource.MULTISIG_ADDRESS_BOOK],
+                sender_addrs=[sender_sentinel],
+            ),
+        ),
+        Field(
+            1,
+            "_threshold",
+            ParamRaw(
+                1,
+                Value(1, TypeFamily.UINT, type_size=32, data_path=DataPath(1, sub_param_paths["_threshold"])),
+            ),
+        ),
+    ]
+    sub_tx_info = TxInfo(
+        1,
+        tx_params["chainId"],
+        contract.address,
+        get_selector_from_data(sub_data),
+        compute_inst_hash(sub_fields),
+        "add owner with threshold",
+    )
+
+    app_client.provide_operation_info(tx_info.serialize())
+    for field in fields:
+        app_client.provide_operation_field_desc(field.serialize())
+    app_client.provide_operation_info(sub_tx_info.serialize())
+    for sub_field in sub_fields:
+        app_client.provide_operation_field_desc(sub_field.serialize())
+
+    with app_client.sign(mode=SignMode.START_FLOW):
+        scenario_navigator.review_approve()
+
+
 # https://etherscan.io/tx/0x5047fedc98f46d2afd94d0a2813ddf0c8fe777ec0739ffd327586a91e1e5a89a
 def test_gcs_nested_execTransaction_changeThreshold(
     scenario_navigator: NavigateWithScenario,

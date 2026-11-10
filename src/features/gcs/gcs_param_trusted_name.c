@@ -7,8 +7,6 @@
 #include "gcs_field_table.h"
 #include "utils.h"
 #include "shared_context.h"
-#include "get_public_key.h"
-#include "apdu_constants.h"
 #include "operation_ctx.h"
 #include "tlv_utils.h"
 
@@ -225,11 +223,15 @@ __attribute__((noinline)) bool format_param_trusted_name(const struct s_field *f
         } else {
             buf_shrink_expand(values.value[i].ptr, values.value[i].length, addr, sizeof(addr));
         }
-        // Replace by wallet addr if a match is found in sender_addr list
+        // A sender address stands for the sender of the current operation
         for (uint8_t idx = 0; idx < field->param_trusted_name.sender_addr_count; ++idx) {
             if (memcmp(addr, field->param_trusted_name.sender_addr[idx], ADDRESS_LENGTH) == 0) {
-                if (get_public_key(addr, sizeof(addr)) != SWO_SUCCESS) {
+                const uint8_t *from = get_current_operation_from();
+
+                if (from == NULL) {
                     ret = false;
+                } else {
+                    memcpy(addr, from, sizeof(addr));
                 }
                 break;
             }

@@ -34,6 +34,7 @@
 // =============================================================================
 
 static bool g_add_to_field_table_ret = true;
+static char g_last_value[80];
 
 // =============================================================================
 // Wrapped dependencies
@@ -61,6 +62,7 @@ bool add_to_field_table(e_param_type type,
                         const char *value,
                         const void *extra_data) {
     (void) extra_data;
+    strlcpy(g_last_value, value, sizeof(g_last_value));
     return (bool) g_add_to_field_table_ret;
 }
 
@@ -73,6 +75,7 @@ static void reset(void) {
     g_vg_call = 0;
     g_vg_ret = true;
     g_hvs_ret = true;
+    g_last_value[0] = '\0';
 }
 
 // Helper: build a single-value collection from a BE byte buffer.
@@ -137,6 +140,67 @@ void test_format_iterates_multiple_values(void) {
     strlcpy(param.base, "PT", sizeof(param.base));
     param.decimals = 0;
     TEST_ASSERT_TRUE(format_param_unit(&param, "Stake"));
+}
+
+void test_format_signed_word_negative(void) {
+    // int64 -1234 as a sign-extended 32-byte ABI word, decimals=2 → "-12.34"
+    static uint8_t v[32];
+    memset(v, 0xFF, sizeof(v));
+    v[30] = 0xFB;
+    v[31] = 0x2E;
+    set_single_value(v, sizeof(v));
+    g_add_to_field_table_ret = true;
+
+    s_param_unit param = {0};
+    param.value.type_family = TF_INT;
+    param.value.type_size = 8;
+    strlcpy(param.base, "USDC", sizeof(param.base));
+    param.decimals = 2;
+    TEST_ASSERT_TRUE(format_param_unit(&param, "Stake"));
+    TEST_ASSERT_EQUAL_STRING("-12.34 USDC", g_last_value);
+}
+
+void test_format_signed_negative_below_one(void) {
+    // int8 -1 with decimals=2 → "-0.01"
+    static const uint8_t v[] = {0xFF};
+    set_single_value(v, sizeof(v));
+    g_add_to_field_table_ret = true;
+
+    s_param_unit param = {0};
+    param.value.type_family = TF_INT;
+    param.value.type_size = 1;
+    strlcpy(param.base, "PT", sizeof(param.base));
+    param.decimals = 2;
+    TEST_ASSERT_TRUE(format_param_unit(&param, "Stake"));
+    TEST_ASSERT_EQUAL_STRING("-0.01 PT", g_last_value);
+}
+
+void test_format_signed_positive(void) {
+    static const uint8_t v[] = {0x00, 0x00, 0x03, 0xE8};
+    set_single_value(v, sizeof(v));
+    g_add_to_field_table_ret = true;
+
+    s_param_unit param = {0};
+    param.value.type_family = TF_INT;
+    param.value.type_size = 4;
+    strlcpy(param.base, "PT", sizeof(param.base));
+    param.decimals = 0;
+    TEST_ASSERT_TRUE(format_param_unit(&param, "Stake"));
+    TEST_ASSERT_EQUAL_STRING("1000 PT", g_last_value);
+}
+
+void test_format_unsigned_high_bit_stays_positive(void) {
+    static const uint8_t v[] = {0xFF};
+    set_single_value(v, sizeof(v));
+    g_add_to_field_table_ret = true;
+
+    s_param_unit param = {0};
+    param.value.type_family = TF_UINT;
+    param.value.type_size = 1;
+    strlcpy(param.base, "PT", sizeof(param.base));
+    param.decimals = 0;
+    TEST_ASSERT_TRUE(format_param_unit(&param, "Stake"));
+    TEST_ASSERT_EQUAL_STRING("255 PT", g_last_value);
 }
 
 // =============================================================================
@@ -327,6 +391,10 @@ int main(void) {
     RUN_TEST(test_format_with_decimals);
     RUN_TEST(test_format_fractional_with_decimals);
     RUN_TEST(test_format_iterates_multiple_values);
+    RUN_TEST(test_format_signed_word_negative);
+    RUN_TEST(test_format_signed_negative_below_one);
+    RUN_TEST(test_format_signed_positive);
+    RUN_TEST(test_format_unsigned_high_bit_stays_positive);
     RUN_TEST(test_format_value_get_failure_returns_false);
     RUN_TEST(test_format_empty_base_rejected);
     RUN_TEST(test_format_add_to_field_table_failure_propagates);

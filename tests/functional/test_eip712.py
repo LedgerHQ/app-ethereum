@@ -1647,6 +1647,61 @@ def test_eip712_calldata_empty_send(scenario_navigator: NavigateWithScenario):
     eip712_calldata_common(scenario_navigator, filename)
 
 
+def eip712_calldata_empty_send_chain_common(scenario_navigator: NavigateWithScenario, dest_chain_id: int, name_chain_id: int):
+    """An empty call whose chain is given by a filter, with a trusted name for its callee."""
+    app_client = EthAppClient(scenario_navigator.backend)
+    with Path(f"{eip712_json_path()}/safe_empty.json").open(encoding="utf-8") as file:
+        data = json.load(file)
+    data["message"]["destChainId"] = dest_chain_id
+    data["types"]["SafeTx"].insert(2, {"type": "uint256", "name": "destChainId"})
+
+    app_client.provide_trusted_name(
+        TrustedName(
+            2,
+            bytes.fromhex(data["message"]["to"][2:]),
+            "MAB_addr",
+            tn_type=TrustedNameType.ACCOUNT,
+            tn_source=TrustedNameSource.MULTISIG_ADDRESS_BOOK,
+            chain_id=name_chain_id,
+            challenge=ResponseParser.challenge(app_client.get_challenge().data),
+            owner=DEVICE_ADDR,
+            owner_deriv_path=BIP32_PATH,
+        )
+    )
+    filters = {
+        "name": "Calldata test",
+        "calldatas": [
+            {
+                "index": 0,
+                "value_flag": True,
+                "callee_flag": EIP712CalldataParamPresence.PRESENT_FILTERED,
+                "chain_id_flag": True,
+                "selector_flag": False,
+                "amount_flag": True,
+                "spender_flag": EIP712CalldataParamPresence.NONE,
+            },
+        ],
+        "fields": {
+            "to": {"type": "calldata_callee", "index": 0},
+            "value": {"type": "calldata_amount", "index": 0},
+            "destChainId": {"type": "calldata_chain_id", "index": 0},
+            "data": {"type": "calldata_value", "index": 0},
+        },
+    }
+    eip712_new_common(scenario_navigator, data, filters, scenario_navigator.test_name)
+
+
+def test_eip712_calldata_empty_send_cross_chain(scenario_navigator: NavigateWithScenario):
+    """An empty call on another chain than the domain's shows its network, and its callee's name there."""
+    # Arbitrum One, the domain being on Ethereum mainnet
+    eip712_calldata_empty_send_chain_common(scenario_navigator, 42161, 42161)
+
+
+def test_eip712_calldata_empty_send_zero_chain(scenario_navigator: NavigateWithScenario):
+    """An empty call whose filter gives no chain is on the domain's: its callee's name is the one there."""
+    eip712_calldata_empty_send_chain_common(scenario_navigator, 0, 1)
+
+
 def test_eip712_calldata_no_param(scenario_navigator: NavigateWithScenario):
     eip712_calldata_common(scenario_navigator, "safe_calldata_no_param", gcs_handler_no_param)
 

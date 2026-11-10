@@ -91,6 +91,9 @@ static void free_pair_extension(const nbgl_contentValueExt_t *ext) {
  * @return whether both were copied
  */
 static bool set_allocated_pair(size_t idx, const char *item, const char *value) {
+    if (idx >= g_pairsList->nbPairs) {
+        return false;
+    }
     index_allocated[idx] = true;
     return ((g_pairs[idx].item = APP_MEM_STRDUP(item)) != NULL) &&
            ((g_pairs[idx].value = APP_MEM_STRDUP(value)) != NULL);
@@ -768,9 +771,15 @@ static size_t count_leading_pairs(const s_operation_info *info,
     if (show_from) {
         count += 1;
     }
-    // Batch transactions: one page per sub-tx
+    // Batch transactions: one page per call that starts an intent, as add_field_pairs() renders
     if (txContext.batch_nb_tx > 1) {
-        count += txContext.batch_nb_tx;
+        for (size_t i = 0; i < field_table_size(); ++i) {
+            const s_field_table_entry *field = get_from_field_table(i);
+
+            if ((field != NULL) && field->start_intent) {
+                count += 1;
+            }
+        }
     }
     return count;
 }
@@ -902,7 +911,7 @@ bool ui_gcs(void) {
         pair++;
     }
 
-    if (had_separator) {
+    if (had_separator && (pair < g_pairsList->nbPairs)) {
         g_pairs[pair].forcePageStart = true;
     }
     if (show_network && !add_network_pair(&pair, get_tx_chain_id(), 1)) {

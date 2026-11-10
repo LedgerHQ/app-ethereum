@@ -27,7 +27,7 @@
 #include "eip712_v2_message_info.h"
 #include "eip712_v2_path.h"
 #include "typed_data.h"
-#include "operation_ctx.h"  // operation_ctx_has_message()
+#include "operation_ctx.h"
 #include "calldata.h"
 #include "mem_utils.h"  // app_mem_init()
 
@@ -86,18 +86,36 @@ static void run_gcs_field(buffer_t *buf) {
 }
 
 /* The same struct is a TRANSACTION_INFO and an EIP712_MESSAGE_INFO depending on the command it
- * comes in, so every input goes through both. */
-static void run_operation_info(buffer_t *buf) {
-    const e_operation_info_context contexts[] = {OPERATION_INFO_CTX_SIGN_TX,
-                                                 OPERATION_INFO_CTX_EIP712};
+ * comes in, so every input goes through both. As the first TRANSACTION_INFO of a flow, it describes
+ * a transaction carrying the calldata that follows it, which the FIELD steps then format. */
+static void run_operation_info(fuzz_cursor_t *cur) {
+    size_t info_len;
+    const uint8_t *info_payload = fuzz_take_slice16(cur, &info_len);
+    size_t calldata_len;
+    const uint8_t *calldata_blob = fuzz_take_slice16(cur, &calldata_len);
+    buffer_t buf = {.ptr = (uint8_t *) info_payload, .size = info_len, .offset = 0};
+    s_operation_info *info;
 
-    for (size_t i = 0; i < ARRAYLEN(contexts); i++) {
-        buffer_t payload = *buf;
-        s_operation_info *info = new_operation_info(&payload, contexts[i]);
-
-        if (info != NULL) {
-            delete_operation_info(info);
-        }
+    if ((info = new_operation_info(&buf, OPERATION_INFO_CTX_EIP712)) != NULL) {
+        delete_operation_info(info);
+    }
+    buf.offset = 0;
+    if ((info = new_operation_info(&buf, OPERATION_INFO_CTX_SIGN_TX)) == NULL) {
+        return;
+    }
+    if ((get_operation_ctx_count() != 0) || operation_ctx_has_message() ||
+        (g_parked_calldata != NULL) ||
+        ((g_parked_calldata = calldata_init(calldata_len, get_selector(info))) == NULL)) {
+        delete_operation_info(info);
+        return;
+    }
+    // A calldata left parked on failure is released by the next reset
+    appState = APP_STATE_SIGNING_TX;
+    if (!calldata_append(g_parked_calldata, calldata_blob, calldata_len) ||
+        !operation_ctx_init(g_parked_calldata, NULL, info->contract_addr, NULL, &info->chain_id) ||
+        !find_matching_operation_ctx(info->contract_addr, get_selector(info), &info->chain_id) ||
+        !operation_ctx_set_info(info)) {
+        delete_operation_info(info);
     }
 }
 
@@ -242,7 +260,7 @@ static void run_eip712_path(buffer_t *buf) {
     }
 }
 
-/* The GCS, enum and EIP-712 V2 handlers each take one complete TLV payload. */
+/* The GCS FIELD, enum and EIP-712 V2 handlers each take one complete TLV payload. */
 static void run_tlv_step(uint8_t parser, fuzz_cursor_t *cur) {
     size_t len;
     const uint8_t *payload = fuzz_take_slice16(cur, &len);
@@ -251,9 +269,6 @@ static void run_tlv_step(uint8_t parser, fuzz_cursor_t *cur) {
     switch (parser) {
         case PARSER_GCS_FIELD:
             run_gcs_field(&buf);
-            break;
-        case PARSER_OPERATION_INFO:
-            run_operation_info(&buf);
             break;
         case PARSER_ENUM_VALUE:
             run_enum_value(&buf);
@@ -291,6 +306,9 @@ void fuzz_app_dispatch(void *cmd_v) {
                 break;
             case PARSER_CALLDATA:
                 run_calldata(&cur);
+                break;
+            case PARSER_OPERATION_INFO:
+                run_operation_info(&cur);
                 break;
             default:
                 run_tlv_step(parser, &cur);

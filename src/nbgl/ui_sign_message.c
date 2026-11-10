@@ -104,7 +104,7 @@ static void ui_191_finish_cb(bool confirm) {
     ui_all_cleanup();
 }
 
-void ui_191_start(const char *message, bool is_hex) {
+bool ui_191_start(const char *message, bool is_hex) {
     // Honor the "Always display the transaction or message hash" setting for
     // EIP-191 personal messages so that the user can verify the exact bytes
     // being signed even when rendering is ambiguous (whitespace, encoding,
@@ -125,13 +125,10 @@ void ui_191_start(const char *message, bool is_hex) {
     }
 
     if (!ui_pairs_init(show_hash ? 2 : 1)) {
-        // Initialization failed, cleanup and return
-        return;
+        return false;
     }
-    // Initialize the buffers
     if (!ui_buffers_init(0, 0, FINISH_MSG_LEN)) {
-        // Initialization failed, cleanup and return
-        return;
+        return false;
     }
 
     explicit_bzero(&warning, sizeof(nbgl_warning_t));
@@ -164,4 +161,5 @@ void ui_191_start(const char *message, bool is_hex) {
                                NULL,
                                &warning,
                                ui_191_finish_cb);
+    return true;
 }

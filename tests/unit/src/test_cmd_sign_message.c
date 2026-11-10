@@ -90,13 +90,15 @@ void ui_idle(void) {
 static int g_ui_191_calls = 0;
 static char g_ui_191_display[1024];
 static bool g_ui_191_is_hex = false;
-void ui_191_start(const char *display_buffer, bool is_hex) {
+static bool g_ui_191_ret = true;
+bool ui_191_start(const char *display_buffer, bool is_hex) {
     g_ui_191_calls++;
     g_ui_191_is_hex = is_hex;
     if (display_buffer != NULL) {
         strncpy(g_ui_191_display, display_buffer, sizeof(g_ui_191_display) - 1);
         g_ui_191_display[sizeof(g_ui_191_display) - 1] = '\0';
     }
+    return g_ui_191_ret;
 }
 
 // The real implementation measures the rendered message against the review's page
@@ -162,6 +164,7 @@ static void reset(void) {
     g_ui_191_calls = 0;
     memset(g_ui_191_display, 0, sizeof(g_ui_191_display));
     g_ui_191_is_hex = false;
+    g_ui_191_ret = true;
     memset(&tmpCtx, 0, sizeof(tmpCtx));
     memset(&strings, 0, sizeof(strings));
 }
@@ -310,6 +313,16 @@ void test_final_finalize_failure_resets_state(void) {
     TEST_ASSERT_EQUAL(g_ui_191_calls, 0);
 }
 
+void test_ui_start_failure_returns_insufficient_memory(void) {
+    g_ui_191_ret = false;
+    uint8_t data[64];
+    size_t len = build_first_apdu(data, sizeof(data), 4, (uint8_t *) "ping", 4);
+    uint16_t sw = handle_sign_personal_message(P1_FIRST, data, (uint8_t) len);
+    TEST_ASSERT_EQUAL(sw, SWO_INSUFFICIENT_MEMORY);
+    TEST_ASSERT_EQUAL(g_ui_191_calls, 1);
+    TEST_ASSERT_EQUAL(g_ui_idle_calls, 1);
+}
+
 void test_cleanup_after_p1_first_when_busy(void) {
     // Set up a successful single-chunk run, then send P1_FIRST again
     // while still in SIGNING_MESSAGE state — handler must reject and
@@ -395,6 +408,7 @@ int main(void) {
     RUN_TEST(test_multichunk_completes_on_last_chunk);
     RUN_TEST(test_chunk_overflow_rejected);
     RUN_TEST(test_final_finalize_failure_resets_state);
+    RUN_TEST(test_ui_start_failure_returns_insufficient_memory);
     RUN_TEST(test_cleanup_after_p1_first_when_busy);
     RUN_TEST(test_message_cleanup_safe_when_nothing_allocated);
     RUN_TEST(test_hash_is_keccak_seeded_with_prefix);

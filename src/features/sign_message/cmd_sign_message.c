@@ -304,7 +304,10 @@ uint16_t handle_sign_personal_message(uint8_t p1, const uint8_t *const payload, 
             set_idle();
             return sw;
         }
-        ui_191_start(signMsgCtx->display_buffer, signMsgCtx->is_hex);
+        if (!ui_191_start(signMsgCtx->display_buffer, signMsgCtx->is_hex)) {
+            set_idle();
+            return SWO_INSUFFICIENT_MEMORY;
+        }
         return SWO_NO_RESPONSE;
     }
     return SWO_SUCCESS;

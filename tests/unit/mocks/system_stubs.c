@@ -174,8 +174,9 @@ __attribute__((weak)) bool add_to_field_table(int type,
     return true;
 }
 
-__attribute__((weak)) bool set_intent_field(const char *value) {
+__attribute__((weak)) bool set_intent_field(const char *value, uint8_t batch_size) {
     (void) value;
+    (void) batch_size;
     return true;
 }
 

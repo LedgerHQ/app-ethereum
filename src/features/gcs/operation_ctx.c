@@ -69,6 +69,11 @@ const uint8_t *get_current_operation_from(void) {
     return g_operation_ctx_current->from;
 }
 
+uint8_t get_current_operation_batch_size(void) {
+    if (g_operation_ctx_current == NULL) return 0;
+    return g_operation_ctx_current->batch_size;
+}
+
 const uint8_t *get_current_operation_to(void) {
     if ((g_operation_ctx_current == NULL) || !g_operation_ctx_current->has_to) return NULL;
     return g_operation_ctx_current->to;
@@ -225,7 +230,7 @@ static bool process_empty_call(const s_operation_ctx *operation_ctx) {
         return false;
     }
     if (operation_ctx->has_amount) {
-        if (!set_intent_field("Send")) {
+        if (!set_intent_field("Send", operation_ctx->batch_size)) {
             return false;
         }
         // The nested context carries its own (possibly cross-chain) chain ID
@@ -243,7 +248,7 @@ static bool process_empty_call(const s_operation_ctx *operation_ctx) {
             return false;
         }
     } else {
-        if (!set_intent_field("Empty transaction")) {
+        if (!set_intent_field("Empty transaction", operation_ctx->batch_size)) {
             return false;
         }
     }
@@ -386,6 +391,17 @@ void operation_ctx_cleanup(void) {
     g_operation_ctx_current = NULL;
     g_root_value_shown = false;
     g_root_from_shown = false;
+}
+
+bool operation_ctx_set_last_batch_size(uint8_t batch_size) {
+    s_operation_ctx *last = g_operation_ctx_list;
+
+    if (last == NULL) return false;
+    while (((flist_node_t *) last)->next != NULL) {
+        last = (s_operation_ctx *) ((flist_node_t *) last)->next;
+    }
+    last->batch_size = batch_size;
+    return true;
 }
 
 bool operation_ctx_set_info(s_operation_info *info) {

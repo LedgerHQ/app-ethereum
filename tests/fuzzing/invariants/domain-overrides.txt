@@ -62,7 +62,6 @@ SIGNER_DESC.data = values \x00\x00\x00\x00\x00\x00\x00\x00
 
 # ── Tx batch state (gates gcs_field_table.c PARAM_TYPE_INTENT branch) ──
 txContext.batch_nb_tx = values \x00 \x01 \x02 \x03
-txContext.current_batch_size = values \x00 \x01 \x02 \x03
 
 # ── txContext pointer fields (harness overwrites these to valid targets; ──
 # ── constrain prefix to NULL for explicit intent + minor prefix savings) ──

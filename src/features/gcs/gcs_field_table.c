@@ -77,7 +77,7 @@ bool add_to_field_table(e_param_type type,
     PRINTF(">>> \"%s\": \"%s\"\n", key, value);
 #ifdef HAVE_EIP712_V1
     if (appState == APP_STATE_SIGNING_EIP712) {
-        if ((type == PARAM_TYPE_INTENT) && (txContext.current_batch_size > 1)) {
+        if (type == PARAM_TYPE_INTENT) {
             // Special handling for intent in EIP712 mode
             if (!ui_712_set_intent()) {
                 return false;
@@ -170,13 +170,10 @@ bool add_address_to_field_table(e_param_type type,
     return true;
 }
 
-bool set_intent_field(const char *value) {
-    e_param_type type = PARAM_TYPE_INTENT;
+bool set_intent_field(const char *value, uint8_t batch_size) {
+    // Only a call of a batch of several is marked as an intent
+    e_param_type type = (batch_size > 1) ? PARAM_TYPE_INTENT : PARAM_TYPE_RAW;
 
-    if (txContext.current_batch_size == 1) {
-        // Only one transaction in the batch, no need to mark as intent
-        type = PARAM_TYPE_RAW;
-    }
     return add_to_field_table(type, "Transaction type", value, NULL);
 }
 

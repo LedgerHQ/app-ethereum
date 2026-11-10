@@ -29,6 +29,7 @@ typedef struct {
     uint64_t chain_id;  // only meaningful with has_chain_id
 
     cx_sha3_t fields_hash_ctx;
+    uint8_t batch_size;  // calls made by the CALLDATA that made this one, 0 for a root
     bool has_amount : 1;
     bool has_to : 1;  // always set for a call
     bool has_chain_id
@@ -68,6 +69,10 @@ bool get_current_operation_chain_id(uint64_t *chain_id);
  * @return the sender of the operation (ADDRESS_LENGTH bytes), NULL if there is none
  */
 const uint8_t *get_current_operation_from(void);
+/**
+ * @return the size of the batch the operation is part of, 0 if there is none
+ */
+uint8_t get_current_operation_batch_size(void);
 /**
  * @return the callee of the operation (ADDRESS_LENGTH bytes), NULL if there is none
  */
@@ -111,6 +116,13 @@ bool find_matching_operation_ctx(const uint8_t *contract_addr,
  * @return whether a call is being described, and the info was attached to it
  */
 bool operation_ctx_set_info(s_operation_info *info);
+/**
+ * Set the size of the batch the last queued call is part of
+ *
+ * @param[in] batch_size number of calls made by the same CALLDATA
+ * @return whether there is a queued call
+ */
+bool operation_ctx_set_last_batch_size(uint8_t batch_size);
 /**
  * Make an accepted EIP712_MESSAGE_INFO the root of the operations
  *

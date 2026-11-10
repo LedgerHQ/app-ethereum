@@ -28,6 +28,6 @@ bool add_address_to_field_table(e_param_type type,
                                 const char *value,
                                 const void *extra_data,
                                 const uint8_t *addr);
-bool set_intent_field(const char *value);
+bool set_intent_field(const char *value, uint8_t batch_size);
 size_t field_table_size(void);
 const s_field_table_entry *get_from_field_table(size_t index);

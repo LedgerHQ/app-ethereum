@@ -104,6 +104,17 @@ bool add_to_field_table(e_param_type type, const char *key, const char *value, c
     return true;
 }
 
+#define MAX_INTENT_ROWS 4
+static uint8_t g_intent_batch_sizes[MAX_INTENT_ROWS];
+static int g_intent_rows_count = 0;
+bool set_intent_field(const char *value, uint8_t batch_size) {
+    (void) value;
+    if (g_intent_rows_count < MAX_INTENT_ROWS) {
+        g_intent_batch_sizes[g_intent_rows_count++] = batch_size;
+    }
+    return true;
+}
+
 bool add_address_to_field_table(e_param_type type,
                                 const char *key,
                                 const char *value,
@@ -188,6 +199,7 @@ static void reset(void) {
     g_finalize_hash_ret = true;
     g_implem_contract_ret = NULL;
     g_to_rows_count = 0;
+    g_intent_rows_count = 0;
     g_public_key_ret = true;
     g_delete_info_calls = 0;
 }
@@ -273,6 +285,48 @@ void test_init_then_find_matching_exposes_fields(void) {
     TEST_ASSERT_EQUAL_MEMORY(get_current_operation_from(), g_addr_a, ADDRESS_LENGTH);
     TEST_ASSERT_EQUAL_MEMORY(get_current_operation_to(), g_addr_b, ADDRESS_LENGTH);
     TEST_ASSERT_EQUAL_MEMORY(get_current_operation_amount(), g_amount_1eth, INT256_LENGTH);
+}
+
+void test_batch_size_is_kept_per_call(void) {
+    uint64_t chain = 1;
+    static const uint8_t selector2[CALLDATA_SELECTOR_SIZE] = {0xAA, 0xBB, 0xCC, 0xDD};
+
+    TEST_ASSERT_FALSE(operation_ctx_set_last_batch_size(2));
+    TEST_ASSERT_EQUAL(get_current_operation_batch_size(), 0);
+
+    TEST_ASSERT_TRUE(operation_ctx_init(make_complete_calldata(g_match_selector),
+                                        g_addr_a,
+                                        g_addr_a,
+                                        NULL,
+                                        &chain));
+    TEST_ASSERT_TRUE(
+        operation_ctx_init(make_complete_calldata(selector2), NULL, g_addr_b, NULL, NULL));
+    TEST_ASSERT_TRUE(operation_ctx_set_last_batch_size(3));
+
+    TEST_ASSERT_TRUE(find_matching_operation_ctx(g_addr_a, g_match_selector, &chain));
+    TEST_ASSERT_EQUAL(get_current_operation_batch_size(), 0);
+    TEST_ASSERT_TRUE(operation_ctx_pop());
+    TEST_ASSERT_TRUE(find_matching_operation_ctx(g_addr_b, selector2, &chain));
+    TEST_ASSERT_EQUAL(get_current_operation_batch_size(), 3);
+}
+
+void test_empty_call_intent_uses_its_own_batch_size(void) {
+    uint64_t chain = 1;
+    TEST_ASSERT_TRUE(operation_ctx_init(NULL, g_addr_a, g_addr_a, NULL, &chain));
+    TEST_ASSERT_TRUE(operation_ctx_set_last_batch_size(2));
+    TEST_ASSERT_TRUE(operation_ctx_init(NULL, g_addr_a, g_addr_a, NULL, &chain));
+    TEST_ASSERT_TRUE(operation_ctx_set_last_batch_size(1));
+    TEST_ASSERT_TRUE(operation_ctx_init(make_complete_calldata(g_match_selector),
+                                        g_addr_a,
+                                        g_addr_b,
+                                        NULL,
+                                        &chain));
+    TEST_ASSERT_TRUE(find_matching_operation_ctx(g_addr_b, g_match_selector, &chain));
+
+    TEST_ASSERT_TRUE(process_empty_calls_before());
+    TEST_ASSERT_EQUAL(g_intent_rows_count, 2);
+    TEST_ASSERT_EQUAL(g_intent_batch_sizes[0], 2);
+    TEST_ASSERT_EQUAL(g_intent_batch_sizes[1], 1);
 }
 
 void test_init_first_call_with_null_from_uses_self(void) {
@@ -1182,6 +1236,8 @@ int main(void) {
     RUN_TEST(test_getters_on_empty_list_return_null_or_zero);
     RUN_TEST(test_init_adds_to_list_but_current_stays_null);
     RUN_TEST(test_init_then_find_matching_exposes_fields);
+    RUN_TEST(test_batch_size_is_kept_per_call);
+    RUN_TEST(test_empty_call_intent_uses_its_own_batch_size);
     RUN_TEST(test_init_first_call_with_null_from_uses_self);
     RUN_TEST(test_init_second_call_inherits_from_and_chain);
     RUN_TEST(test_init_clears_parked_calldata_pointer);

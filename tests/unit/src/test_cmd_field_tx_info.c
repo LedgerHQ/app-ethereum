@@ -171,10 +171,16 @@ bool call_description_is_nested(void) {
 // what starts the review of a nested call: its intent, and whether it announces descriptors
 static bool g_set_intent_field_ret = true;
 static int g_set_intent_field_calls = 0;
-bool set_intent_field(const char *intent) {
+static uint8_t g_set_intent_field_batch_size = 0;
+bool set_intent_field(const char *intent, uint8_t batch_size) {
     (void) intent;
     g_set_intent_field_calls++;
+    g_set_intent_field_batch_size = batch_size;
     return g_set_intent_field_ret;
+}
+#define CURRENT_BATCH_SIZE 3
+uint8_t get_current_operation_batch_size(void) {
+    return CURRENT_BATCH_SIZE;
 }
 static bool g_fields_hash_is_empty_ret = true;
 static bool g_fields_hash_is_empty_ok = true;
@@ -645,6 +651,7 @@ void test_tx_info_handler_of_a_nested_call_shows_its_intent(void) {
 
     TEST_ASSERT_EQUAL(handle_tx_info(P1_FIRST_CHUNK, 0, 0, NULL), SWO_SUCCESS);
     TEST_ASSERT_EQUAL(g_set_intent_field_calls, 1);
+    TEST_ASSERT_EQUAL(g_set_intent_field_batch_size, CURRENT_BATCH_SIZE);
     TEST_ASSERT_EQUAL(g_operation_ctx_pop_calls, 0);
 }
 

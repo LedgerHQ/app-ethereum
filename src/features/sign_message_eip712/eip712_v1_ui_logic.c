@@ -827,12 +827,15 @@ static bool crc_list_contains(const s_filter_crc *list, uint32_t crc) {
  * Once a path is registered, every further occurrence must come with a freshly verified
  * filter (any filter sets at least one field flag). Paths of unfiltered occurrences are
  * recorded so that a filter registered for them afterwards is caught as well.
+ * Only message fields are checked: filters never apply to the domain, whose paths would
+ * otherwise collide with same-named message fields.
  */
 void ui_712_check_field_filtering(void) {
     uint32_t path_crc = 0;
     s_filter_crc *new_crc;
 
-    if ((ui_ctx == NULL) || (ui_ctx->filtering_mode != EIP712_FILTERING_FULL)) {
+    if ((ui_ctx == NULL) || (ui_ctx->filtering_mode != EIP712_FILTERING_FULL) ||
+        (v1_get_root_type() != ROOT_MESSAGE)) {
         return;
     }
     if (!filtering_compute_current_path_crc(&path_crc)) {

@@ -331,14 +331,16 @@ uint16_t handle_eip712_v1_sign(const uint8_t *cdata, uint8_t length) {
                 }
             }
             if (should_start_ui && (sw == SWO_SUCCESS)) {
+                ret = true;
 #ifndef SCREEN_SIZE_WALLET
                 if (!N_storage.verbose_eip712 && (filt_mode == EIP712_FILTERING_BASIC)) {
                     ret = ui_712_message_hash();
                 }
 #endif
-                if (ui_712_end_sign()) {
-                    ret = true;
-                } else {
+                if (ret) {
+                    ret = ui_712_end_sign();
+                }
+                if (!ret) {
                     sw = SWO_COMMAND_ERROR_NO_INFO;
                 }
             }

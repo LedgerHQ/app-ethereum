@@ -51,7 +51,7 @@ s_calldata *get_current_calldata(void) {
 
 // Test fixture: an array of CHUNK_SIZE chunks indexed by idx. Tests set
 // up the chunks they need before running.
-#define MAX_FIXTURE_CHUNKS 8
+#define MAX_FIXTURE_CHUNKS 32
 static uint8_t g_chunks[MAX_FIXTURE_CHUNKS][CALLDATA_CHUNK_SIZE];
 static bool g_chunk_present[MAX_FIXTURE_CHUNKS];
 
@@ -498,6 +498,40 @@ void test_path_tuple_advances_offset(void) {
 // path_array enforces passes <= UINT8_MAX (line 286 in gtp_data_path.c).
 // An array_size larger than 255 with no slice bounds must be rejected
 // before allocating a passes_remaining slot.
+void test_path_array_max_values_accepted(void) {
+    put_array_size_chunk(0, MAX_VALUE_COLLECTION_SIZE);
+    for (uint32_t i = 1; i <= MAX_VALUE_COLLECTION_SIZE; ++i) {
+        const uint8_t body[] = {(uint8_t) i};
+        set_chunk(i, body, sizeof(body));
+    }
+
+    s_data_path path = {0};
+    path.size = 2;
+    path.elements[0].type = ELEMENT_TYPE_ARRAY;
+    path.elements[0].array.weight = 1;
+    path.elements[1].type = ELEMENT_TYPE_LEAF;
+    path.elements[1].leaf.type = LEAF_TYPE_STATIC;
+
+    s_parsed_value_collection collec = {0};
+    TEST_ASSERT_TRUE(data_path_get(&path, &collec));
+    TEST_ASSERT_EQUAL(collec.size, MAX_VALUE_COLLECTION_SIZE);
+    data_path_cleanup(&collec);
+}
+
+// Without a LEAF nothing ends the walk early: the number of passes is bounded on its own
+void test_path_without_leaf_passes_bounded(void) {
+    put_array_size_chunk(0, UINT8_MAX);
+
+    s_data_path path = {0};
+    path.size = 1;
+    path.elements[0].type = ELEMENT_TYPE_ARRAY;
+    path.elements[0].array.weight = 1;
+
+    s_parsed_value_collection collec = {0};
+    TEST_ASSERT_FALSE(data_path_get(&path, &collec));
+    TEST_ASSERT_EQUAL(collec.size, 0);
+}
+
 void test_path_array_size_above_uint8_max_rejected(void) {
     put_array_size_chunk(0, 256);  // > UINT8_MAX
     s_data_path path = {0};
@@ -558,6 +592,8 @@ int main(void) {
     RUN_TEST(test_path_ref_dereferences_offset);
     RUN_TEST(test_path_ref_unaligned_offset_rejected);
     RUN_TEST(test_path_tuple_advances_offset);
+    RUN_TEST(test_path_array_max_values_accepted);
+    RUN_TEST(test_path_without_leaf_passes_bounded);
     RUN_TEST(test_path_array_size_above_uint8_max_rejected);
     RUN_TEST(test_data_path_get_unknown_element_type_rejected);
     return UNITY_END();

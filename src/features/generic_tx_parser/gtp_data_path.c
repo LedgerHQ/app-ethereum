@@ -320,8 +320,13 @@ bool data_path_get(const s_data_path *data_path, s_parsed_value_collection *coll
     uint32_t offset;
     uint32_t ref_offset;
     s_arrays_info arinf = {0};
+    uint8_t passes = 0;
 
     do {
+        // A well-formed path yields one value per pass
+        if (passes++ >= MAX_VALUE_COLLECTION_SIZE) {
+            return false;
+        }
         arinf.index = 0;
         offset = 0;
         ref_offset = offset;

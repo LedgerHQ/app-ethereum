@@ -108,13 +108,13 @@ bool ui_sign_712_v0(void) {
     }
 
     // Initialize the buffers
-    if (!ui_pairs_init(2)) {
+    if (!ui_pairs_init(1 + EIP712_HASH_ROWS)) {
         // Initialization failed, cleanup and return
         return false;
     }
 
     // Initialize the tag/value pairs
-    if (!eip712_format_hash(0)) {
+    if (!eip712_set_from_pair(&g_pairs[0]) || !eip712_format_hash(1)) {
         return false;
     }
 

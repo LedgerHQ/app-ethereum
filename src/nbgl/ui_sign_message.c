@@ -104,7 +104,7 @@ static void ui_191_finish_cb(bool confirm) {
     ui_all_cleanup();
 }
 
-bool ui_191_start(const char *message, bool is_hex) {
+bool ui_191_start(const char *message, bool is_hex, const char *from) {
     // Honor the "Always display the transaction or message hash" setting for
     // EIP-191 personal messages so that the user can verify the exact bytes
     // being signed even when rendering is ambiguous (whitespace, encoding,
@@ -112,8 +112,8 @@ bool ui_191_start(const char *message, bool is_hex) {
     // message review used to silently ignore the toggle (CWE-451).
     //
     // Format the hash first and only count it as a pair if formatting
-    // succeeded — otherwise we would advertise a 2-pair list with an
-    // uninitialized g_pairs[1] and the device would render garbage.
+    // succeeded — otherwise we would advertise a 3-pair list with an
+    // uninitialized g_pairs[2] and the device would render garbage.
     bool show_hash = false;
     if (N_storage.displayHash) {
         if (bytes_to_lowercase_hex_0x(strings.common.tx_hash,
@@ -124,7 +124,7 @@ bool ui_191_start(const char *message, bool is_hex) {
         }
     }
 
-    if (!ui_pairs_init(show_hash ? 2 : 1)) {
+    if (!ui_pairs_init(show_hash ? 3 : 2)) {
         return false;
     }
     if (!ui_buffers_init(0, 0, FINISH_MSG_LEN)) {
@@ -144,12 +144,14 @@ bool ui_191_start(const char *message, bool is_hex) {
 
     g_pairsList->wrapping = true;
     // A binary message is shown hex encoded: tell it apart from a text starting with "0x"
-    g_pairs[0].item = is_hex ? "Message (hex)" : "Message";
-    g_pairs[0].value = message;
+    g_pairs[0].item = "From";
+    g_pairs[0].value = from;
+    g_pairs[1].item = is_hex ? "Message (hex)" : "Message";
+    g_pairs[1].value = message;
 
     if (show_hash) {
-        g_pairs[1].item = "Message hash";
-        g_pairs[1].value = strings.common.tx_hash;
+        g_pairs[2].item = "Message hash";
+        g_pairs[2].value = strings.common.tx_hash;
     }
 
     nbgl_useCaseAdvancedReview(TYPE_MESSAGE,

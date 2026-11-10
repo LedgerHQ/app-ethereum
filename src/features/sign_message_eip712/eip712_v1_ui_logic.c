@@ -1334,14 +1334,18 @@ bool ui_712_push_pairs(void) {
     // Keep the queued-pair count at its native width: narrowing it here would
     // wrap past the 8-bit pair counter and allocate fewer entries than the loop
     // below writes. ui_pairs_init() rejects anything the counter cannot hold.
-    nbPairs = flist_size((flist_node_t **) &ui_ctx->ui_pairs);
+    nbPairs = 1 + flist_size((flist_node_t **) &ui_ctx->ui_pairs);
     if (N_storage.displayHash) {
-        nbPairs += 2;
+        nbPairs += EIP712_HASH_ROWS;
     }
 
     if (!ui_pairs_init(nbPairs)) {
         return false;
     }
+    if (!eip712_set_from_pair(&g_pairs[pair])) {
+        return false;
+    }
+    pair++;
     // Initialize the tag/value pairs from the chain list
     tmp = ui_ctx->ui_pairs;
     while (tmp != NULL) {

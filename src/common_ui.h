@@ -32,7 +32,7 @@ void ui_confirm_parameter(void);
 void ui_display_safe_account(void);
 
 // EIP-191
-bool ui_191_start(const char *message, bool is_hex);
+bool ui_191_start(const char *message, bool is_hex, const char *from);
 
 /**
  * Whether an EIP-191 message can be fully reached in the review's details view.

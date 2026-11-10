@@ -154,6 +154,7 @@ ledger_unit_tests_add_test(NAME test_cmd_sign_message
   INCLUDE_DIRS
     ${COMMON_INCLUDE_DIRS}
     ${APP_DIR}/features/sign_message
+    ${APP_DIR}/features/get_public_key
   COMPILE_DEFS
     ${COMMON_COMPILE_DEFS}
   LINK_OPTIONS

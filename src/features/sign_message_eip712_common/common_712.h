@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include "cx.h"
 #include "nbgl_use_case.h"
+#include "bip32_utils.h"
 
 // The rows that show the hashes of the message, when the "Show all hashes" setting is on
 #define EIP712_DOMAIN_HASH_LABEL  "Domain hash"
@@ -34,6 +35,22 @@ void eip712_set_hash_pairs(nbgl_contentTagValue_t *pairs, char *domain_str, char
 
 bool eip712_format_hash(uint8_t index);
 void eip712_hash_strs_cleanup(void);
+
+/**
+ * Derive and format the address of the account that signs the message
+ *
+ * @param[in] bip32 derivation path of the signer
+ * @return whether the address could be derived
+ */
+bool eip712_format_from(const bip32_path_t *bip32);
+
+/**
+ * Fill the row of the signer, formatted by eip712_format_from()
+ *
+ * @param[out] pair the row
+ * @return whether the signer is known
+ */
+bool eip712_set_from_pair(nbgl_contentTagValue_t *pair);
 
 void ui_712_approve_cb(void);
 void ui_712_reject_cb(void);

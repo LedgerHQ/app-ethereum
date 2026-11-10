@@ -7,7 +7,8 @@
 #include "typed_data.h"
 #include "schema_hash.h"
 #include "eip712_v1_filtering.h"
-#include "common_ui.h"  // ui_idle, ui_error_blind_signing, ui_hold_error_screen
+#include "common_ui.h"   // ui_idle, ui_error_blind_signing, ui_hold_error_screen
+#include "common_712.h"  // eip712_format_from
 #include "manage_asset_info.h"
 #include "operation_ctx.h"  // get_operation_ctx_count
 #include "value_hash.h"
@@ -298,6 +299,8 @@ uint16_t handle_eip712_v1_sign(const uint8_t *cdata, uint8_t length) {
         PRINTF("Unprocessed calldata\n");
         sw = SWO_REFERENCED_DATA_NOT_FOUND;
     } else if (parseBip32(cdata, &length, &tmpCtx.messageSigningContext.bip32) == NULL) {
+        sw = SWO_INCORRECT_DATA;
+    } else if (!eip712_format_from(&tmpCtx.messageSigningContext.bip32)) {
         sw = SWO_INCORRECT_DATA;
     } else {
         // impl APDUs never trigger display, so enforce blind-signing protection and transition to

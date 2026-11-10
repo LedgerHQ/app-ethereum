@@ -6,6 +6,7 @@
 #include "ui_utils.h"
 #include "mem_utils.h"
 #include "hash_bytes.h"
+#include "get_public_key.h"
 
 typedef struct {
     uint16_t msg_length;
@@ -304,7 +305,16 @@ uint16_t handle_sign_personal_message(uint8_t p1, const uint8_t *const payload, 
             set_idle();
             return sw;
         }
-        if (!ui_191_start(signMsgCtx->display_buffer, signMsgCtx->is_hex)) {
+        if (!get_displayable_address(&tmpCtx.messageSigningContext.bip32,
+                                     strings.common.fromAddress,
+                                     sizeof(strings.common.fromAddress),
+                                     g_chain_config->chain_id)) {
+            set_idle();
+            return SWO_INCORRECT_DATA;
+        }
+        if (!ui_191_start(signMsgCtx->display_buffer,
+                          signMsgCtx->is_hex,
+                          strings.common.fromAddress)) {
             set_idle();
             return SWO_INSUFFICIENT_MEMORY;
         }

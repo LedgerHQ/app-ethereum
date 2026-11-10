@@ -170,7 +170,18 @@ bool ui_712_set_intent(void) {
  */
 bool ui_712_set_title(const char *str, size_t length) {
     s_ui_712_pair *new_pair = NULL;
+    const s_ui_712_pair *last = ui_ctx->ui_pairs;
 
+    if (last != NULL) {
+        while (((const flist_node_t *) last)->next != NULL) {
+            last = (const s_ui_712_pair *) ((const flist_node_t *) last)->next;
+        }
+        // A new title only follows a pair that received its value
+        if (last->value == NULL) {
+            PRINTF("Previous EIP-712 title still has no value\n");
+            return false;
+        }
+    }
     if (APP_MEM_CALLOC((void **) &new_pair, sizeof(*new_pair)) == false) {
         return false;
     }
@@ -1336,7 +1347,7 @@ bool ui_712_push_pairs(void) {
     // Initialize the tag/value pairs from the chain list
     tmp = ui_ctx->ui_pairs;
     while (tmp != NULL) {
-        if (pair >= g_pairsList->nbPairs) {
+        if ((pair >= g_pairsList->nbPairs) || (tmp->key == NULL) || (tmp->value == NULL)) {
             return false;
         }
         if (tmp->start_intent) {

@@ -349,6 +349,44 @@ def test_eip712_array_element_filtered_late(
     assert e.value.status == StatusWord.SWO_REFERENCED_DATA_NOT_FOUND
 
 
+def test_eip712_filter_replayed_before_value(scenario_navigator: NavigateWithScenario, monkeypatch: pytest.MonkeyPatch):
+    """A field filter sent twice before its value must be refused."""
+    app_client = EthAppClient(scenario_navigator.backend)
+
+    data = {
+        "domain": {
+            "chainId": 1,
+            "name": "Advanced test",
+            "verifyingContract": "0xCcCCccccCCCCcCCCCCCcCcCccCcCCCcCcccccccC",
+            "version": "1",
+        },
+        "message": {"to": "0x6B175474E89094C44Da98b954EedeAC495271d0F"},
+        "primaryType": "Transfer",
+        "types": {
+            "EIP712Domain": [
+                {"name": "name", "type": "string"},
+                {"name": "version", "type": "string"},
+                {"name": "chainId", "type": "uint256"},
+                {"name": "verifyingContract", "type": "address"},
+            ],
+            "Transfer": [{"name": "to", "type": "address"}],
+        },
+    }
+    filters = {"name": "Advanced Filtering", "fields": {"to": {"type": "raw", "name": "To"}}}
+
+    send_filter = InputData.send_filter
+
+    def send_filter_twice(path: str, discarded: bool):
+        send_filter(path, discarded)
+        return send_filter(path, discarded)
+
+    monkeypatch.setattr(InputData, "send_filter", send_filter_twice)
+
+    with pytest.raises(ExceptionRAPDU) as e:
+        InputData.process_data(app_client, data, filters)
+    assert e.value.status == StatusWord.SWO_PARAMETER_ERROR_NO_INFO
+
+
 @pytest.mark.parametrize(
     "filtering,status",
     [(False, StatusWord.SWO_INCORRECT_DATA), (True, StatusWord.SWO_PARAMETER_ERROR_NO_INFO)],

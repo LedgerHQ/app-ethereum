@@ -479,12 +479,13 @@ WEIGHT_LENGTHS = {
     # the weight is the whole payload, not its first byte
     "two_bytes_above_255": (RawPathArray(weight=b"\x01\x00"), False),
     "two_zero_bytes": (RawPathArray(weight=b"\x00\x00"), False),
+    "missing": (RawPathArray(weight=None), False),
 }
 
 
 @pytest.mark.parametrize("array, accepted", WEIGHT_LENGTHS.values(), ids=WEIGHT_LENGTHS.keys())
 def test_gcs_array_weight_lengths(scenario_navigator: NavigateWithScenario, array: PathArray, accepted: bool):
-    """The weight of an array is a uint8 read from the whole payload, and it is not zero."""
+    """The weight of an array is mandatory, a uint8 read from the whole payload, and it is not zero."""
     check_ids_array(scenario_navigator, array, accepted)
 
 

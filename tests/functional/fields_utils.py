@@ -35,14 +35,15 @@ def raw_bounds(start: bytes | None, end: bytes | None, start_tag: int, end_tag: 
 class RawPathArray(PathArray):
     """An array step of a DATA_PATH whose weight and bounds are sent as the given bytes."""
 
-    def __init__(self, start: bytes | None = None, end: bytes | None = None, weight: bytes = b"\x01"):
+    def __init__(self, start: bytes | None = None, end: bytes | None = None, weight: bytes | None = b"\x01"):
         super().__init__(1)
         self.raw_weight = weight
         self.raw_start = start
         self.raw_end = end
 
     def serialize(self) -> bytes:
-        return Value.serialize_field(0x01, self.raw_weight) + raw_bounds(self.raw_start, self.raw_end, 0x02, 0x03)
+        payload = b"" if self.raw_weight is None else Value.serialize_field(0x01, self.raw_weight)
+        return payload + raw_bounds(self.raw_start, self.raw_end, 0x02, 0x03)
 
 
 class RawEip712PathArray(Eip712PathArray):

@@ -99,9 +99,12 @@ void test_tlv_happy_path_all_five_element_types(void) {
         0x02,
         0x00,
         0x20,  // TUPLE (value = 32)
-        // ARRAY (delegated to path_array parser — TLV-empty so has_start/end stay false)
+        // ARRAY with WEIGHT = 1 only, so has_start/end stay false
         0x02,
-        0x00,
+        0x03,
+        0x01,
+        0x01,
+        0x01,
         0x03,
         0x00,  // REF — must be empty
         0x04,
@@ -158,6 +161,13 @@ void test_tlv_leaf_each_valid_type_accepted(void) {
         TEST_ASSERT_EQUAL(path.size, 1);
         TEST_ASSERT_EQUAL(path.elements[0].leaf.type, types[i]);
     }
+}
+
+void test_tlv_array_without_weight_rejected(void) {
+    const uint8_t bytes[] = {0x00, 0x01, 0x01, 0x02, 0x00, 0x04, 0x01, LEAF_TYPE_STATIC};
+    s_data_path path = {0};
+
+    TEST_ASSERT_FALSE(run_tlv(bytes, sizeof(bytes), &path));
 }
 
 // A path with no element leads to no value, so its field would show nothing
@@ -596,6 +606,7 @@ int main(void) {
     RUN_TEST(test_tlv_ref_with_payload_rejected);
     RUN_TEST(test_tlv_leaf_invalid_type_rejected);
     RUN_TEST(test_tlv_leaf_each_valid_type_accepted);
+    RUN_TEST(test_tlv_array_without_weight_rejected);
     RUN_TEST(test_tlv_path_without_element_rejected);
     RUN_TEST(test_tlv_path_without_version_rejected);
     RUN_TEST(test_tlv_empty_path_rejected);

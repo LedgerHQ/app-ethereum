@@ -621,6 +621,35 @@ bool v1_current_field_uninstantiated_array(void) {
     return (f->next != NULL) && (f->next->array_level_count > 0);
 }
 
+/**
+ * @brief Bring an integer wider than its type down to the type size
+ *
+ * @return false if the extra leading bytes are not zero or sign padding
+ */
+static bool trim_integer_padding(s_struct_712_value *leaf) {
+    const s_struct_712_field *field = leaf->field;
+    uint8_t padding = 0x00;
+    size_t extra;
+
+    if (((field->type != TYPE_SOL_UINT) && (field->type != TYPE_SOL_INT)) ||
+        (leaf->length <= field->type_size)) {
+        return true;
+    }
+    extra = leaf->length - field->type_size;
+    if ((field->type == TYPE_SOL_INT) && (leaf->data[extra] & 0x80)) {
+        padding = 0xFF;
+    }
+    for (size_t i = 0; i < extra; ++i) {
+        if (leaf->data[i] != padding) {
+            PRINTF("Error: %s value does not fit its type\n", field->key_name);
+            return false;
+        }
+    }
+    memmove(leaf->data, leaf->data + extra, field->type_size);
+    leaf->length = field->type_size;
+    return true;
+}
+
 const s_struct_712_value *v1_add_field(const uint8_t *data, size_t length, bool more) {
     if (g_build.depth == 0) {
         return NULL;
@@ -673,6 +702,11 @@ const s_struct_712_value *v1_add_field(const uint8_t *data, size_t length, bool 
             return NULL;
         }
         s_struct_712_value *completed = g_pending_field.leaf;
+        if (!trim_integer_padding(completed)) {
+            td_discard_leaf(completed);
+            explicit_bzero(&g_pending_field, sizeof(g_pending_field));
+            return NULL;
+        }
         // A domain chainId wider than 64 bits with non-zero leading bytes would make the
         // numeric chain ID used by filtering/display diverge from the full bytes the domain
         // hash commits to; zero-padding is tolerated (trimmed by td_get_domain_chain_id)

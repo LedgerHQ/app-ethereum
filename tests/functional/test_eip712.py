@@ -650,6 +650,99 @@ def test_eip712_fixed_bytes_wrong_length(scenario_navigator: NavigateWithScenari
     assert e.value.status == StatusWord.SWO_PARAMETER_ERROR_NO_INFO
 
 
+def _integers_message() -> dict:
+    return {
+        "domain": {
+            "chainId": 1,
+            "name": "Integers test",
+            "verifyingContract": "0xCcCCccccCCCCcCCCCCCcCcCccCcCCCcCcccccccC",
+            "version": "1",
+        },
+        "message": {"amount": "42", "delta": "-1"},
+        "primaryType": "Integers",
+        "types": {
+            "EIP712Domain": [
+                {"name": "name", "type": "string"},
+                {"name": "version", "type": "string"},
+                {"name": "chainId", "type": "uint256"},
+                {"name": "verifyingContract", "type": "address"},
+            ],
+            "Integers": [
+                {"name": "amount", "type": "uint8"},
+                {"name": "delta", "type": "int8"},
+            ],
+        },
+    }
+
+
+INTEGERS_FILTERS = {
+    "name": "Integers test",
+    "fields": {
+        "amount": {"type": "raw", "name": "Amount"},
+        "delta": {"type": "raw", "name": "Delta"},
+    },
+}
+
+
+@pytest.mark.parametrize("width", [None, 32], ids=["one_extra_byte", "full_word"])
+def test_eip712_integer_padded(scenario_navigator: NavigateWithScenario, monkeypatch: pytest.MonkeyPatch, width: int | None):
+    """An integer wider than its type is accepted when its extra bytes are zero or sign padding."""
+
+    def padded(signed: bool) -> Callable[[str, int], bytes]:
+        def encode(value: str | int, typesize: int) -> bytes:
+            number = int(value, 0) if isinstance(value, str) else value
+            return number.to_bytes(width or typesize + 1, "big", signed=signed)
+
+        return encode
+
+    monkeypatch.setitem(InputData.encoding_functions, EIP712FieldType.UINT, padded(False))
+    monkeypatch.setitem(InputData.encoding_functions, EIP712FieldType.INT, padded(True))
+    snapshots_dirname = scenario_navigator.test_name if width is None else None
+    eip712_new_common(scenario_navigator, _integers_message(), INTEGERS_FILTERS, snapshots_dirname)
+
+
+@pytest.mark.parametrize(
+    "field_type, raw",
+    [
+        (EIP712FieldType.UINT, b"\x01\xff"),
+        (EIP712FieldType.INT, b"\xff\x01"),
+        (EIP712FieldType.INT, b"\x00\xff"),
+    ],
+    ids=["uint_out_of_range", "positive_int_with_sign_padding", "negative_int_with_zero_padding"],
+)
+def test_eip712_integer_wider_than_its_type(
+    scenario_navigator: NavigateWithScenario, monkeypatch: pytest.MonkeyPatch, field_type: EIP712FieldType, raw: bytes
+):
+    """An integer whose extra leading bytes are not zero or sign padding does not fit its type."""
+    app_client = EthAppClient(scenario_navigator.backend)
+    encode_original = InputData.encoding_functions[field_type]
+
+    def encode_one_byte_fields_raw(value: str, typesize: int) -> bytes:
+        return raw if typesize == 1 else encode_original(value, typesize)
+
+    monkeypatch.setitem(InputData.encoding_functions, field_type, encode_one_byte_fields_raw)
+
+    with pytest.raises(ExceptionRAPDU) as e:
+        InputData.process_data(app_client, _integers_message(), INTEGERS_FILTERS)
+    assert e.value.status == StatusWord.SWO_PARAMETER_ERROR_NO_INFO
+
+
+@pytest.mark.parametrize(
+    "encode, value",
+    [
+        (InputData.encode_uint, "256"),
+        (InputData.encode_uint, "-1"),
+        (InputData.encode_int, "128"),
+        (InputData.encode_int, "-129"),
+    ],
+    ids=["uint_above_max", "uint_negative", "int_above_max", "int_below_min"],
+)
+def test_eip712_integer_out_of_range(encode: Callable[[str, int], bytes], value: str):
+    """The client refuses an integer that does not fit its type instead of truncating it."""
+    with pytest.raises(ValueError):
+        encode(value, 1)
+
+
 def get_filter_file_from_data_file(data_file: Path) -> Path:
     test_path = f"{data_file.parent}/{'-'.join(data_file.stem.split('-')[:-1])}"
     return Path(f"{test_path}-filter.json")

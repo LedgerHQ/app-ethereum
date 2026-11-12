@@ -123,10 +123,15 @@ def send_struct_def_field(typename, keyname):
     return (typename, type_enum, typesize, array_lvls)
 
 
-def encode_integer(value: str | int, typesize: int) -> bytes:
+def encode_integer(value: str | int, typesize: int, signed: bool = False) -> bytes:
     # Some are already represented as integers in the JSON, but most as strings
     if isinstance(value, str):
         value = int(value, 0)
+
+    bits = typesize * 8
+    low, high = (-(1 << (bits - 1)), 1 << (bits - 1)) if signed else (0, 1 << bits)
+    if not low <= value < high:
+        raise ValueError(f"Value out of range for a {'' if signed else 'u'}int{bits}: {value}")
 
     if value == 0:
         data = b"\x00"
@@ -146,7 +151,7 @@ def encode_integer(value: str | int, typesize: int) -> bytes:
 
 
 def encode_int(value: str, typesize: int) -> bytes:
-    return encode_integer(value, typesize)
+    return encode_integer(value, typesize, signed=True)
 
 
 def encode_uint(value: str, typesize: int) -> bytes:

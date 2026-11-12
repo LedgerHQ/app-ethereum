@@ -134,6 +134,10 @@ bool operation_ctx_is_root(void) {
 void operation_ctx_set_root_from_shown(void) {
     g_root_from_shown_calls++;
 }
+static int g_root_value_shown_calls = 0;
+void operation_ctx_set_root_value_shown(void) {
+    g_root_value_shown_calls++;
+}
 
 // =============================================================================
 // Fixtures
@@ -155,6 +159,7 @@ static void reset(void) {
     s_tx_info_ret = NULL;
     g_is_root = false;
     g_root_from_shown_calls = 0;
+    g_root_value_shown_calls = 0;
     g_map_entry_ret = NULL;
 }
 
@@ -254,47 +259,63 @@ static bool get_from(void) {
 static const s_operation_info s_transaction_info = {.context = OPERATION_INFO_CTX_SIGN_TX};
 static const s_operation_info s_message_info = {.context = OPERATION_INFO_CTX_EIP712};
 
-// The review adds its own row for the sender unless a descriptor of the root operation shows it
-void test_from_of_a_transaction_root_is_marked_as_shown(void) {
+// Reading the sender or the native amount is not showing it: the review keeps its own rows
+void test_reading_root_container_values_does_not_mark_them_shown(void) {
     static const uint8_t addr[ADDRESS_LENGTH] = {0xAA};
+    static const uint8_t amount[INT256_LENGTH] = {0x01};
+    s_value v = {.source = SOURCE_RLP, .container_path = CP_VALUE};
+    s_parsed_value_collection collec = {0};
 
     g_tx_from = addr;
+    g_tx_amount = amount;
     s_tx_info_ret = &s_transaction_info;
     g_is_root = true;
     TEST_ASSERT_TRUE(get_from());
-    TEST_ASSERT_EQUAL(1, g_root_from_shown_calls);
-}
-
-void test_from_of_a_call_that_is_not_root_is_not_marked_as_shown(void) {
-    static const uint8_t addr[ADDRESS_LENGTH] = {0xAA};
-
-    g_tx_from = addr;
-    s_tx_info_ret = &s_transaction_info;
-    g_is_root = false;
-    TEST_ASSERT_TRUE(get_from());
+    TEST_ASSERT_TRUE(value_get(&v, &collec));
     TEST_ASSERT_EQUAL(0, g_root_from_shown_calls);
+    TEST_ASSERT_EQUAL(0, g_root_value_shown_calls);
 }
 
-// the review of a message shows the sender of the message: the message is the root of the
-// operations, and the calls it names are not
-void test_from_of_a_message_is_marked_as_shown(void) {
-    static const uint8_t addr[ADDRESS_LENGTH] = {0xBB};
+// The message is the root of the operations, so this covers the sender of a message too
+void test_shown_root_sender_is_marked(void) {
+    const s_value v = {.source = SOURCE_RLP, .container_path = CP_FROM};
 
-    g_tx_from = addr;
-    s_tx_info_ret = &s_message_info;
     g_is_root = true;
-    TEST_ASSERT_TRUE(get_from());
+    value_set_root_from_shown(&v);
     TEST_ASSERT_EQUAL(1, g_root_from_shown_calls);
 }
 
-void test_from_of_a_call_in_a_message_is_not_marked_as_shown(void) {
-    static const uint8_t addr[ADDRESS_LENGTH] = {0xAA};
+void test_shown_root_native_amount_is_marked(void) {
+    const s_value v = {.source = SOURCE_RLP, .container_path = CP_VALUE};
 
-    g_tx_from = addr;
-    s_tx_info_ret = &s_transaction_info;
+    g_is_root = true;
+    value_set_root_value_shown(&v);
+    TEST_ASSERT_EQUAL(1, g_root_value_shown_calls);
+}
+
+void test_shown_value_of_a_call_that_is_not_root_is_not_marked(void) {
+    const s_value from = {.source = SOURCE_RLP, .container_path = CP_FROM};
+    const s_value value = {.source = SOURCE_RLP, .container_path = CP_VALUE};
+
     g_is_root = false;
-    TEST_ASSERT_TRUE(get_from());
+    value_set_root_from_shown(&from);
+    value_set_root_value_shown(&value);
     TEST_ASSERT_EQUAL(0, g_root_from_shown_calls);
+    TEST_ASSERT_EQUAL(0, g_root_value_shown_calls);
+}
+
+// Only the container value itself counts: not another container path, nor another source
+void test_shown_value_other_than_the_container_one_is_not_marked(void) {
+    const s_value to = {.source = SOURCE_RLP, .container_path = CP_TO};
+    const s_value calldata = {.source = SOURCE_CALLDATA};
+
+    g_is_root = true;
+    value_set_root_from_shown(&to);
+    value_set_root_value_shown(&to);
+    value_set_root_from_shown(&calldata);
+    value_set_root_value_shown(&calldata);
+    TEST_ASSERT_EQUAL(0, g_root_from_shown_calls);
+    TEST_ASSERT_EQUAL(0, g_root_value_shown_calls);
 }
 
 // The container paths read what the operation being described holds, whatever it is
@@ -917,10 +938,11 @@ int main(void) {
     RUN_TEST(test_value_get_rlp_to);
     RUN_TEST(test_value_get_rlp_amount);
     RUN_TEST(test_value_get_rlp_chain_id_bigendian);
-    RUN_TEST(test_from_of_a_transaction_root_is_marked_as_shown);
-    RUN_TEST(test_from_of_a_call_that_is_not_root_is_not_marked_as_shown);
-    RUN_TEST(test_from_of_a_message_is_marked_as_shown);
-    RUN_TEST(test_from_of_a_call_in_a_message_is_not_marked_as_shown);
+    RUN_TEST(test_reading_root_container_values_does_not_mark_them_shown);
+    RUN_TEST(test_shown_root_sender_is_marked);
+    RUN_TEST(test_shown_root_native_amount_is_marked);
+    RUN_TEST(test_shown_value_of_a_call_that_is_not_root_is_not_marked);
+    RUN_TEST(test_shown_value_other_than_the_container_one_is_not_marked);
     RUN_TEST(test_container_to_is_the_callee_of_the_operation);
     RUN_TEST(test_container_to_refused_when_the_operation_has_no_callee);
     RUN_TEST(test_container_chain_id_is_the_chain_of_the_operation_big_endian);

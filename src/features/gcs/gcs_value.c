@@ -207,12 +207,6 @@ static bool value_get_rlp(const s_value *value, s_parsed_value_collection *colle
             }
             collection->value[0].length = ADDRESS_LENGTH;
             collection->size = 1;
-            // The descriptor already shows the sender of the root operation: the review must
-            // not add its own row for it. The calls a typed message names do not count, the
-            // review of a message shows the sender of the message.
-            if (operation_ctx_is_root()) {
-                operation_ctx_set_root_from_shown();
-            }
             break;
 
         // Recipient address (20 bytes)
@@ -231,11 +225,6 @@ static bool value_get_rlp(const s_value *value, s_parsed_value_collection *colle
             }
             collection->value[0].length = INT256_LENGTH;
             collection->size = 1;
-            if (operation_ctx_is_root()) {
-                // The descriptor already shows the root native value; the GCS
-                // review must not add its own duplicate row for it.
-                operation_ctx_set_root_value_shown();
-            }
             break;
 
         // Chain ID, normalized to a big-endian 64-bit value
@@ -349,6 +338,24 @@ bool value_get(const s_value *value, s_parsed_value_collection *collection) {
             return false;
     }
     return true;
+}
+
+// The calls a typed message names do not count: the review of a message shows its own sender
+static bool is_root_container_value(const s_value *value, e_container_path path) {
+    return (value->source == SOURCE_RLP) && (value->container_path == path) &&
+           operation_ctx_is_root();
+}
+
+void value_set_root_from_shown(const s_value *value) {
+    if (is_root_container_value(value, CP_FROM)) {
+        operation_ctx_set_root_from_shown();
+    }
+}
+
+void value_set_root_value_shown(const s_value *value) {
+    if (is_root_container_value(value, CP_VALUE)) {
+        operation_ctx_set_root_value_shown();
+    }
 }
 
 void value_cleanup(const s_value *value, const s_parsed_value_collection *collection) {

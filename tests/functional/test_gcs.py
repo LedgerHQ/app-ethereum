@@ -28,6 +28,7 @@ from client.gcs import (
     TxInfo,
     TypeFamily,
     Value,
+    VisibleType,
 )
 from client.map_entry import MapEntry
 from client.proxy_info import ProxyInfo
@@ -3380,6 +3381,57 @@ def test_gcs_root_value_in_metadata(scenario_navigator: NavigateWithScenario):
                 1,
                 Value(1, TypeFamily.UINT, type_size=32, container_path=ContainerPath.VALUE),
             ),
+        ),
+    )
+
+    with app_client.sign("m/44'/60'/0'/0/0", tx_params, mode=SignMode.STORE):
+        pass
+
+    _provide_gcs_metadata(app_client, tx_params, fields)
+
+    with app_client.sign(mode=SignMode.START_FLOW):
+        scenario_navigator.review_approve()
+
+
+def test_gcs_root_value_hidden_in_metadata(scenario_navigator: NavigateWithScenario):
+    """A metadata field that reads the native value without showing it keeps the device row."""
+    backend = scenario_navigator.backend
+    app_client = EthAppClient(backend)
+
+    value = Web3.to_wei(0.42, "ether")
+    tx_params, fields = _poap_tx_and_fields(value)
+    fields.insert(
+        0,
+        Field(
+            1,
+            "Sent amount",
+            ParamRaw(1, Value(1, TypeFamily.UINT, type_size=32, container_path=ContainerPath.VALUE)),
+            VisibleType.MUST_BE,
+            [value.to_bytes(32, "big")],
+        ),
+    )
+
+    with app_client.sign("m/44'/60'/0'/0/0", tx_params, mode=SignMode.STORE):
+        pass
+
+    _provide_gcs_metadata(app_client, tx_params, fields)
+
+    with app_client.sign(mode=SignMode.START_FLOW):
+        scenario_navigator.review_approve()
+
+
+def test_gcs_root_value_raw_in_metadata(scenario_navigator: NavigateWithScenario):
+    """A metadata field that shows the native value in wei keeps the device row in the currency."""
+    backend = scenario_navigator.backend
+    app_client = EthAppClient(backend)
+
+    tx_params, fields = _poap_tx_and_fields(Web3.to_wei(0.42, "ether"))
+    fields.insert(
+        0,
+        Field(
+            1,
+            "Sent amount",
+            ParamRaw(1, Value(1, TypeFamily.UINT, type_size=32, container_path=ContainerPath.VALUE)),
         ),
     )
 

@@ -68,3 +68,21 @@ typedef struct {
 bool handle_value_struct(const buffer_t *buf, s_value_context *context);
 bool value_get(const s_value *value, s_parsed_value_collection *collection);
 void value_cleanup(const s_value *value, const s_parsed_value_collection *collection);
+
+/**
+ * Record that a field shows the sender of the root operation, when the value is that sender
+ *
+ * To be called once the field is in the review, so that the review does not add its own row.
+ *
+ * @param[in] value the value the field shows
+ */
+void value_set_root_from_shown(const s_value *value);
+
+/**
+ * Record that a field shows the native amount of the root operation, when the value is that amount
+ *
+ * To be called once the field is in the review, so that the review does not add its own row.
+ *
+ * @param[in] value the value the field shows
+ */
+void value_set_root_value_shown(const s_value *value);

@@ -161,6 +161,7 @@ static bool process_token_amount(const s_param_token_amount *param,
                             token_info)) {
         return false;
     }
+    value_set_root_value_shown(&param->value);
     return true;
 }
 

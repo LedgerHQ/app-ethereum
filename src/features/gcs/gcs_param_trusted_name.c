@@ -306,6 +306,7 @@ __attribute__((noinline)) bool format_param_trusted_name(const struct s_field *f
                       add_address_to_field_table(param_type, field->name, buf, extra_data, addr))) {
                 break;
             }
+            value_set_root_from_shown(&field->param_trusted_name.value);
         }
     }
 

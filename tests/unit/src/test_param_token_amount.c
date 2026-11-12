@@ -77,6 +77,12 @@ bool add_to_field_table(e_param_type type,
     return (bool) g_add_to_field_table_ret;
 }
 
+static int g_root_value_shown_calls = 0;
+void value_set_root_value_shown(const s_value *value) {
+    (void) value;
+    g_root_value_shown_calls++;
+}
+
 // ===========================================================================
 // Test data
 // ===========================================================================
@@ -306,11 +312,57 @@ void test_handle_struct_above_threshold_msg_oversize_rejected(void) {
     TEST_ASSERT_FALSE(handle_param_token_amount_struct(&buf, &ctx));
 }
 
+// One native amount, of the given token address, against a param that knows g_usdc_addr as native
+static bool format_one_native_candidate(const uint8_t *amount, bool above_threshold) {
+    s_param_token_amount param;
+
+    g_vg[0].size = 1;
+    g_vg[0].value[0] = (s_parsed_value) {.ptr = amount,
+                                         .size = INT256_LENGTH,
+                                         .offset = 0,
+                                         .length = INT256_LENGTH};
+    g_vg[1].size = 1;
+    g_vg[1].value[0] = (s_parsed_value) {.ptr = g_usdc_addr,
+                                         .size = ADDRESS_LENGTH,
+                                         .offset = 0,
+                                         .length = ADDRESS_LENGTH};
+    g_vg_call = 0;
+    g_fake_tx_info.chain_id = 1;
+    g_add_to_field_table_ret = true;
+
+    memset(&param, 0, sizeof(param));
+    param.version = 1;
+    param.has_token = true;
+    param.native_addr_count = 1;
+    memcpy(param.native_addrs[0], g_usdc_addr, ADDRESS_LENGTH);
+    if (above_threshold) {
+        TEST_ASSERT_TRUE(convertUint256BE(g_amount1, sizeof(g_amount1), &param.threshold));
+    }
+    return format_param_token_amount(&param, "Amount");
+}
+
+void test_token_amount_native_marks_root_value_shown(void) {
+    TEST_ASSERT_TRUE(format_one_native_candidate(g_amount1, false));
+    TEST_ASSERT_EQUAL_INT(1, g_root_value_shown_calls);
+}
+
+void test_token_amount_native_above_threshold_marks_root_value_shown(void) {
+    TEST_ASSERT_TRUE(format_one_native_candidate(g_amount2, true));
+    TEST_ASSERT_EQUAL_INT(1, g_root_value_shown_calls);
+}
+
+void test_token_amount_token_marks_each_shown_value(void) {
+    g_get_matching_token_info_or_dummy_ret = &g_usdc_info;
+    test_token_amount_broadcast_ok();
+    TEST_ASSERT_EQUAL_INT(2, g_root_value_shown_calls);
+}
+
 // ===========================================================================
 // Test runner
 // ===========================================================================
 
 void setUp(void) {
+    g_root_value_shown_calls = 0;
 }
 void tearDown(void) {
 }
@@ -319,6 +371,9 @@ int main(void) {
     UNITY_BEGIN();
     RUN_TEST(test_token_amount_broadcast_ok);
     RUN_TEST(test_token_amount_size_mismatch_rejected);
+    RUN_TEST(test_token_amount_native_marks_root_value_shown);
+    RUN_TEST(test_token_amount_native_above_threshold_marks_root_value_shown);
+    RUN_TEST(test_token_amount_token_marks_each_shown_value);
     RUN_TEST(test_handle_struct_version_other_than_one_refused);
     RUN_TEST(test_handle_struct_all_tags_ok);
     RUN_TEST(test_handle_struct_native_currency_oversize_rejected);

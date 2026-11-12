@@ -34,6 +34,12 @@
 // =============================================================================
 
 static bool g_add_to_field_table_ret = true;
+static int g_root_value_shown_calls = 0;
+
+void value_set_root_value_shown(const s_value *value) {
+    (void) value;
+    g_root_value_shown_calls++;
+}
 static char g_last_value[80];
 
 // =============================================================================
@@ -76,6 +82,7 @@ static void reset(void) {
     g_vg_ret = true;
     g_hvs_ret = true;
     g_last_value[0] = '\0';
+    g_root_value_shown_calls = 0;
 }
 
 // Helper: build a single-value collection from a BE byte buffer.
@@ -101,6 +108,7 @@ void test_format_no_decimals(void) {
     strlcpy(param.base, "USDC", sizeof(param.base));
     param.decimals = 0;
     TEST_ASSERT_TRUE(format_param_unit(&param, "Stake"));
+    TEST_ASSERT_EQUAL_INT(1, g_root_value_shown_calls);
 }
 
 void test_format_with_decimals(void) {

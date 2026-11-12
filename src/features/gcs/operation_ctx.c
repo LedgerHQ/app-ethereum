@@ -9,6 +9,7 @@
 #include "get_public_key.h"
 #include "network.h"
 #include "hash_bytes.h"
+#include "os_utils.h"  // is_zeroes_buffer
 
 // The calls, in execution order
 static s_operation_ctx *g_operation_ctx_list = NULL;
@@ -19,10 +20,24 @@ static bool g_message_has_fields = false;
 // The operation being described: a call, or the message while none is
 static s_operation_ctx *g_operation_ctx_current = NULL;
 s_calldata *g_parked_calldata = NULL;
-// Whether a descriptor field already displays the root transaction native value (CP_VALUE)
-static bool g_root_value_shown = false;
-// Whether a descriptor field already displays the root transaction sender (CP_FROM)
-static bool g_root_from_shown = false;
+// The values a row of the review shows, by the operation they were read for
+typedef struct {
+    flist_node_t _list;
+    uint32_t key;
+    uint8_t ctx_id;
+    uint8_t index;
+} s_shown_value;
+
+// Past it, a value is not recorded, and the review adds its row: a duplicate rather than a gap
+#define MAX_SHOWN_VALUES 32
+
+static s_shown_value *g_shown_values = NULL;
+static uint8_t g_next_ctx_id = 0;
+
+// to be used as a \ref f_list_node_del
+static void delete_shown_value(s_shown_value *node) {
+    APP_MEM_FREE(node);
+}
 
 static bool is_message(const s_operation_ctx *ctx) {
     return (ctx != NULL) && (ctx == g_operation_ctx_message);
@@ -217,42 +232,11 @@ static bool is_on_root_chain(const s_operation_ctx *call) {
            (call->chain_id == root->chain_id);
 }
 
-static bool process_empty_call(const s_operation_ctx *operation_ctx) {
-    const char *ticker;
-    uint8_t decimals;
+// Add the row of an address, by its name when it has one
+static bool add_address_row(const char *key, const uint8_t *addr, uint64_t chain_id) {
     char *buf = strings.tmp.tmp;
     size_t buf_size = sizeof(strings.tmp.tmp);
     e_param_type param_type;
-
-    // nothing tells where a call that takes no chain from its message goes
-    if (!operation_ctx->has_chain_id) {
-        PRINTF("Error: a call is on no chain!\n");
-        return false;
-    }
-    if (operation_ctx->has_amount) {
-        if (!set_intent_field("Send", operation_ctx->batch_size)) {
-            return false;
-        }
-        // The nested context carries its own (possibly cross-chain) chain ID
-        ticker = get_displayable_ticker(&operation_ctx->chain_id, g_chain_config, true);
-        decimals = WEI_TO_ETHER;
-        if (!amountToString(operation_ctx->amount,
-                            sizeof(operation_ctx->amount),
-                            decimals,
-                            ticker,
-                            buf,
-                            buf_size)) {
-            return false;
-        }
-        if (!add_to_field_table(PARAM_TYPE_AMOUNT, "Amount", buf, NULL)) {
-            return false;
-        }
-    } else {
-        if (!set_intent_field("Empty transaction", operation_ctx->batch_size)) {
-            return false;
-        }
-    }
-
     e_name_type types[] = {TN_TYPE_ACCOUNT};
     e_name_source sources[] = {TN_SOURCE_ENS, TN_SOURCE_LAB, TN_SOURCE_MAB};
     e_addr_name_source name_source;
@@ -260,8 +244,8 @@ static bool process_empty_call(const s_operation_ctx *operation_ctx) {
 
     // Address Book > Trusted Name > raw hex; extra_data carries the matched record for the alias
     // detail view
-    if (!get_address_display_name(operation_ctx->to,
-                                  operation_ctx->chain_id,
+    if (!get_address_display_name(addr,
+                                  chain_id,
                                   ARRAYLEN(types),
                                   types,
                                   ARRAYLEN(sources),
@@ -285,15 +269,49 @@ static bool process_empty_call(const s_operation_ctx *operation_ctx) {
             param_type = PARAM_TYPE_RAW;
             break;
     }
-    if (!add_address_to_field_table(param_type, "To", buf, extra_data, operation_ctx->to)) {
+    return add_address_to_field_table(param_type, key, buf, extra_data, addr);
+}
+
+// Add the row of a native amount, in the currency of the chain the call is on
+static bool add_amount_row(const uint8_t *amount, uint64_t chain_id) {
+    char *buf = strings.tmp.tmp;
+    size_t buf_size = sizeof(strings.tmp.tmp);
+    const char *ticker = get_displayable_ticker(&chain_id, g_chain_config, true);
+
+    return amountToString(amount, INT256_LENGTH, WEI_TO_ETHER, ticker, buf, buf_size) &&
+           add_to_field_table(PARAM_TYPE_AMOUNT, "Amount", buf, NULL);
+}
+
+static bool add_network_row(uint64_t chain_id) {
+    char *buf = strings.tmp.tmp;
+    size_t buf_size = sizeof(strings.tmp.tmp);
+
+    return get_network_as_string_from_chain_id(buf, buf_size, chain_id) &&
+           add_to_field_table(PARAM_TYPE_RAW, "Network", buf, NULL);
+}
+
+static bool process_empty_call(const s_operation_ctx *operation_ctx) {
+    // nothing tells where a call that takes no chain from its message goes
+    if (!operation_ctx->has_chain_id) {
+        PRINTF("Error: a call is on no chain!\n");
+        return false;
+    }
+    if (operation_ctx->has_amount) {
+        if (!set_intent_field("Send", operation_ctx->batch_size) ||
+            !add_amount_row(operation_ctx->amount, operation_ctx->chain_id)) {
+            return false;
+        }
+    } else {
+        if (!set_intent_field("Empty transaction", operation_ctx->batch_size)) {
+            return false;
+        }
+    }
+    if (!add_address_row("To", operation_ctx->to, operation_ctx->chain_id)) {
         return false;
     }
     // A call on another chain than the root one is told apart by its network
-    if (!is_on_root_chain(operation_ctx)) {
-        if (!get_network_as_string_from_chain_id(buf, buf_size, operation_ctx->chain_id) ||
-            !add_to_field_table(PARAM_TYPE_RAW, "Network", buf, NULL)) {
-            return false;
-        }
+    if (!is_on_root_chain(operation_ctx) && !add_network_row(operation_ctx->chain_id)) {
+        return false;
     }
     list_remove((list_node_t **) &g_operation_ctx_list,
                 (list_node_t *) operation_ctx,
@@ -389,8 +407,8 @@ void operation_ctx_cleanup(void) {
     }
     g_message_has_fields = false;
     g_operation_ctx_current = NULL;
-    g_root_value_shown = false;
-    g_root_from_shown = false;
+    flist_clear((flist_node_t **) &g_shown_values, (f_list_node_del) &delete_shown_value);
+    g_next_ctx_id = 0;
 }
 
 bool operation_ctx_set_last_batch_size(uint8_t batch_size) {
@@ -425,6 +443,7 @@ bool operation_ctx_init_message(s_operation_info *info,
     }
     // the node owns the info from here on
     node->info = info;
+    node->id = g_next_ctx_id++;
     memcpy(node->from, from, sizeof(node->from));
     if (!operation_info_fields_hash_is_empty(info, &no_fields) ||
         (cx_sha3_init_no_throw(&node->fields_hash_ctx, 256) != CX_OK)) {
@@ -478,6 +497,7 @@ bool operation_ctx_init(s_calldata *calldata,
     }
     node->calldata = calldata;
     node->has_to = true;
+    node->id = g_next_ctx_id++;
     if ((get_operation_ctx_count() == 0) && !operation_ctx_has_message()) {
         // a root call that names no sender is sent by the signer
         if ((from == NULL) && (get_public_key(node->from, ADDRESS_LENGTH) != SWO_SUCCESS)) {
@@ -494,6 +514,14 @@ bool operation_ctx_init(s_calldata *calldata,
         memcpy(node->from, parent->from, sizeof(node->from));
         node->chain_id = parent->chain_id;
         node->has_chain_id = parent->has_chain_id;
+        // kept as copies: the parent can be dropped before this call is described
+        node->has_parent = true;
+        node->parent_id = parent->id;
+        memcpy(node->parent_from, parent->from, sizeof(node->parent_from));
+        memcpy(node->parent_to, parent->to, sizeof(node->parent_to));
+        node->parent_has_to = parent->has_to;
+        node->parent_chain_id = parent->chain_id;
+        node->parent_has_chain_id = parent->has_chain_id;
     }
 
     if (from != NULL) {
@@ -531,20 +559,129 @@ bool operation_ctx_init(s_calldata *calldata,
     return true;
 }
 
-void operation_ctx_set_root_value_shown(void) {
-    g_root_value_shown = true;
+void operation_ctx_set_shown(uint8_t what, uint32_t key, uint8_t index) {
+    s_shown_value *node;
+
+    if (g_operation_ctx_current == NULL) {
+        return;
+    }
+    g_operation_ctx_current->shown |= what;
+    if ((flist_size((flist_node_t **) &g_shown_values) >= MAX_SHOWN_VALUES) ||
+        !APP_MEM_CALLOC((void **) &node, sizeof(*node))) {
+        return;
+    }
+    node->key = key;
+    node->ctx_id = g_operation_ctx_current->id;
+    node->index = index;
+    flist_push_back((flist_node_t **) &g_shown_values, (flist_node_t *) node);
+}
+
+static bool is_root_shown(uint8_t what) {
+    const s_operation_ctx *root = get_root();
+
+    return (root != NULL) && ((root->shown & what) != 0);
 }
 
 bool operation_ctx_is_root_value_shown(void) {
-    return g_root_value_shown;
-}
-
-void operation_ctx_set_root_from_shown(void) {
-    g_root_from_shown = true;
+    return is_root_shown(OPERATION_SHOWN_VALUE);
 }
 
 bool operation_ctx_is_root_from_shown(void) {
-    return g_root_from_shown;
+    return is_root_shown(OPERATION_SHOWN_FROM);
+}
+
+bool operation_ctx_set_last_origin(const s_call_origin *origin) {
+    s_operation_ctx *last = g_operation_ctx_list;
+
+    if (last == NULL) return false;
+    while (((flist_node_t *) last)->next != NULL) {
+        last = (s_operation_ctx *) ((flist_node_t *) last)->next;
+    }
+    last->origin = *origin;
+    return true;
+}
+
+// Whether a row of the operation that made the call shows the value the call took
+static bool is_shown_by_parent(const s_operation_ctx *call, const s_call_origin_value *origin) {
+    if (!call->has_parent || !origin->set) {
+        return false;
+    }
+    for (const s_shown_value *node = g_shown_values; node != NULL;
+         node = (const s_shown_value *) ((const flist_node_t *) node)->next) {
+        if ((node->ctx_id == call->parent_id) && (node->key == origin->key) &&
+            (node->index == origin->index)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+static bool is_parent_callee(const s_operation_ctx *call, const uint8_t *addr) {
+    return call->parent_has_to && (memcmp(addr, call->parent_to, ADDRESS_LENGTH) == 0);
+}
+
+static bool needs_row(const s_operation_ctx *call,
+                      uint8_t what,
+                      const s_call_origin_value *origin) {
+    return ((call->shown & what) == 0) && !is_shown_by_parent(call, origin);
+}
+
+// The row is part of the review of the call, whose fields are all in already
+static bool add_call_row(bool (*add)(const s_operation_ctx *call), const s_operation_ctx *call) {
+    field_table_extend_intent();
+    return add(call);
+}
+
+static bool add_to_row(const s_operation_ctx *call) {
+    return add_address_row("To", call->to, call->chain_id);
+}
+
+static bool add_call_amount_row(const s_operation_ctx *call) {
+    return add_amount_row(call->amount, call->chain_id);
+}
+
+static bool add_call_network_row(const s_operation_ctx *call) {
+    return add_network_row(call->chain_id);
+}
+
+static bool add_from_row(const s_operation_ctx *call) {
+    return add_address_row("From", call->from, call->chain_id);
+}
+
+bool operation_ctx_add_unshown_rows(void) {
+    const s_operation_ctx *call = g_operation_ctx_current;
+
+    if (!operation_ctx_is_describing_call()) {
+        return false;
+    }
+    // a call made by no other operation is a root, whose rows are the review's own
+    if (!call->has_parent) {
+        return true;
+    }
+    // A call to the contract the parent calls is to the contract already reviewed
+    if (!is_parent_callee(call, call->to) &&
+        needs_row(call, OPERATION_SHOWN_TO, &call->origin.to) && !add_call_row(&add_to_row, call)) {
+        return false;
+    }
+    if (call->has_amount && !is_zeroes_buffer(call->amount, sizeof(call->amount)) &&
+        needs_row(call, OPERATION_SHOWN_VALUE, &call->origin.amount) &&
+        !add_call_row(&add_call_amount_row, call)) {
+        return false;
+    }
+    if (call->has_chain_id &&
+        (!call->parent_has_chain_id || (call->chain_id != call->parent_chain_id)) &&
+        needs_row(call, OPERATION_SHOWN_CHAIN_ID, &call->origin.chain_id) &&
+        !add_call_row(&add_call_network_row, call)) {
+        return false;
+    }
+    // A call made by the contract the parent calls is that contract's own: its sender is not new
+    if ((memcmp(call->from, call->parent_from, ADDRESS_LENGTH) != 0) &&
+        !is_parent_callee(call, call->from) &&
+        needs_row(call, OPERATION_SHOWN_FROM, &call->origin.from) &&
+        !add_call_row(&add_from_row, call)) {
+        return false;
+    }
+    return true;
 }
 
 void gcs_cleanup(void) {

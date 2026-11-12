@@ -48,7 +48,7 @@ static bool start_nested_call(const s_operation_info *info) {
         !operation_info_fields_hash_is_empty(info, &no_fields)) {
         return false;
     }
-    if (no_fields && !operation_ctx_pop()) {
+    if (no_fields && (!operation_ctx_add_unshown_rows() || !operation_ctx_pop())) {
         return false;
     }
     return true;

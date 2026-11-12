@@ -125,7 +125,7 @@ __attribute__((noinline)) bool format_param_unit(const s_param_unit *param, cons
             if (!(ret = add_to_field_table(PARAM_TYPE_UNIT, name, buf, NULL))) {
                 break;
             }
-            value_set_root_value_shown(&param->value);
+            value_set_shown(&param->value, i);
         }
     }
     value_cleanup(&param->value, &collec);

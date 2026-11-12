@@ -75,7 +75,7 @@ __attribute__((noinline)) bool format_param_amount(const s_param_amount *param, 
             if (!(ret = add_to_field_table(PARAM_TYPE_AMOUNT, name, buf, NULL))) {
                 break;
             }
-            value_set_root_value_shown(&param->value);
+            value_set_shown(&param->value, i);
         }
     }
 end:

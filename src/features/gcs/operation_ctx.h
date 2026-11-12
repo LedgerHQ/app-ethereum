@@ -19,6 +19,26 @@
  * root. The root of the operations is the typed message if there is one, else the first call, which
  * is the transaction being signed.
  */
+// What a review row of an operation shows, which the review need not add on its own
+#define OPERATION_SHOWN_FROM     (1 << 0)
+#define OPERATION_SHOWN_TO       (1 << 1)
+#define OPERATION_SHOWN_VALUE    (1 << 2)
+#define OPERATION_SHOWN_CHAIN_ID (1 << 3)
+
+// A value of a nested call, as the descriptor of the operation that made the call reads it
+typedef struct {
+    uint32_t key;   // see value_source_key()
+    uint8_t index;  // position in the collection of values read
+    bool set;
+} s_call_origin_value;
+
+typedef struct {
+    s_call_origin_value from;
+    s_call_origin_value to;
+    s_call_origin_value amount;
+    s_call_origin_value chain_id;
+} s_call_origin;
+
 typedef struct {
     list_node_t _list;       // for a call only
     s_operation_info *info;  // TRANSACTION_INFO of a call, EIP712_MESSAGE_INFO of a message
@@ -30,6 +50,19 @@ typedef struct {
 
     cx_sha3_t fields_hash_ctx;
     uint8_t batch_size;  // calls made by the CALLDATA that made this one, 0 for a root
+    uint8_t id;
+    uint8_t shown;  // OPERATION_SHOWN_* of what a row of the review shows
+
+    // For a call made by another operation: what that operation is, and where the call comes from
+    uint8_t parent_id;
+    uint8_t parent_from[ADDRESS_LENGTH];
+    uint8_t parent_to[ADDRESS_LENGTH];
+    uint64_t parent_chain_id;
+    s_call_origin origin;
+    bool has_parent : 1;
+    bool parent_has_to : 1;
+    bool parent_has_chain_id : 1;
+
     bool has_amount : 1;
     bool has_to : 1;  // always set for a call
     bool has_chain_id
@@ -166,7 +199,27 @@ void gcs_cleanup(void);
  * Forget the operations, along with what describes them
  */
 void operation_ctx_cleanup(void);
-void operation_ctx_set_root_value_shown(void);
+/**
+ * Record that a row of the review shows a value of the operation being described
+ *
+ * @param[in] what OPERATION_SHOWN_* of the value, when it is one of the operation; 0 otherwise
+ * @param[in] key see value_source_key()
+ * @param[in] index position of the value in the collection it was read in
+ */
+void operation_ctx_set_shown(uint8_t what, uint32_t key, uint8_t index);
 bool operation_ctx_is_root_value_shown(void);
-void operation_ctx_set_root_from_shown(void);
 bool operation_ctx_is_root_from_shown(void);
+/**
+ * Set where the last queued call comes from in the descriptor of the operation that made it
+ *
+ * @param[in] origin the values of the call, as that descriptor reads them
+ * @return whether there is a queued call
+ */
+bool operation_ctx_set_last_origin(const s_call_origin *origin);
+/**
+ * Add the rows the review of the nested call being described needs, for what no row shows yet: its
+ * callee, its native amount, its network and its sender
+ *
+ * @return whether the rows were added
+ */
+bool operation_ctx_add_unshown_rows(void);

@@ -81,8 +81,9 @@ bool add_to_field_table(e_param_type type,
 }
 
 static int g_root_value_shown_calls = 0;
-void value_set_root_value_shown(const s_value *value) {
+void value_set_shown(const s_value *value, uint8_t index) {
     (void) value;
+    (void) index;
     g_root_value_shown_calls++;
 }
 

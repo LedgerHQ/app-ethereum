@@ -148,6 +148,28 @@ __attribute__((weak)) void os_lib_call(unsigned int *call_parameters) {
 }
 
 // =============================================================================
+// BOLOS_SDK -- lib_cxng/include/lcx_crc.h
+// =============================================================================
+
+// Standard reflected CRC32, chained like the firmware's cx_crc32_update.
+__attribute__((weak)) uint32_t cx_crc32_update(uint32_t crc_state, const void *buf, size_t len) {
+    const uint8_t *bytes = buf;
+
+    crc_state = ~crc_state;
+    for (size_t i = 0; i < len; ++i) {
+        crc_state ^= bytes[i];
+        for (int bit = 0; bit < 8; ++bit) {
+            crc_state = (crc_state >> 1) ^ (0xEDB88320u & (0u - (crc_state & 1u)));
+        }
+    }
+    return ~crc_state;
+}
+
+__attribute__((weak)) uint32_t cx_crc32(const void *buf, size_t len) {
+    return cx_crc32_update(0, buf, len);
+}
+
+// =============================================================================
 // BOLOS_SDK -- lib_cxng/include/lcx_sha256.h
 // =============================================================================
 

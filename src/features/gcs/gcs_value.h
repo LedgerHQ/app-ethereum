@@ -70,19 +70,19 @@ bool value_get(const s_value *value, s_parsed_value_collection *collection);
 void value_cleanup(const s_value *value, const s_parsed_value_collection *collection);
 
 /**
- * Record that a field shows the sender of the root operation, when the value is that sender
+ * Identify where a value is read: the same key for the same source, path or constant
  *
- * To be called once the field is in the review, so that the review does not add its own row.
- *
- * @param[in] value the value the field shows
+ * @param[in] value the value
+ * @return the key
  */
-void value_set_root_from_shown(const s_value *value);
+uint32_t value_source_key(const s_value *value);
 
 /**
- * Record that a field shows the native amount of the root operation, when the value is that amount
+ * Record that a row of the review shows a value, read for the operation being described
  *
- * To be called once the field is in the review, so that the review does not add its own row.
+ * To be called once the row is in the review, so that the review does not add its own row for it.
  *
- * @param[in] value the value the field shows
+ * @param[in] value the value the row shows
+ * @param[in] index position of the value in the collection it was read in
  */
-void value_set_root_value_shown(const s_value *value);
+void value_set_shown(const s_value *value, uint8_t index);

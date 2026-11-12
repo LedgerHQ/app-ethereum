@@ -14,6 +14,7 @@ eip712_v1_context
 g_operation_ctx_list
 g_operation_ctx_message
 g_operation_ctx_current
+g_shown_values@operation_ctx.c
 s_from_str@common_712.c
 g_enum_value_list
 g_table

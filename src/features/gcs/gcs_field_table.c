@@ -170,6 +170,18 @@ bool add_address_to_field_table(e_param_type type,
     return true;
 }
 
+void field_table_extend_intent(void) {
+    flist_node_t *node = (flist_node_t *) g_table;
+
+    if (node == NULL) {
+        return;
+    }
+    while (node->next != NULL) {
+        node = node->next;
+    }
+    ((s_field_table_node *) node)->field.end_intent = false;
+}
+
 bool set_intent_field(const char *value, uint8_t batch_size) {
     // Only a call of a batch of several is marked as an intent
     e_param_type type = (batch_size > 1) ? PARAM_TYPE_INTENT : PARAM_TYPE_RAW;

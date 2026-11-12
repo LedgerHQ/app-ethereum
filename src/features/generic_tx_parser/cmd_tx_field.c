@@ -11,7 +11,8 @@ static bool handle_tlv_payload(const buffer_t *buf) {
         return false;
     }
     while (call_description_is_nested() && validate_instruction_hash()) {
-        if (!process_empty_calls_after() || !operation_ctx_pop()) {
+        if (!operation_ctx_add_unshown_rows() || !process_empty_calls_after() ||
+            !operation_ctx_pop()) {
             return false;
         }
     }

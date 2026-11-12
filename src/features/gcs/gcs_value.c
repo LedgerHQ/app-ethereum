@@ -10,6 +10,7 @@
 #include "tlv_library.h"
 #include "tlv_utils.h"
 #include "map_entry.h"
+#include "lcx_crc.h"
 
 #define MAP_REF_STRUCT_VERSION 0x01
 #define VALUE_STRUCT_VERSION   0x01
@@ -340,22 +341,48 @@ bool value_get(const s_value *value, s_parsed_value_collection *collection) {
     return true;
 }
 
-// The calls a typed message names do not count: the review of a message shows its own sender
-static bool is_root_container_value(const s_value *value, e_container_path path) {
-    return (value->source == SOURCE_RLP) && (value->container_path == path) &&
-           operation_ctx_is_root();
-}
+uint32_t value_source_key(const s_value *value) {
+    uint32_t key = cx_crc32(&value->source, sizeof(value->source));
 
-void value_set_root_from_shown(const s_value *value) {
-    if (is_root_container_value(value, CP_FROM)) {
-        operation_ctx_set_root_from_shown();
+    switch (value->source) {
+        case SOURCE_CALLDATA:
+            return cx_crc32_update(key, &value->data_path, sizeof(value->data_path));
+        case SOURCE_EIP712:
+            return cx_crc32_update(key, &value->eip712_path, sizeof(value->eip712_path));
+        case SOURCE_RLP:
+            return cx_crc32_update(key, &value->container_path, sizeof(value->container_path));
+        case SOURCE_CONSTANT:
+            key = cx_crc32_update(key, &value->constant.size, sizeof(value->constant.size));
+            return cx_crc32_update(key, value->constant.buf, value->constant.size);
+        case SOURCE_MAP_REF:
+            return cx_crc32_update(key, &value->map_ref, sizeof(value->map_ref));
+        default:
+            return key;
     }
 }
 
-void value_set_root_value_shown(const s_value *value) {
-    if (is_root_container_value(value, CP_VALUE)) {
-        operation_ctx_set_root_value_shown();
+void value_set_shown(const s_value *value, uint8_t index) {
+    uint8_t what = 0;
+
+    if (value->source == SOURCE_RLP) {
+        switch (value->container_path) {
+            case CP_FROM:
+                what = OPERATION_SHOWN_FROM;
+                break;
+            case CP_TO:
+                what = OPERATION_SHOWN_TO;
+                break;
+            case CP_VALUE:
+                what = OPERATION_SHOWN_VALUE;
+                break;
+            case CP_CHAIN_ID:
+                what = OPERATION_SHOWN_CHAIN_ID;
+                break;
+            default:
+                break;
+        }
     }
+    operation_ctx_set_shown(what, value_source_key(value), index);
 }
 
 void value_cleanup(const s_value *value, const s_parsed_value_collection *collection) {

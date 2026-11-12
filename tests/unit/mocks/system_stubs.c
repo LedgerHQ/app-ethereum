@@ -537,17 +537,35 @@ __attribute__((weak)) __attribute__((noreturn)) void send_swap_error_simple(
     }
 }
 
-// Default: not at the root context, so value_get_rlp() never marks the root
-// FROM/VALUE rows as shown. Tests that exercise the dedup hooks install their
-// own strong definitions.
 __attribute__((weak)) bool operation_ctx_is_root(void) {
     return false;
 }
 
-__attribute__((weak)) void operation_ctx_set_root_from_shown(void) {
+// What a review row shows is recorded for the dedup of the review rows; tests that exercise it
+// install their own strong definitions.
+__attribute__((weak)) void operation_ctx_set_shown(uint8_t what, uint32_t key, uint8_t index) {
+    (void) what;
+    (void) key;
+    (void) index;
 }
 
-__attribute__((weak)) void operation_ctx_set_root_value_shown(void) {
+__attribute__((weak)) bool operation_ctx_set_last_origin(const void *origin) {
+    (void) origin;
+    return true;
+}
+
+__attribute__((weak)) bool operation_ctx_add_unshown_rows(void) {
+    return true;
+}
+
+__attribute__((weak)) void value_set_shown(const void *value, uint8_t index) {
+    (void) value;
+    (void) index;
+}
+
+__attribute__((weak)) uint32_t value_source_key(const void *value) {
+    (void) value;
+    return 0;
 }
 
 __attribute__((weak)) bool chain_id_is_signable(uint64_t chain_id) {

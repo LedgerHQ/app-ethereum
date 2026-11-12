@@ -440,8 +440,7 @@ __attribute__((noinline)) bool format_param_raw(const s_field *field) {
             if (ret && to_be_displayed) {
                 ret = add_to_field_table(PARAM_TYPE_RAW, field->name, buf, NULL);
                 if (ret) {
-                    value_set_root_from_shown(&field->param_raw.value);
-                    value_set_root_value_shown(&field->param_raw.value);
+                    value_set_shown(&field->param_raw.value, i);
                 }
             }
         }

@@ -41,7 +41,9 @@ void value_set_shown(const s_value *value, uint8_t index) {
     (void) index;
     g_root_value_shown_calls++;
 }
-static char g_last_value[80];
+static char g_last_value[128];
+static char g_values[4][128];
+static int g_value_count = 0;
 
 // =============================================================================
 // Wrapped dependencies
@@ -70,6 +72,9 @@ bool add_to_field_table(e_param_type type,
                         const void *extra_data) {
     (void) extra_data;
     strlcpy(g_last_value, value, sizeof(g_last_value));
+    if (g_value_count < (int) ARRAYLEN(g_values)) {
+        strlcpy(g_values[g_value_count++], value, sizeof(g_values[0]));
+    }
     return (bool) g_add_to_field_table_ret;
 }
 
@@ -83,6 +88,8 @@ static void reset(void) {
     g_vg_ret = true;
     g_hvs_ret = true;
     g_last_value[0] = '\0';
+    memset(g_values, 0, sizeof(g_values));
+    g_value_count = 0;
     g_root_value_shown_calls = 0;
 }
 
@@ -215,6 +222,73 @@ void test_format_unsigned_high_bit_stays_positive(void) {
 // =============================================================================
 // format_param_unit — failure paths
 // =============================================================================
+
+static bool format_signed(const uint8_t *v,
+                          size_t len,
+                          uint8_t type_size,
+                          uint8_t decimals,
+                          const char *base) {
+    s_param_unit param = {0};
+
+    g_vg_call = 0;
+    set_single_value(v, len);
+    g_add_to_field_table_ret = true;
+    param.value.type_family = TF_INT;
+    param.value.type_size = type_size;
+    strlcpy(param.base, base, sizeof(param.base));
+    param.decimals = decimals;
+    return format_param_unit(&param, "Delta");
+}
+
+void test_format_signed_int8_with_decimals(void) {
+    static const uint8_t v[] = {0xC8};
+
+    TEST_ASSERT_TRUE(format_signed(v, sizeof(v), 1, 2, "%"));
+    TEST_ASSERT_EQUAL_STRING("-0.56 %", g_last_value);
+}
+
+void test_format_signed_minimum(void) {
+    static const uint8_t int8_min[] = {0x80};
+    static uint8_t int256_min[32];
+
+    TEST_ASSERT_TRUE(format_signed(int8_min, sizeof(int8_min), 1, 0, "PT"));
+    TEST_ASSERT_EQUAL_STRING("-128 PT", g_last_value);
+    int256_min[0] = 0x80;
+    TEST_ASSERT_TRUE(format_signed(int256_min, sizeof(int256_min), 32, 0, "PT"));
+    TEST_ASSERT_EQUAL_STRING(
+        "-57896044618658097711785492504343953926634992332820282019728792003956564819968 PT",
+        g_last_value);
+}
+
+// A value shorter than its type has no sign bit of its own
+void test_format_signed_shorter_than_its_type_stays_positive(void) {
+    static const uint8_t v[] = {0xC8};
+
+    TEST_ASSERT_TRUE(format_signed(v, sizeof(v), 2, 0, "PT"));
+    TEST_ASSERT_EQUAL_STRING("200 PT", g_last_value);
+}
+
+void test_format_signed_each_value_of_a_collection(void) {
+    static const uint8_t negative[] = {0xFF};
+    static const uint8_t positive[] = {0x05};
+    static const uint8_t minimum[] = {0x80};
+    s_param_unit param = {0};
+
+    g_vg[0].size = 3;
+    g_vg[0].value[0] = (s_parsed_value) {.ptr = negative, .size = 1, .offset = 0, .length = 1};
+    g_vg[0].value[1] = (s_parsed_value) {.ptr = positive, .size = 1, .offset = 0, .length = 1};
+    g_vg[0].value[2] = (s_parsed_value) {.ptr = minimum, .size = 1, .offset = 0, .length = 1};
+    g_add_to_field_table_ret = true;
+    param.value.type_family = TF_INT;
+    param.value.type_size = 1;
+    strlcpy(param.base, "PT", sizeof(param.base));
+    param.decimals = 1;
+    TEST_ASSERT_TRUE(format_param_unit(&param, "Delta"));
+    TEST_ASSERT_EQUAL(3, g_value_count);
+    TEST_ASSERT_EQUAL_STRING("-0.1 PT", g_values[0]);
+    TEST_ASSERT_EQUAL_STRING("0.5 PT", g_values[1]);
+    TEST_ASSERT_EQUAL_STRING("-12.8 PT", g_values[2]);
+}
 
 void test_format_value_get_failure_returns_false(void) {
     g_vg_ret = false;
@@ -404,6 +478,10 @@ int main(void) {
     RUN_TEST(test_format_signed_negative_below_one);
     RUN_TEST(test_format_signed_positive);
     RUN_TEST(test_format_unsigned_high_bit_stays_positive);
+    RUN_TEST(test_format_signed_int8_with_decimals);
+    RUN_TEST(test_format_signed_minimum);
+    RUN_TEST(test_format_signed_shorter_than_its_type_stays_positive);
+    RUN_TEST(test_format_signed_each_value_of_a_collection);
     RUN_TEST(test_format_value_get_failure_returns_false);
     RUN_TEST(test_format_empty_base_rejected);
     RUN_TEST(test_format_add_to_field_table_failure_propagates);

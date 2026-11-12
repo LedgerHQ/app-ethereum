@@ -39,6 +39,7 @@
 #include "gtp_path_slice.h"
 #include "gcs_parsed_value.h"
 #include "calldata.h"
+#include "os.h"
 
 // =============================================================================
 // Wrapped collaborators — calldata_get_chunk / get_current_calldata
@@ -153,7 +154,7 @@ void test_tlv_leaf_invalid_type_rejected(void) {
 }
 
 void test_tlv_leaf_each_valid_type_accepted(void) {
-    const uint8_t types[] = {LEAF_TYPE_ARRAY, LEAF_TYPE_TUPLE, LEAF_TYPE_STATIC, LEAF_TYPE_DYNAMIC};
+    const uint8_t types[] = {LEAF_TYPE_STATIC, LEAF_TYPE_DYNAMIC};
     for (size_t i = 0; i < sizeof(types); ++i) {
         s_data_path path = {0};
         const uint8_t bytes[] = {0x00, 0x01, 0x01, 0x04, 0x01, types[i]};
@@ -163,8 +164,59 @@ void test_tlv_leaf_each_valid_type_accepted(void) {
     }
 }
 
+// ARRAY and TUPLE leaves cannot be read from the calldata
+void test_tlv_leaf_unreadable_type_rejected(void) {
+    const uint8_t types[] = {LEAF_TYPE_ARRAY, LEAF_TYPE_TUPLE};
+    for (size_t i = 0; i < sizeof(types); ++i) {
+        s_data_path path = {0};
+        const uint8_t bytes[] = {0x00, 0x01, 0x01, 0x04, 0x01, types[i]};
+        TEST_ASSERT_FALSE(run_tlv(bytes, sizeof(bytes), &path));
+    }
+}
+
+#define VERSION    0x00, 0x01, 0x01
+#define TUPLE_0    0x01, 0x02, 0x00, 0x00
+#define LEAF_S     0x04, 0x01, LEAF_TYPE_STATIC
+#define SLICE_NONE 0x05, 0x00
+
+void test_tlv_path_ending_with_its_leaf_accepted(void) {
+    const uint8_t tuple_leaf[] = {VERSION, TUPLE_0, LEAF_S};
+    const uint8_t leaf_slice[] = {VERSION, TUPLE_0, LEAF_S, SLICE_NONE};
+    s_data_path path = {0};
+
+    TEST_ASSERT_TRUE(run_tlv(tuple_leaf, sizeof(tuple_leaf), &path));
+    memset(&path, 0, sizeof(path));
+    TEST_ASSERT_TRUE(run_tlv(leaf_slice, sizeof(leaf_slice), &path));
+}
+
+// A path must end with its only LEAF, optionally followed by one SLICE
+void test_tlv_path_of_invalid_shape_rejected(void) {
+    const uint8_t no_leaf[] = {VERSION, TUPLE_0};
+    const uint8_t slice_only[] = {VERSION, SLICE_NONE};
+    const uint8_t leaf_not_last[] = {VERSION, LEAF_S, TUPLE_0};
+    const uint8_t two_leaves[] = {VERSION, LEAF_S, LEAF_S};
+    const uint8_t slice_before_leaf[] = {VERSION, SLICE_NONE, LEAF_S};
+    const uint8_t two_slices[] = {VERSION, LEAF_S, SLICE_NONE, SLICE_NONE};
+    const struct {
+        const uint8_t *bytes;
+        size_t size;
+    } cases[] = {
+        {no_leaf, sizeof(no_leaf)},
+        {slice_only, sizeof(slice_only)},
+        {leaf_not_last, sizeof(leaf_not_last)},
+        {two_leaves, sizeof(two_leaves)},
+        {slice_before_leaf, sizeof(slice_before_leaf)},
+        {two_slices, sizeof(two_slices)},
+    };
+
+    for (size_t i = 0; i < ARRAYLEN(cases); ++i) {
+        s_data_path path = {0};
+        TEST_ASSERT_FALSE(run_tlv(cases[i].bytes, cases[i].size, &path));
+    }
+}
+
 void test_tlv_array_without_weight_rejected(void) {
-    const uint8_t bytes[] = {0x00, 0x01, 0x01, 0x02, 0x00, 0x04, 0x01, LEAF_TYPE_STATIC};
+    const uint8_t bytes[] = {VERSION, 0x02, 0x00, LEAF_S};
     s_data_path path = {0};
 
     TEST_ASSERT_FALSE(run_tlv(bytes, sizeof(bytes), &path));
@@ -303,9 +355,8 @@ void test_data_path_get_leaf_missing_chunk_returns_false(void) {
 }
 
 void test_data_path_get_leaf_invalid_type_rejected_at_runtime(void) {
-    // LEAF_TYPE_TUPLE / LEAF_TYPE_ARRAY are accepted by the TLV layer
-    // but not yet implemented at runtime — they fall into the default
-    // case of path_leaf.
+    // LEAF_TYPE_TUPLE / LEAF_TYPE_ARRAY are refused by the TLV layer
+    // and fall into the default case of path_leaf.
     s_data_path path = {0};
     path.size = 1;
     path.elements[0].type = ELEMENT_TYPE_LEAF;
@@ -606,6 +657,9 @@ int main(void) {
     RUN_TEST(test_tlv_ref_with_payload_rejected);
     RUN_TEST(test_tlv_leaf_invalid_type_rejected);
     RUN_TEST(test_tlv_leaf_each_valid_type_accepted);
+    RUN_TEST(test_tlv_leaf_unreadable_type_rejected);
+    RUN_TEST(test_tlv_path_ending_with_its_leaf_accepted);
+    RUN_TEST(test_tlv_path_of_invalid_shape_rejected);
     RUN_TEST(test_tlv_array_without_weight_rejected);
     RUN_TEST(test_tlv_path_without_element_rejected);
     RUN_TEST(test_tlv_path_without_version_rejected);

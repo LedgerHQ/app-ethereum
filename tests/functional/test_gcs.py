@@ -27,6 +27,10 @@ from client.gcs import (
     ParamTokenAmount,
     ParamTrustedName,
     ParamType,
+    PathLeaf,
+    PathLeafType,
+    PathSlice,
+    PathTuple,
     TxInfo,
     TypeFamily,
     Value,
@@ -3808,7 +3812,7 @@ def test_gcs_nonce_and_hash_displayed(navigator: Navigator, scenario_navigator: 
 
 
 def _malformed_values() -> dict[str, Value]:
-    """VALUE structures that lack a mandatory tag, or do not have exactly one source."""
+    """VALUE structures that lack a mandatory tag, do not have exactly one source, or have a malformed DATA_PATH."""
     event_id = DataPath(1, get_all_paths(f"{ABIS_FOLDER}/poap.abi.json", "mintToken")["eventId"])
     constant = Value.serialize_field(0x05, b"\x01")
     return {
@@ -3821,6 +3825,24 @@ def _malformed_values() -> dict[str, Value]:
         "missing_version": RawValue(Value.serialize_field(0x01, TypeFamily.UINT) + constant),
         "missing_type_family": RawValue(Value.serialize_field(0x00, 1) + constant),
         "empty_data_path": Value(1, TypeFamily.UINT, type_size=32, data_path=DataPath(1, [])),
+        **{
+            f"data_path_{name}": Value(1, TypeFamily.UINT, type_size=32, data_path=DataPath(1, path))
+            for name, path in _malformed_data_paths().items()
+        },
+    }
+
+
+def _malformed_data_paths() -> dict[str, list]:
+    """DATA_PATH elements not ending with a single readable LEAF, optionally followed by one SLICE."""
+    static = PathLeaf(PathLeafType.STATIC)
+    return {
+        "without_leaf": [PathTuple(0)],
+        "leaf_not_last": [static, PathTuple(0)],
+        "two_leaves": [PathTuple(0), static, static],
+        "slice_before_leaf": [PathTuple(0), PathSlice(), static],
+        "two_slices": [PathTuple(0), static, PathSlice(), PathSlice()],
+        "array_leaf": [PathTuple(0), PathLeaf(PathLeafType.ARRAY)],
+        "tuple_leaf": [PathTuple(0), PathLeaf(PathLeafType.TUPLE)],
     }
 
 

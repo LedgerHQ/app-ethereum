@@ -437,12 +437,11 @@ The payload must contain exactly one of `TUPLE`, `ARRAY`, `REF`, `LEAF` or `SLIC
 In version 1 of the protocol:
 
 - `ARRAY_LEAF` and `TUPLE_LEAF` are forbidden
-- `ARRAY` with no payload means the same format should be applied to each array element. It can be used several
+- `ARRAY` with only a `WEIGHT` means the same format should be applied to each array element. It can be used several
    times in a single path, in which case the application will recurse into sub-arrays (depth first)
-- `LEAF` can only be used in last position of the path, expect if followed by a slice
-- `SLICE` can only be used when all these conditions are met:
-  - in last position of the path
-  - previous element is `ARRAY_LEAF` or `DYNAMIC_LEAF` with `TYPE_FAMILY` = `BYTES` or `STRING`
+- `ARRAY` must carry a `WEIGHT`
+- a path contains exactly one `LEAF`, in last position, or followed by a single `SLICE`
+- `SLICE` can only be used right after the `LEAF`, as the last element of the path
 
 ### ARRAY_ELEMENT
 

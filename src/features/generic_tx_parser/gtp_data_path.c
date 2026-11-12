@@ -68,9 +68,8 @@ static bool handle_leaf(const tlv_data_t *data, s_data_path_context *context) {
     if (!get_uint8_t_from_tlv_data(data, &tmp)) {
         return false;
     }
+    // Only STATIC and DYNAMIC leaves can be read from the calldata
     switch (tmp) {
-        case LEAF_TYPE_ARRAY:
-        case LEAF_TYPE_TUPLE:
         case LEAF_TYPE_STATIC:
         case LEAF_TYPE_DYNAMIC:
             break;
@@ -112,15 +111,44 @@ static bool data_path_common_handler(const tlv_data_t *data, s_data_path_context
     return true;
 }
 
+/**
+ * @brief Check the path ends with its only LEAF, optionally followed by one SLICE
+ */
+static bool data_path_has_valid_shape(const s_data_path *data_path) {
+    uint8_t leaf_idx;
+
+    if (data_path->size == 0) {
+        return false;
+    }
+    leaf_idx = data_path->size - 1;
+    if ((data_path->elements[leaf_idx].type == ELEMENT_TYPE_SLICE) && (leaf_idx > 0)) {
+        leaf_idx -= 1;
+    }
+    if (data_path->elements[leaf_idx].type != ELEMENT_TYPE_LEAF) {
+        return false;
+    }
+    for (uint8_t i = 0; i < leaf_idx; ++i) {
+        if ((data_path->elements[i].type == ELEMENT_TYPE_LEAF) ||
+            (data_path->elements[i].type == ELEMENT_TYPE_SLICE)) {
+            return false;
+        }
+    }
+    return true;
+}
+
 bool handle_data_path_struct(const buffer_t *buf, s_data_path_context *context) {
     TLV_reception_t received_tags;
 
     if (!data_path_tlv_parser(buf, context, &received_tags)) {
         return false;
     }
-    // A path with no element would lead to no value, and its field to nothing shown
-    if (!TLV_CHECK_RECEIVED_TAGS(received_tags, TAG_VERSION) || (context->data_path->size == 0)) {
-        PRINTF("DATA_PATH: missing version or element\n");
+    if (!TLV_CHECK_RECEIVED_TAGS(received_tags, TAG_VERSION)) {
+        PRINTF("DATA_PATH: missing version\n");
+        return false;
+    }
+    // A path not ending with a single LEAF yields no value, or several per pass
+    if (!data_path_has_valid_shape(context->data_path)) {
+        PRINTF("DATA_PATH: invalid shape\n");
         return false;
     }
     return true;

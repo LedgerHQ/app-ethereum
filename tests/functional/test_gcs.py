@@ -14,11 +14,13 @@ from client.gcs import (
     DataPath,
     DatetimeType,
     Field,
+    GroupIterationType,
     MapRef,
     ParamAmount,
     ParamCalldata,
     ParamDatetime,
     ParamEnum,
+    ParamGroup,
     ParamNFT,
     ParamRaw,
     ParamToken,
@@ -3564,6 +3566,7 @@ def _malformed_values() -> dict[str, Value]:
         ),
         "missing_version": RawValue(Value.serialize_field(0x01, TypeFamily.UINT) + constant),
         "missing_type_family": RawValue(Value.serialize_field(0x00, 1) + constant),
+        "empty_data_path": Value(1, TypeFamily.UINT, type_size=32, data_path=DataPath(1, [])),
     }
 
 
@@ -3591,8 +3594,13 @@ def _assert_refused_then_recovers(scenario_navigator: NavigateWithScenario, bad_
 
 @pytest.mark.parametrize("name", _malformed_values().keys())
 def test_gcs_malformed_value_refused(scenario_navigator: NavigateWithScenario, name: str):
-    """A VALUE needs its VERSION and TYPE_FAMILY and exactly one source."""
+    """A VALUE needs its VERSION and TYPE_FAMILY and exactly one source, and a DATA_PATH an element."""
     _assert_refused_then_recovers(scenario_navigator, Field(1, "Event ID", ParamAmount(1, _malformed_values()[name])))
+
+
+def test_gcs_empty_group_refused(scenario_navigator: NavigateWithScenario):
+    """A PARAM_GROUP needs at least one FIELD."""
+    _assert_refused_then_recovers(scenario_navigator, Field(1, "Event ID", ParamGroup(1, GroupIterationType.SEQUENTIAL, [])))
 
 
 def _versioned_fields(version: int) -> dict[str, Field]:

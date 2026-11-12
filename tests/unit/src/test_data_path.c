@@ -153,11 +153,32 @@ void test_tlv_leaf_each_valid_type_accepted(void) {
     const uint8_t types[] = {LEAF_TYPE_ARRAY, LEAF_TYPE_TUPLE, LEAF_TYPE_STATIC, LEAF_TYPE_DYNAMIC};
     for (size_t i = 0; i < sizeof(types); ++i) {
         s_data_path path = {0};
-        const uint8_t bytes[] = {0x04, 0x01, types[i]};
+        const uint8_t bytes[] = {0x00, 0x01, 0x01, 0x04, 0x01, types[i]};
         TEST_ASSERT_TRUE(run_tlv(bytes, sizeof(bytes), &path));
         TEST_ASSERT_EQUAL(path.size, 1);
         TEST_ASSERT_EQUAL(path.elements[0].leaf.type, types[i]);
     }
+}
+
+// A path with no element leads to no value, so its field would show nothing
+void test_tlv_path_without_element_rejected(void) {
+    const uint8_t bytes[] = {0x00, 0x01, 0x01};
+    s_data_path path = {0};
+
+    TEST_ASSERT_FALSE(run_tlv(bytes, sizeof(bytes), &path));
+}
+
+void test_tlv_path_without_version_rejected(void) {
+    const uint8_t bytes[] = {0x04, 0x01, LEAF_TYPE_STATIC};
+    s_data_path path = {0};
+
+    TEST_ASSERT_FALSE(run_tlv(bytes, sizeof(bytes), &path));
+}
+
+void test_tlv_empty_path_rejected(void) {
+    s_data_path path = {0};
+
+    TEST_ASSERT_FALSE(run_tlv(NULL, 0, &path));
 }
 
 void test_tlv_path_max_size_enforced(void) {
@@ -575,6 +596,9 @@ int main(void) {
     RUN_TEST(test_tlv_ref_with_payload_rejected);
     RUN_TEST(test_tlv_leaf_invalid_type_rejected);
     RUN_TEST(test_tlv_leaf_each_valid_type_accepted);
+    RUN_TEST(test_tlv_path_without_element_rejected);
+    RUN_TEST(test_tlv_path_without_version_rejected);
+    RUN_TEST(test_tlv_empty_path_rejected);
     RUN_TEST(test_tlv_path_max_size_enforced);
     RUN_TEST(test_data_path_get_empty_path_returns_true);
     RUN_TEST(test_data_path_get_static_leaf_copies_chunk);

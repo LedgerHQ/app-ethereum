@@ -92,7 +92,16 @@ DEFINE_TLV_PARSER(PARAM_GROUP_TAGS, NULL, param_group_tlv_parser)
 
 bool handle_param_group_struct(const buffer_t *buf, s_param_group_context *context) {
     TLV_reception_t received_tags;
-    return param_group_tlv_parser(buf, context, &received_tags);
+
+    if (!param_group_tlv_parser(buf, context, &received_tags)) {
+        return false;
+    }
+    // A group with no field shows nothing
+    if (!TLV_CHECK_RECEIVED_TAGS(received_tags, TAG_PG_VERSION, TAG_PG_FIELD)) {
+        PRINTF("PARAM_GROUP: missing version or field\n");
+        return false;
+    }
+    return true;
 }
 
 // =============================================================================

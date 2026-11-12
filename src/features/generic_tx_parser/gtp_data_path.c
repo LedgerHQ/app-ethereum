@@ -114,7 +114,16 @@ static bool data_path_common_handler(const tlv_data_t *data, s_data_path_context
 
 bool handle_data_path_struct(const buffer_t *buf, s_data_path_context *context) {
     TLV_reception_t received_tags;
-    return data_path_tlv_parser(buf, context, &received_tags);
+
+    if (!data_path_tlv_parser(buf, context, &received_tags)) {
+        return false;
+    }
+    // A path with no element would lead to no value, and its field to nothing shown
+    if (!TLV_CHECK_RECEIVED_TAGS(received_tags, TAG_VERSION) || (context->data_path->size == 0)) {
+        PRINTF("DATA_PATH: missing version or element\n");
+        return false;
+    }
+    return true;
 }
 
 static bool path_tuple(const s_tuple_args *tuple, uint32_t *offset, uint32_t *ref_offset) {

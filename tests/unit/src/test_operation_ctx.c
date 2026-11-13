@@ -95,11 +95,34 @@ bool get_address_display_name(const uint8_t *addr,
 #define MAX_TO_ROWS 4
 static char g_to_rows[MAX_TO_ROWS][8];
 static int g_to_rows_count = 0;
+// Every row added to the field table, by its key, in display order
+#define MAX_ROWS 8
+static char g_row_keys[MAX_ROWS][16];
+static int g_rows_count = 0;
 bool add_to_field_table(e_param_type type, const char *key, const char *value, const void *extra) {
     (void) type;
     (void) extra;
     if ((strcmp(key, "To") == 0) && (g_to_rows_count < MAX_TO_ROWS)) {
         strlcpy(g_to_rows[g_to_rows_count++], value, sizeof(g_to_rows[0]));
+    }
+    if (g_rows_count < MAX_ROWS) {
+        strlcpy(g_row_keys[g_rows_count++], key, sizeof(g_row_keys[0]));
+    }
+    return true;
+}
+
+static int g_extend_intent_calls = 0;
+void field_table_extend_intent(void) {
+    g_extend_intent_calls++;
+}
+
+#define MAX_INTENT_ROWS 4
+static uint8_t g_intent_batch_sizes[MAX_INTENT_ROWS];
+static int g_intent_rows_count = 0;
+bool set_intent_field(const char *value, uint8_t batch_size) {
+    (void) value;
+    if (g_intent_rows_count < MAX_INTENT_ROWS) {
+        g_intent_batch_sizes[g_intent_rows_count++] = batch_size;
     }
     return true;
 }
@@ -188,6 +211,9 @@ static void reset(void) {
     g_finalize_hash_ret = true;
     g_implem_contract_ret = NULL;
     g_to_rows_count = 0;
+    g_rows_count = 0;
+    g_extend_intent_calls = 0;
+    g_intent_rows_count = 0;
     g_public_key_ret = true;
     g_delete_info_calls = 0;
 }
@@ -273,6 +299,48 @@ void test_init_then_find_matching_exposes_fields(void) {
     TEST_ASSERT_EQUAL_MEMORY(get_current_operation_from(), g_addr_a, ADDRESS_LENGTH);
     TEST_ASSERT_EQUAL_MEMORY(get_current_operation_to(), g_addr_b, ADDRESS_LENGTH);
     TEST_ASSERT_EQUAL_MEMORY(get_current_operation_amount(), g_amount_1eth, INT256_LENGTH);
+}
+
+void test_batch_size_is_kept_per_call(void) {
+    uint64_t chain = 1;
+    static const uint8_t selector2[CALLDATA_SELECTOR_SIZE] = {0xAA, 0xBB, 0xCC, 0xDD};
+
+    TEST_ASSERT_FALSE(operation_ctx_set_last_batch_size(2));
+    TEST_ASSERT_EQUAL(get_current_operation_batch_size(), 0);
+
+    TEST_ASSERT_TRUE(operation_ctx_init(make_complete_calldata(g_match_selector),
+                                        g_addr_a,
+                                        g_addr_a,
+                                        NULL,
+                                        &chain));
+    TEST_ASSERT_TRUE(
+        operation_ctx_init(make_complete_calldata(selector2), NULL, g_addr_b, NULL, NULL));
+    TEST_ASSERT_TRUE(operation_ctx_set_last_batch_size(3));
+
+    TEST_ASSERT_TRUE(find_matching_operation_ctx(g_addr_a, g_match_selector, &chain));
+    TEST_ASSERT_EQUAL(get_current_operation_batch_size(), 0);
+    TEST_ASSERT_TRUE(operation_ctx_pop());
+    TEST_ASSERT_TRUE(find_matching_operation_ctx(g_addr_b, selector2, &chain));
+    TEST_ASSERT_EQUAL(get_current_operation_batch_size(), 3);
+}
+
+void test_empty_call_intent_uses_its_own_batch_size(void) {
+    uint64_t chain = 1;
+    TEST_ASSERT_TRUE(operation_ctx_init(NULL, g_addr_a, g_addr_a, NULL, &chain));
+    TEST_ASSERT_TRUE(operation_ctx_set_last_batch_size(2));
+    TEST_ASSERT_TRUE(operation_ctx_init(NULL, g_addr_a, g_addr_a, NULL, &chain));
+    TEST_ASSERT_TRUE(operation_ctx_set_last_batch_size(1));
+    TEST_ASSERT_TRUE(operation_ctx_init(make_complete_calldata(g_match_selector),
+                                        g_addr_a,
+                                        g_addr_b,
+                                        NULL,
+                                        &chain));
+    TEST_ASSERT_TRUE(find_matching_operation_ctx(g_addr_b, g_match_selector, &chain));
+
+    TEST_ASSERT_TRUE(process_empty_calls_before());
+    TEST_ASSERT_EQUAL(g_intent_rows_count, 2);
+    TEST_ASSERT_EQUAL(g_intent_batch_sizes[0], 2);
+    TEST_ASSERT_EQUAL(g_intent_batch_sizes[1], 1);
 }
 
 void test_init_first_call_with_null_from_uses_self(void) {
@@ -471,15 +539,159 @@ void test_gcs_cleanup_frees_parked_calldata(void) {
     TEST_ASSERT_NULL(g_parked_calldata);
 }
 
+// Make the root call the operation being described, with an info so that the next call can be
+static void describe_root(const uint8_t *from, const uint8_t *to, uint64_t chain) {
+    s_operation_info *info = calloc(1, sizeof(*info));
+
+    TEST_ASSERT_NOT_NULL(info);
+    TEST_ASSERT_TRUE(
+        operation_ctx_init(make_complete_calldata(g_match_selector), from, to, NULL, &chain));
+    TEST_ASSERT_TRUE(find_matching_operation_ctx(to, g_match_selector, &chain));
+    TEST_ASSERT_TRUE(operation_ctx_set_info(info));
+}
+
 // The shown flags belong to the calls, which a typed message releases without gcs_cleanup()
 void test_operation_ctx_cleanup_forgets_what_the_descriptors_showed(void) {
-    operation_ctx_set_root_from_shown();
-    operation_ctx_set_root_value_shown();
+    describe_root(g_addr_a, g_addr_b, 1);
+    operation_ctx_set_shown(OPERATION_SHOWN_FROM | OPERATION_SHOWN_VALUE, 0, 0);
     TEST_ASSERT_TRUE(operation_ctx_is_root_from_shown());
     TEST_ASSERT_TRUE(operation_ctx_is_root_value_shown());
     operation_ctx_cleanup();
     TEST_ASSERT_FALSE(operation_ctx_is_root_from_shown());
     TEST_ASSERT_FALSE(operation_ctx_is_root_value_shown());
+}
+
+static const uint8_t g_addr_c[ADDRESS_LENGTH] = {0xCC};
+static const uint8_t g_nested_selector[CALLDATA_SELECTOR_SIZE] = {0x12, 0x34, 0x56, 0x78};
+#define KEY_CALLEE 0x1111
+#define KEY_AMOUNT 0x2222
+
+// Queue a call of the root to g_addr_c, whose callee and amount come from the given keys, and make
+// it the operation being described
+static void describe_nested(const uint8_t *from, const uint8_t *amount, const uint64_t *chain) {
+    s_call_origin origin = {0};
+    uint64_t matched_chain;
+
+    origin.to = (s_call_origin_value) {.key = KEY_CALLEE, .index = 0, .set = true};
+    origin.amount = (s_call_origin_value) {.key = KEY_AMOUNT, .index = 0, .set = (amount != NULL)};
+    TEST_ASSERT_TRUE(operation_ctx_init(make_complete_calldata(g_nested_selector),
+                                        from,
+                                        g_addr_c,
+                                        amount,
+                                        chain));
+    TEST_ASSERT_TRUE(operation_ctx_set_last_origin(&origin));
+    matched_chain = (chain != NULL) ? *chain : 1;
+    TEST_ASSERT_TRUE(find_matching_operation_ctx(g_addr_c, g_nested_selector, &matched_chain));
+}
+
+static bool has_row(const char *key) {
+    for (int i = 0; i < g_rows_count; ++i) {
+        if (strcmp(g_row_keys[i], key) == 0) return true;
+    }
+    return false;
+}
+
+// Nothing shows the callee nor the amount of the call: the review adds them, within its intent
+void test_unshown_rows_of_a_nested_call_are_added(void) {
+    describe_root(g_addr_a, g_addr_b, 1);
+    describe_nested(NULL, g_amount_1eth, NULL);
+    TEST_ASSERT_TRUE(operation_ctx_add_unshown_rows());
+    TEST_ASSERT_TRUE(has_row("To"));
+    TEST_ASSERT_TRUE(has_row("Amount"));
+    TEST_ASSERT_FALSE(has_row("Network"));
+    TEST_ASSERT_FALSE(has_row("From"));
+    TEST_ASSERT_EQUAL_INT(2, g_extend_intent_calls);
+}
+
+// A row of the parent reads the callee and the amount where the call takes them from
+void test_values_shown_by_the_parent_add_no_row(void) {
+    describe_root(g_addr_a, g_addr_b, 1);
+    operation_ctx_set_shown(0, KEY_CALLEE, 0);
+    operation_ctx_set_shown(0, KEY_AMOUNT, 0);
+    describe_nested(NULL, g_amount_1eth, NULL);
+    TEST_ASSERT_TRUE(operation_ctx_add_unshown_rows());
+    TEST_ASSERT_EQUAL_INT(0, g_rows_count);
+}
+
+// The same source at another position of the collection is another value
+void test_value_shown_at_another_index_adds_its_row(void) {
+    describe_root(g_addr_a, g_addr_b, 1);
+    operation_ctx_set_shown(0, KEY_CALLEE, 1);
+    describe_nested(NULL, NULL, NULL);
+    TEST_ASSERT_TRUE(operation_ctx_add_unshown_rows());
+    TEST_ASSERT_TRUE(has_row("To"));
+}
+
+// A row of the call itself shows its container values
+void test_values_shown_by_the_call_add_no_row(void) {
+    describe_root(g_addr_a, g_addr_b, 1);
+    describe_nested(NULL, g_amount_1eth, NULL);
+    operation_ctx_set_shown(OPERATION_SHOWN_TO | OPERATION_SHOWN_VALUE, 0, 0);
+    TEST_ASSERT_TRUE(operation_ctx_add_unshown_rows());
+    TEST_ASSERT_EQUAL_INT(0, g_rows_count);
+}
+
+void test_zero_amount_adds_no_row(void) {
+    static const uint8_t zero[INT256_LENGTH] = {0};
+
+    describe_root(g_addr_a, g_addr_b, 1);
+    operation_ctx_set_shown(0, KEY_CALLEE, 0);
+    describe_nested(NULL, zero, NULL);
+    TEST_ASSERT_TRUE(operation_ctx_add_unshown_rows());
+    TEST_ASSERT_EQUAL_INT(0, g_rows_count);
+}
+
+void test_call_on_another_chain_adds_its_network(void) {
+    uint64_t chain = 42161;
+
+    describe_root(g_addr_a, g_addr_b, 1);
+    operation_ctx_set_shown(0, KEY_CALLEE, 0);
+    describe_nested(NULL, NULL, &chain);
+    TEST_ASSERT_TRUE(operation_ctx_add_unshown_rows());
+    TEST_ASSERT_TRUE(has_row("Network"));
+    TEST_ASSERT_EQUAL_UINT64(42161, g_network_chain_id);
+}
+
+// The contract the parent calls makes the call: its sender is the contract already reviewed
+void test_call_sent_by_the_parent_callee_adds_no_sender(void) {
+    describe_root(g_addr_a, g_addr_b, 1);
+    operation_ctx_set_shown(0, KEY_CALLEE, 0);
+    describe_nested(g_addr_b, NULL, NULL);
+    TEST_ASSERT_TRUE(operation_ctx_add_unshown_rows());
+    TEST_ASSERT_FALSE(has_row("From"));
+}
+
+void test_call_sent_by_another_account_adds_its_sender(void) {
+    describe_root(g_addr_a, g_addr_b, 1);
+    operation_ctx_set_shown(0, KEY_CALLEE, 0);
+    describe_nested(g_addr_c, NULL, NULL);
+    TEST_ASSERT_TRUE(operation_ctx_add_unshown_rows());
+    TEST_ASSERT_TRUE(has_row("From"));
+}
+
+// A call to the contract the parent calls is to the contract already reviewed
+void test_call_to_the_parent_callee_adds_no_callee(void) {
+    s_call_origin origin = {0};
+    uint64_t chain = 1;
+
+    describe_root(g_addr_a, g_addr_b, 1);
+    TEST_ASSERT_TRUE(
+        operation_ctx_init(make_complete_calldata(g_nested_selector), NULL, g_addr_b, NULL, NULL));
+    TEST_ASSERT_TRUE(operation_ctx_set_last_origin(&origin));
+    TEST_ASSERT_TRUE(find_matching_operation_ctx(g_addr_b, g_nested_selector, &chain));
+    TEST_ASSERT_TRUE(operation_ctx_add_unshown_rows());
+    TEST_ASSERT_FALSE(has_row("To"));
+}
+
+// A call made by no other operation is a root: its own rows are the review's
+void test_root_call_adds_no_row(void) {
+    describe_root(g_addr_a, g_addr_b, 1);
+    TEST_ASSERT_TRUE(operation_ctx_add_unshown_rows());
+    TEST_ASSERT_EQUAL_INT(0, g_rows_count);
+}
+
+void test_unshown_rows_need_a_call_being_described(void) {
+    TEST_ASSERT_FALSE(operation_ctx_add_unshown_rows());
 }
 
 // =============================================================================
@@ -1182,6 +1394,8 @@ int main(void) {
     RUN_TEST(test_getters_on_empty_list_return_null_or_zero);
     RUN_TEST(test_init_adds_to_list_but_current_stays_null);
     RUN_TEST(test_init_then_find_matching_exposes_fields);
+    RUN_TEST(test_batch_size_is_kept_per_call);
+    RUN_TEST(test_empty_call_intent_uses_its_own_batch_size);
     RUN_TEST(test_init_first_call_with_null_from_uses_self);
     RUN_TEST(test_init_second_call_inherits_from_and_chain);
     RUN_TEST(test_init_clears_parked_calldata_pointer);
@@ -1195,6 +1409,17 @@ int main(void) {
     RUN_TEST(test_gcs_cleanup_empties_list);
     RUN_TEST(test_gcs_cleanup_frees_parked_calldata);
     RUN_TEST(test_operation_ctx_cleanup_forgets_what_the_descriptors_showed);
+    RUN_TEST(test_unshown_rows_of_a_nested_call_are_added);
+    RUN_TEST(test_values_shown_by_the_parent_add_no_row);
+    RUN_TEST(test_value_shown_at_another_index_adds_its_row);
+    RUN_TEST(test_values_shown_by_the_call_add_no_row);
+    RUN_TEST(test_zero_amount_adds_no_row);
+    RUN_TEST(test_call_on_another_chain_adds_its_network);
+    RUN_TEST(test_call_sent_by_the_parent_callee_adds_no_sender);
+    RUN_TEST(test_call_sent_by_another_account_adds_its_sender);
+    RUN_TEST(test_call_to_the_parent_callee_adds_no_callee);
+    RUN_TEST(test_root_call_adds_no_row);
+    RUN_TEST(test_unshown_rows_need_a_call_being_described);
     RUN_TEST(test_process_empty_calls_before_removes_empty_predecessors);
     RUN_TEST(test_process_empty_calls_before_keeps_execution_order);
     RUN_TEST(test_process_empty_calls_after_removes_empty_successors);

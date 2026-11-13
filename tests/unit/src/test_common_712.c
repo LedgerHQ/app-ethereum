@@ -126,6 +126,17 @@ cx_err_t bip32_derive_with_seed_ecdsa_sign_rs_hash_256(cx_curve_t curve,
     return CX_OK;
 }
 
+static bool g_derive_ret = true;
+bool get_displayable_address(const bip32_path_t *bip32,
+                             char *out,
+                             size_t out_size,
+                             uint64_t chain_id) {
+    (void) bip32;
+    (void) chain_id;
+    strlcpy(out, "0xSigner", out_size);
+    return g_derive_ret;
+}
+
 // =============================================================================
 // Tests
 // =============================================================================
@@ -170,12 +181,43 @@ void test_format_hash_message_alloc_failure_rejected(void) {
     check_alloc_failure(2);
 }
 
+void test_from_pair_shows_the_signer(void) {
+    nbgl_contentTagValue_t pair = {0};
+
+    TEST_ASSERT_TRUE(eip712_format_from(&tmpCtx.messageSigningContext712.bip32));
+    TEST_ASSERT_TRUE(eip712_set_from_pair(&pair));
+    TEST_ASSERT_EQUAL_STRING("From", pair.item);
+    TEST_ASSERT_EQUAL_STRING("0xSigner", pair.value);
+}
+
+void test_from_pair_without_signer_rejected(void) {
+    nbgl_contentTagValue_t pair = {0};
+
+    TEST_ASSERT_FALSE(eip712_set_from_pair(&pair));
+    TEST_ASSERT_NULL(pair.value);
+}
+
+void test_from_derivation_failure_leaves_no_signer(void) {
+    nbgl_contentTagValue_t pair = {0};
+
+    TEST_ASSERT_TRUE(eip712_format_from(&tmpCtx.messageSigningContext712.bip32));
+    g_derive_ret = false;
+    TEST_ASSERT_FALSE(eip712_format_from(&tmpCtx.messageSigningContext712.bip32));
+    TEST_ASSERT_FALSE(eip712_set_from_pair(&pair));
+}
+
+void test_from_alloc_failure_rejected(void) {
+    g_fail_alloc_at = 1;
+    TEST_ASSERT_FALSE(eip712_format_from(&tmpCtx.messageSigningContext712.bip32));
+}
+
 // =============================================================================
 // Runner
 // =============================================================================
 
 void setUp(void) {
     g_fail_alloc_at = 0;
+    g_derive_ret = true;
     memset(&tmpCtx, 0, sizeof(tmpCtx));
 }
 
@@ -192,5 +234,9 @@ int main(void) {
     RUN_TEST(test_format_hash_without_pairs_rejected);
     RUN_TEST(test_format_hash_domain_alloc_failure_rejected);
     RUN_TEST(test_format_hash_message_alloc_failure_rejected);
+    RUN_TEST(test_from_pair_shows_the_signer);
+    RUN_TEST(test_from_pair_without_signer_rejected);
+    RUN_TEST(test_from_derivation_failure_leaves_no_signer);
+    RUN_TEST(test_from_alloc_failure_rejected);
     return UNITY_END();
 }

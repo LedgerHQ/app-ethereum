@@ -80,6 +80,13 @@ bool add_to_field_table(e_param_type type,
     return (bool) g_add_to_field_table_ret;
 }
 
+static int g_root_value_shown_calls = 0;
+void value_set_shown(const s_value *value, uint8_t index) {
+    (void) value;
+    (void) index;
+    g_root_value_shown_calls++;
+}
+
 static const s_operation_info *s_tx_info_ret = NULL;
 bool get_current_operation_chain_id(uint64_t *chain_id) {
     if (s_tx_info_ret == NULL) {
@@ -102,6 +109,7 @@ static void reset(void) {
     g_vg_ret = true;
     g_hvs_ret = true;
     g_add_to_field_table_ret = true;
+    g_root_value_shown_calls = 0;
     memset(&g_fake_tx_info, 0, sizeof(g_fake_tx_info));
     g_fake_tx_info.chain_id = 1;
     s_tx_info_ret = &g_fake_tx_info;
@@ -138,6 +146,7 @@ void test_format_single_value_ok(void) {
 
     s_param_amount param = {0};
     TEST_ASSERT_TRUE(format_param_amount(&param, "Amount"));
+    TEST_ASSERT_EQUAL_INT(1, g_root_value_shown_calls);
 }
 
 void test_format_multiple_values_iterates(void) {
@@ -196,6 +205,8 @@ void test_format_add_to_field_table_failure_propagates(void) {
 
     s_param_amount param = {0};
     TEST_ASSERT_FALSE(format_param_amount(&param, "Amount"));
+    // a value that did not make it to the review is not shown
+    TEST_ASSERT_EQUAL_INT(0, g_root_value_shown_calls);
 }
 
 static bool format_amount_of_length(uint16_t length) {

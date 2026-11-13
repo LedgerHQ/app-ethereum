@@ -152,7 +152,6 @@ typedef struct txContext_t {
     uint32_t remaining_rlp_size;
     bool store_calldata;
     uint8_t batch_nb_tx;
-    uint8_t current_batch_size;
     uint8_t selector_bytes[CALLDATA_SELECTOR_SIZE];
 } txContext_t;
 

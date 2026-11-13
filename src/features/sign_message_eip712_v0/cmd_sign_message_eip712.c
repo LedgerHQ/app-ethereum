@@ -25,6 +25,9 @@ uint16_t handle_sign_eip712_message_v0(uint8_t p1, const uint8_t *workBuffer, ui
             workBuffer + CX_KECCAK_256_SIZE,
             CX_KECCAK_256_SIZE);
 
+    if (!eip712_format_from(&tmpCtx.messageSigningContext712.bip32)) {
+        return SWO_INCORRECT_DATA;
+    }
     if (!ui_sign_712_v0()) {
         return SWO_INCORRECT_DATA;
     }

@@ -103,7 +103,8 @@ static bool process_nested_calldata(const s_param_calldata *param,
                                     const s_parsed_value *chain_id,
                                     const s_parsed_value *selector,
                                     const s_parsed_value *amount,
-                                    const s_parsed_value *spender) {
+                                    const s_parsed_value *spender,
+                                    uint8_t batch_size) {
     uint8_t addr_buf[ADDRESS_LENGTH];
     uint8_t selector_buf[CALLDATA_SELECTOR_SIZE];
     const uint8_t *calldata_buf;
@@ -171,7 +172,34 @@ static bool process_nested_calldata(const s_param_calldata *param,
         }
         return false;
     }
-    return true;
+    return operation_ctx_set_last_batch_size(batch_size);
+}
+
+static s_call_origin_value origin_of(bool has, const s_value *value, uint8_t count, int i) {
+    s_call_origin_value origin = {0};
+
+    if (has) {
+        origin.key = value_source_key(value);
+        origin.index = (count == 1) ? 0 : (uint8_t) i;
+        origin.set = true;
+    }
+    return origin;
+}
+
+// Where the values of a call come from, so that a row showing them spares the call its own
+static bool set_call_origin(const s_param_calldata *param,
+                            int i,
+                            uint8_t contract_addr_count,
+                            uint8_t chain_id_count,
+                            uint8_t amount_count,
+                            uint8_t spender_count) {
+    s_call_origin origin;
+
+    origin.to = origin_of(true, &param->contract_addr, contract_addr_count, i);
+    origin.chain_id = origin_of(param->has_chain_id, &param->chain_id, chain_id_count, i);
+    origin.amount = origin_of(param->has_amount, &param->amount, amount_count, i);
+    origin.from = origin_of(param->has_spender, &param->spender, spender_count, i);
+    return operation_ctx_set_last_origin(&origin);
 }
 
 static bool check_param(const s_param_calldata *param,
@@ -222,19 +250,28 @@ __attribute__((noinline)) bool format_param_calldata(const s_param_calldata *par
                            &selectors,
                            &amounts,
                            &spenders))) {
-        // Set batch size and number of transactions
         if (calldatas.size > 1) {
-            txContext.batch_nb_tx += calldatas.size;
+            if (txContext.batch_nb_tx > (UINT8_MAX - calldatas.size)) {
+                ret = false;
+            } else {
+                txContext.batch_nb_tx += calldatas.size;
+            }
         }
-        txContext.current_batch_size = calldatas.size;
-        for (int i = 0; i < calldatas.size; ++i) {
+        for (int i = 0; ret && (i < calldatas.size); ++i) {
             if (!process_nested_calldata(param,
                                          &calldatas.value[i],
                                          &contract_addrs.value[contract_addrs.size == 1 ? 0 : i],
                                          &chain_ids.value[chain_ids.size == 1 ? 0 : i],
                                          &selectors.value[selectors.size == 1 ? 0 : i],
                                          &amounts.value[amounts.size == 1 ? 0 : i],
-                                         &spenders.value[spenders.size == 1 ? 0 : i])) {
+                                         &spenders.value[spenders.size == 1 ? 0 : i],
+                                         calldatas.size) ||
+                !set_call_origin(param,
+                                 i,
+                                 contract_addrs.size,
+                                 chain_ids.size,
+                                 amounts.size,
+                                 spenders.size)) {
                 ret = false;
                 break;
             }

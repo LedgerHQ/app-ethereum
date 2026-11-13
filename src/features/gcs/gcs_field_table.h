@@ -17,6 +17,11 @@ typedef struct {
     uint8_t addr[ADDRESS_LENGTH];  // Address read from the transaction for this value
 } s_field_table_entry;
 
+/**
+ * Keep the intent of the last row open, so that the next row is part of it
+ */
+void field_table_extend_intent(void);
+
 bool field_table_init(void);
 void field_table_cleanup(void);
 bool add_to_field_table(e_param_type type,
@@ -28,6 +33,6 @@ bool add_address_to_field_table(e_param_type type,
                                 const char *value,
                                 const void *extra_data,
                                 const uint8_t *addr);
-bool set_intent_field(const char *value);
+bool set_intent_field(const char *value, uint8_t batch_size);
 size_t field_table_size(void);
 const s_field_table_entry *get_from_field_table(size_t index);

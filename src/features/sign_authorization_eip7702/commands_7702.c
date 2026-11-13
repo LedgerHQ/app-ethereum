@@ -179,10 +179,12 @@ static bool handle_auth7702_tlv_internal(const buffer_t *buf) {
 
     if (is_zeroes_buffer(auth7702->delegate, sizeof(auth7702->delegate))) {
         if (!ui_sign_7702_revocation()) {
+            g_7702_sw = SWO_INSUFFICIENT_MEMORY;
             return false;
         }
     } else {
         if (!ui_sign_7702_auth()) {
+            g_7702_sw = SWO_INSUFFICIENT_MEMORY;
             return false;
         }
     }

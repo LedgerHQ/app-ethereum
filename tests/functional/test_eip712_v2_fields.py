@@ -361,6 +361,17 @@ def test_eip712_v2_fields_unit_without_prefix(scenario_navigator: NavigateWithSc
     sign(scenario_navigator, app_client, data)
 
 
+def test_eip712_v2_fields_unit_signed(scenario_navigator: NavigateWithScenario):
+    """A unit on a signed integer shows a negative value with its sign."""
+    app_client = EthAppClient(scenario_navigator.backend)
+    data = order(period=-1234)
+    data["types"]["Test"][PERIOD]["type"] = "int32"
+    fields = [Field(1, "Share", ParamUnit(1, value(TypeFamily.INT, 4, field_at(PERIOD)), "pts", decimals=2))]
+
+    prepare(app_client, data, fields)
+    sign_compared(scenario_navigator, app_client, data)
+
+
 def test_eip712_v2_fields_unit_with_prefix_refused(scenario_navigator: NavigateWithScenario):
     """The prefix is not applied to the value, so a descriptor that asks for it is refused."""
     app_client = EthAppClient(scenario_navigator.backend)

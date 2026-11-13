@@ -44,11 +44,11 @@ static bool start_nested_call(const s_operation_info *info) {
     if (!call_description_is_nested()) {
         return true;
     }
-    if (!set_intent_field(info->operation_type) ||
+    if (!set_intent_field(info->operation_type, get_current_operation_batch_size()) ||
         !operation_info_fields_hash_is_empty(info, &no_fields)) {
         return false;
     }
-    if (no_fields && !operation_ctx_pop()) {
+    if (no_fields && (!operation_ctx_add_unshown_rows() || !operation_ctx_pop())) {
         return false;
     }
     return true;

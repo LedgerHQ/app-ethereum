@@ -99,6 +99,12 @@ bool operation_ctx_init(s_calldata *calldata,
     return (bool) g_operation_ctx_init_ret;
 }
 
+static uint8_t g_last_batch_size = 0;
+bool operation_ctx_set_last_batch_size(uint8_t batch_size) {
+    g_last_batch_size = batch_size;
+    return true;
+}
+
 // ===========================================================================
 // Test data
 // ===========================================================================
@@ -148,7 +154,37 @@ void test_calldata_broadcast_ok(void) {
 
     // batch_nb_tx incremented by calldatas.size (2) since size > 1
     TEST_ASSERT_EQUAL(txContext.batch_nb_tx, 2);
-    TEST_ASSERT_EQUAL(txContext.current_batch_size, 2);
+    TEST_ASSERT_EQUAL(g_last_batch_size, 2);
+}
+
+/**
+ * A batch that would wrap the total number of calls is refused before any call is queued.
+ */
+void test_calldata_batch_count_overflow_rejected(void) {
+    g_vg[0].size = 2;
+    g_vg[0].value[0] = (s_parsed_value) {.ptr = NULL, .size = 0, .offset = 0, .length = 0};
+    g_vg[0].value[1] = (s_parsed_value) {.ptr = NULL, .size = 0, .offset = 0, .length = 0};
+    g_vg[1].size = 1;
+    g_vg[1].value[0] = (s_parsed_value) {
+        .ptr = g_contract_addr,
+        .size = ADDRESS_LENGTH,
+        .offset = 0,
+        .length = ADDRESS_LENGTH,
+    };
+
+    g_vg_call = 0;
+    memset(&txContext, 0, sizeof(txContext));
+    txContext.batch_nb_tx = UINT8_MAX - 1;
+    g_operation_ctx_init_ret = true;
+    g_last_batch_size = 0;
+
+    s_param_calldata param;
+    memset(&param, 0, sizeof(param));
+    param.version = 1;
+
+    TEST_ASSERT_FALSE(format_param_calldata(&param, "Destination"));
+    TEST_ASSERT_EQUAL(txContext.batch_nb_tx, UINT8_MAX - 1);
+    TEST_ASSERT_EQUAL(g_last_batch_size, 0);
 }
 
 /**
@@ -468,6 +504,7 @@ void tearDown(void) {
 int main(void) {
     UNITY_BEGIN();
     RUN_TEST(test_calldata_broadcast_ok);
+    RUN_TEST(test_calldata_batch_count_overflow_rejected);
     RUN_TEST(test_calldata_size_mismatch_rejected);
     RUN_TEST(test_handle_calldata_struct_version_other_than_one_refused);
     RUN_TEST(test_handle_calldata_struct_all_tags_ok);

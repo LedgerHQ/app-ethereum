@@ -44,5 +44,13 @@ DEFINE_TLV_PARSER(ARRAY_TAGS, NULL, array_tlv_parser)
 
 bool handle_array_struct(const buffer_t *buf, s_path_array_context *context) {
     TLV_reception_t received_tags;
-    return array_tlv_parser(buf, context, &received_tags);
+
+    if (!array_tlv_parser(buf, context, &received_tags)) {
+        return false;
+    }
+    if (!TLV_CHECK_RECEIVED_TAGS(received_tags, TAG_WEIGHT)) {
+        PRINTF("PATH_ARRAY: missing weight\n");
+        return false;
+    }
+    return true;
 }

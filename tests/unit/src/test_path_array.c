@@ -72,17 +72,12 @@ void test_tlv_only_weight_keeps_has_start_end_false(void) {
     TEST_ASSERT_FALSE(args.has_end);
 }
 
-void test_tlv_empty_buffer_accepted(void) {
-    // The parser does not require any specific tag presence — an empty
-    // payload leaves the args at their pre-init values (zero / false).
+void test_tlv_missing_weight_rejected(void) {
+    const uint8_t bounds_only[] = {0x02, 0x01, 0x00, 0x03, 0x01, 0x02};
     s_array_args args = {0};
-    args.weight = 0xCC;  // Detectable canary
-    args.has_start = false;
-    TEST_ASSERT_TRUE(run_tlv(NULL, 0, &args));
-    // No tag handler ran, so the canary remains.
-    TEST_ASSERT_EQUAL(args.weight, 0xCC);
-    TEST_ASSERT_FALSE(args.has_start);
-    TEST_ASSERT_FALSE(args.has_end);
+
+    TEST_ASSERT_FALSE(run_tlv(NULL, 0, &args));
+    TEST_ASSERT_FALSE(run_tlv(bounds_only, sizeof(bounds_only), &args));
 }
 
 // The weight is read as every uint8 of a descriptor: the whole payload, so a leading zero is
@@ -106,6 +101,9 @@ void test_tlv_longer_weight_is_read_whole(void) {
 
 void test_tlv_start_end_read_big_endian(void) {
     const uint8_t bytes[] = {
+        0x01,
+        0x01,
+        0x01,  // WEIGHT = 1
         0x02,
         0x02,
         0x12,
@@ -142,7 +140,7 @@ void test_tlv_weight_zero_rejected(void) {
 
 // The length gives the sign: one byte is 0 to 255, two bytes are two's complement
 void test_tlv_one_byte_bounds_are_not_negative(void) {
-    const uint8_t bytes[] = {0x02, 0x01, 0xAA, 0x03, 0x01, 0xFF};
+    const uint8_t bytes[] = {0x01, 0x01, 0x01, 0x02, 0x01, 0xAA, 0x03, 0x01, 0xFF};
     s_array_args args = {0};
     TEST_ASSERT_TRUE(run_tlv(bytes, sizeof(bytes), &args));
     TEST_ASSERT_TRUE(args.has_start);
@@ -152,8 +150,8 @@ void test_tlv_one_byte_bounds_are_not_negative(void) {
 }
 
 void test_tlv_one_byte_and_two_byte_bounds_of_the_same_value_are_equal(void) {
-    const uint8_t one_byte[] = {0x02, 0x01, 0x05, 0x03, 0x01, 0xFF};
-    const uint8_t two_bytes[] = {0x02, 0x02, 0x00, 0x05, 0x03, 0x02, 0x00, 0xFF};
+    const uint8_t one_byte[] = {0x01, 0x01, 0x01, 0x02, 0x01, 0x05, 0x03, 0x01, 0xFF};
+    const uint8_t two_bytes[] = {0x01, 0x01, 0x01, 0x02, 0x02, 0x00, 0x05, 0x03, 0x02, 0x00, 0xFF};
     s_array_args one = {0};
     s_array_args two = {0};
 
@@ -164,7 +162,7 @@ void test_tlv_one_byte_and_two_byte_bounds_of_the_same_value_are_equal(void) {
 }
 
 void test_tlv_two_byte_bounds_are_two_s_complement(void) {
-    const uint8_t bytes[] = {0x02, 0x02, 0xFF, 0xFF, 0x03, 0x02, 0x80, 0x00};
+    const uint8_t bytes[] = {0x01, 0x01, 0x01, 0x02, 0x02, 0xFF, 0xFF, 0x03, 0x02, 0x80, 0x00};
     s_array_args args = {0};
     TEST_ASSERT_TRUE(run_tlv(bytes, sizeof(bytes), &args));
     TEST_ASSERT_EQUAL(-1, args.start);
@@ -172,12 +170,12 @@ void test_tlv_two_byte_bounds_are_two_s_complement(void) {
 }
 
 void test_tlv_bounds_of_another_length_rejected(void) {
-    const uint8_t start_empty[] = {0x02, 0x00};
-    const uint8_t start_three[] = {0x02, 0x03, 0x00, 0x01, 0xFF};
-    const uint8_t start_four[] = {0x02, 0x04, 0x00, 0x00, 0x00, 0x02};
-    const uint8_t end_empty[] = {0x03, 0x00};
-    const uint8_t end_three[] = {0x03, 0x03, 0x00, 0x01, 0xFF};
-    const uint8_t end_four[] = {0x03, 0x04, 0xFF, 0xFF, 0xFF, 0xFE};
+    const uint8_t start_empty[] = {0x01, 0x01, 0x01, 0x02, 0x00};
+    const uint8_t start_three[] = {0x01, 0x01, 0x01, 0x02, 0x03, 0x00, 0x01, 0xFF};
+    const uint8_t start_four[] = {0x01, 0x01, 0x01, 0x02, 0x04, 0x00, 0x00, 0x00, 0x02};
+    const uint8_t end_empty[] = {0x01, 0x01, 0x01, 0x03, 0x00};
+    const uint8_t end_three[] = {0x01, 0x01, 0x01, 0x03, 0x03, 0x00, 0x01, 0xFF};
+    const uint8_t end_four[] = {0x01, 0x01, 0x01, 0x03, 0x04, 0xFF, 0xFF, 0xFF, 0xFE};
     s_array_args args = {0};
 
     TEST_ASSERT_FALSE(run_tlv(start_empty, sizeof(start_empty), &args));
@@ -233,7 +231,7 @@ int main(void) {
     UNITY_BEGIN();
     RUN_TEST(test_tlv_weight_start_end_populated);
     RUN_TEST(test_tlv_only_weight_keeps_has_start_end_false);
-    RUN_TEST(test_tlv_empty_buffer_accepted);
+    RUN_TEST(test_tlv_missing_weight_rejected);
     RUN_TEST(test_tlv_longer_weight_is_read_whole);
     RUN_TEST(test_tlv_start_end_read_big_endian);
     RUN_TEST(test_tlv_weight_empty_payload_rejected);

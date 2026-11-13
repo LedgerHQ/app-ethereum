@@ -349,6 +349,44 @@ def test_eip712_array_element_filtered_late(
     assert e.value.status == StatusWord.SWO_REFERENCED_DATA_NOT_FOUND
 
 
+def test_eip712_filter_replayed_before_value(scenario_navigator: NavigateWithScenario, monkeypatch: pytest.MonkeyPatch):
+    """A field filter sent twice before its value must be refused."""
+    app_client = EthAppClient(scenario_navigator.backend)
+
+    data = {
+        "domain": {
+            "chainId": 1,
+            "name": "Advanced test",
+            "verifyingContract": "0xCcCCccccCCCCcCCCCCCcCcCccCcCCCcCcccccccC",
+            "version": "1",
+        },
+        "message": {"to": "0x6B175474E89094C44Da98b954EedeAC495271d0F"},
+        "primaryType": "Transfer",
+        "types": {
+            "EIP712Domain": [
+                {"name": "name", "type": "string"},
+                {"name": "version", "type": "string"},
+                {"name": "chainId", "type": "uint256"},
+                {"name": "verifyingContract", "type": "address"},
+            ],
+            "Transfer": [{"name": "to", "type": "address"}],
+        },
+    }
+    filters = {"name": "Advanced Filtering", "fields": {"to": {"type": "raw", "name": "To"}}}
+
+    send_filter = InputData.send_filter
+
+    def send_filter_twice(path: str, discarded: bool):
+        send_filter(path, discarded)
+        return send_filter(path, discarded)
+
+    monkeypatch.setattr(InputData, "send_filter", send_filter_twice)
+
+    with pytest.raises(ExceptionRAPDU) as e:
+        InputData.process_data(app_client, data, filters)
+    assert e.value.status == StatusWord.SWO_PARAMETER_ERROR_NO_INFO
+
+
 @pytest.mark.parametrize(
     "filtering,status",
     [(False, StatusWord.SWO_INCORRECT_DATA), (True, StatusWord.SWO_PARAMETER_ERROR_NO_INFO)],
@@ -610,6 +648,99 @@ def test_eip712_fixed_bytes_wrong_length(scenario_navigator: NavigateWithScenari
     with pytest.raises(ExceptionRAPDU) as e:
         InputData.process_data(app_client, data)
     assert e.value.status == StatusWord.SWO_PARAMETER_ERROR_NO_INFO
+
+
+def _integers_message() -> dict:
+    return {
+        "domain": {
+            "chainId": 1,
+            "name": "Integers test",
+            "verifyingContract": "0xCcCCccccCCCCcCCCCCCcCcCccCcCCCcCcccccccC",
+            "version": "1",
+        },
+        "message": {"amount": "42", "delta": "-1"},
+        "primaryType": "Integers",
+        "types": {
+            "EIP712Domain": [
+                {"name": "name", "type": "string"},
+                {"name": "version", "type": "string"},
+                {"name": "chainId", "type": "uint256"},
+                {"name": "verifyingContract", "type": "address"},
+            ],
+            "Integers": [
+                {"name": "amount", "type": "uint8"},
+                {"name": "delta", "type": "int8"},
+            ],
+        },
+    }
+
+
+INTEGERS_FILTERS = {
+    "name": "Integers test",
+    "fields": {
+        "amount": {"type": "raw", "name": "Amount"},
+        "delta": {"type": "raw", "name": "Delta"},
+    },
+}
+
+
+@pytest.mark.parametrize("width", [None, 32], ids=["one_extra_byte", "full_word"])
+def test_eip712_integer_padded(scenario_navigator: NavigateWithScenario, monkeypatch: pytest.MonkeyPatch, width: int | None):
+    """An integer wider than its type is accepted when its extra bytes are zero or sign padding."""
+
+    def padded(signed: bool) -> Callable[[str, int], bytes]:
+        def encode(value: str | int, typesize: int) -> bytes:
+            number = int(value, 0) if isinstance(value, str) else value
+            return number.to_bytes(width or typesize + 1, "big", signed=signed)
+
+        return encode
+
+    monkeypatch.setitem(InputData.encoding_functions, EIP712FieldType.UINT, padded(False))
+    monkeypatch.setitem(InputData.encoding_functions, EIP712FieldType.INT, padded(True))
+    snapshots_dirname = scenario_navigator.test_name if width is None else None
+    eip712_new_common(scenario_navigator, _integers_message(), INTEGERS_FILTERS, snapshots_dirname)
+
+
+@pytest.mark.parametrize(
+    "field_type, raw",
+    [
+        (EIP712FieldType.UINT, b"\x01\xff"),
+        (EIP712FieldType.INT, b"\xff\x01"),
+        (EIP712FieldType.INT, b"\x00\xff"),
+    ],
+    ids=["uint_out_of_range", "positive_int_with_sign_padding", "negative_int_with_zero_padding"],
+)
+def test_eip712_integer_wider_than_its_type(
+    scenario_navigator: NavigateWithScenario, monkeypatch: pytest.MonkeyPatch, field_type: EIP712FieldType, raw: bytes
+):
+    """An integer whose extra leading bytes are not zero or sign padding does not fit its type."""
+    app_client = EthAppClient(scenario_navigator.backend)
+    encode_original = InputData.encoding_functions[field_type]
+
+    def encode_one_byte_fields_raw(value: str, typesize: int) -> bytes:
+        return raw if typesize == 1 else encode_original(value, typesize)
+
+    monkeypatch.setitem(InputData.encoding_functions, field_type, encode_one_byte_fields_raw)
+
+    with pytest.raises(ExceptionRAPDU) as e:
+        InputData.process_data(app_client, _integers_message(), INTEGERS_FILTERS)
+    assert e.value.status == StatusWord.SWO_PARAMETER_ERROR_NO_INFO
+
+
+@pytest.mark.parametrize(
+    "encode, value",
+    [
+        (InputData.encode_uint, "256"),
+        (InputData.encode_uint, "-1"),
+        (InputData.encode_int, "128"),
+        (InputData.encode_int, "-129"),
+    ],
+    ids=["uint_above_max", "uint_negative", "int_above_max", "int_below_min"],
+)
+def test_eip712_integer_out_of_range(encode: Callable[[str, int], bytes], value: str):
+    """The client refuses an integer that does not fit its type instead of truncating it."""
+    with pytest.raises(ValueError):
+        encode(value, 1)
 
 
 def get_filter_file_from_data_file(data_file: Path) -> Path:
@@ -1607,6 +1738,61 @@ def test_eip712_calldata_empty_send(scenario_navigator: NavigateWithScenario):
         )
     )
     eip712_calldata_common(scenario_navigator, filename)
+
+
+def eip712_calldata_empty_send_chain_common(scenario_navigator: NavigateWithScenario, dest_chain_id: int, name_chain_id: int):
+    """An empty call whose chain is given by a filter, with a trusted name for its callee."""
+    app_client = EthAppClient(scenario_navigator.backend)
+    with Path(f"{eip712_json_path()}/safe_empty.json").open(encoding="utf-8") as file:
+        data = json.load(file)
+    data["message"]["destChainId"] = dest_chain_id
+    data["types"]["SafeTx"].insert(2, {"type": "uint256", "name": "destChainId"})
+
+    app_client.provide_trusted_name(
+        TrustedName(
+            2,
+            bytes.fromhex(data["message"]["to"][2:]),
+            "MAB_addr",
+            tn_type=TrustedNameType.ACCOUNT,
+            tn_source=TrustedNameSource.MULTISIG_ADDRESS_BOOK,
+            chain_id=name_chain_id,
+            challenge=ResponseParser.challenge(app_client.get_challenge().data),
+            owner=DEVICE_ADDR,
+            owner_deriv_path=BIP32_PATH,
+        )
+    )
+    filters = {
+        "name": "Calldata test",
+        "calldatas": [
+            {
+                "index": 0,
+                "value_flag": True,
+                "callee_flag": EIP712CalldataParamPresence.PRESENT_FILTERED,
+                "chain_id_flag": True,
+                "selector_flag": False,
+                "amount_flag": True,
+                "spender_flag": EIP712CalldataParamPresence.NONE,
+            },
+        ],
+        "fields": {
+            "to": {"type": "calldata_callee", "index": 0},
+            "value": {"type": "calldata_amount", "index": 0},
+            "destChainId": {"type": "calldata_chain_id", "index": 0},
+            "data": {"type": "calldata_value", "index": 0},
+        },
+    }
+    eip712_new_common(scenario_navigator, data, filters, scenario_navigator.test_name)
+
+
+def test_eip712_calldata_empty_send_cross_chain(scenario_navigator: NavigateWithScenario):
+    """An empty call on another chain than the domain's shows its network, and its callee's name there."""
+    # Arbitrum One, the domain being on Ethereum mainnet
+    eip712_calldata_empty_send_chain_common(scenario_navigator, 42161, 42161)
+
+
+def test_eip712_calldata_empty_send_zero_chain(scenario_navigator: NavigateWithScenario):
+    """An empty call whose filter gives no chain is on the domain's: its callee's name is the one there."""
+    eip712_calldata_empty_send_chain_common(scenario_navigator, 0, 1)
 
 
 def test_eip712_calldata_no_param(scenario_navigator: NavigateWithScenario):

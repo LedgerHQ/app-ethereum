@@ -146,6 +146,7 @@ __attribute__((noinline)) bool format_param_network(const s_param_network *param
                 // TODO: Should we rather use TF_FIXED or TF_UFIXED?
                 ret = format_network_name(&collec.value[i], buf, buf_size);
                 if (ret) ret = add_to_field_table(PARAM_TYPE_NETWORK, name, buf, NULL);
+                if (ret) value_set_shown(&param->value, i);
             } else {
                 ret = false;
             }

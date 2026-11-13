@@ -113,7 +113,9 @@ static bool match_native(const uint8_t *addr, const s_param_token_amount *param)
 static bool process_token_amount(const s_param_token_amount *param,
                                  const char *name,
                                  s_parsed_value *value,
-                                 s_parsed_value *token) {
+                                 s_parsed_value *token,
+                                 uint8_t value_index,
+                                 uint8_t token_index) {
     char *buf = strings.tmp.tmp;
     size_t buf_size = sizeof(strings.tmp.tmp);
     uint8_t addr_buf[ADDRESS_LENGTH];
@@ -161,6 +163,10 @@ static bool process_token_amount(const s_param_token_amount *param,
                             token_info)) {
         return false;
     }
+    value_set_shown(&param->value, value_index);
+    if (param->has_token) {
+        value_set_shown(&param->token, token_index);
+    }
     return true;
 }
 
@@ -185,7 +191,9 @@ __attribute__((noinline)) bool format_param_token_amount(const s_param_token_amo
                 if (!(ret = process_token_amount(param,
                                                  name,
                                                  &collec_value.value[i],
-                                                 &collec_token.value[ti]))) {
+                                                 &collec_token.value[ti],
+                                                 i,
+                                                 ti))) {
                     break;
                 }
             }

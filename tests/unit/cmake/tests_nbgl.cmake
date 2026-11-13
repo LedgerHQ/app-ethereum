@@ -71,6 +71,7 @@ ledger_unit_tests_add_test(NAME test_common_712
     ${COMMON_INCLUDE_DIRS}
     ${APP_DIR}/features/sign_message_eip712_common
     ${APP_DIR}/features/provide_tx_simulation
+    ${APP_DIR}/features/get_public_key
     ${SDK_DIR}/lib_tlv/use_cases
     ${SDK_DIR}/io_legacy/include
   COMPILE_DEFS

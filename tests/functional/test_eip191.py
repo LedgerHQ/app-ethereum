@@ -117,7 +117,7 @@ def test_personal_sign_long_message(scenario_navigator: NavigateWithScenario):
 
 
 def test_personal_sign_disallowed_path(scenario_navigator: NavigateWithScenario):
-    """A path the OS refuses to derive fails cleanly after the review, and the app keeps running."""
+    """A path the OS refuses to derive fails cleanly before the review, and the app keeps running."""
     backend = scenario_navigator.backend
     app_client = EthAppClient(backend)
     msg = b"Example `personal_sign` message"

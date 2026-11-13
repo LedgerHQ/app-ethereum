@@ -3,6 +3,7 @@
 #include "shared_context.h"
 #include "tlv_library.h"
 #include "tlv_utils.h"
+#include "utils.h"
 
 #define PARAM_UNIT_STRUCT_VERSION 0x01
 
@@ -81,19 +82,36 @@ __attribute__((noinline)) bool format_param_unit(const s_param_unit *param, cons
     size_t buf_size = sizeof(strings.tmp.tmp);
     char tmp[80];
     size_t off;
+    size_t sign;
 
     if ((ret = value_get(&param->value, &collec))) {
         for (int i = 0; i < collec.size; ++i) {
-            if (!(ret = uint256_to_decimal(collec.value[i].ptr,
+            if ((param->value.type_family == TF_INT) && (collec.value[i].length > 0) &&
+                (collec.value[i].length <= INT256_LENGTH)) {
+                // An ABI word sign-extends its declared type: decode it at its full width
+                ret = format_signed_int_be(collec.value[i].ptr,
                                            collec.value[i].length,
+                                           MAX(param->value.type_size, collec.value[i].length),
                                            tmp,
-                                           sizeof(tmp)))) {
+                                           sizeof(tmp));
+            } else {
+                ret = uint256_to_decimal(collec.value[i].ptr,
+                                         collec.value[i].length,
+                                         tmp,
+                                         sizeof(tmp));
+            }
+            if (!ret) {
                 break;
             }
-            if (!(ret = adjustDecimals(tmp,
-                                       strnlen(tmp, sizeof(tmp)),
-                                       buf,
-                                       buf_size,
+            // The sign is kept out of the decimal rescaling
+            sign = (tmp[0] == '-') ? 1 : 0;
+            if (sign != 0) {
+                buf[0] = '-';
+            }
+            if (!(ret = adjustDecimals(&tmp[sign],
+                                       strnlen(&tmp[sign], sizeof(tmp) - sign),
+                                       &buf[sign],
+                                       buf_size - sign,
                                        param->decimals))) {
                 break;
             }
@@ -107,6 +125,7 @@ __attribute__((noinline)) bool format_param_unit(const s_param_unit *param, cons
             if (!(ret = add_to_field_table(PARAM_TYPE_UNIT, name, buf, NULL))) {
                 break;
             }
+            value_set_shown(&param->value, i);
         }
     }
     value_cleanup(&param->value, &collec);

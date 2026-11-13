@@ -192,6 +192,8 @@ void test_handle_pg_struct_version_and_iteration_ok(void) {
         0x01,
         0x01,
         GROUP_ITER_SEQUENTIAL,  // ITERATION_TYPE
+        0x02,
+        0x00,  // FIELD, parsed by the stubs
     };
     buffer_t buf = {.ptr = buf_bytes, .size = sizeof(buf_bytes), .offset = 0};
 
@@ -201,6 +203,32 @@ void test_handle_pg_struct_version_and_iteration_ok(void) {
     TEST_ASSERT_TRUE(handle_param_group_struct(&buf, &ctx));
     TEST_ASSERT_EQUAL(param.version, 1);
     TEST_ASSERT_EQUAL(param.iteration_type, GROUP_ITER_SEQUENTIAL);
+    cleanup_param_group(&param);
+}
+
+// A group with no field, or with no version, shows nothing and is refused
+static bool parse_group(const uint8_t *bytes, size_t size) {
+    buffer_t buf = {.ptr = (uint8_t *) bytes, .size = size, .offset = 0};
+    s_param_group param;
+    bool ret;
+
+    memset(&param, 0, sizeof(param));
+    s_param_group_context ctx = {.param = &param};
+    ret = handle_param_group_struct(&buf, &ctx);
+    cleanup_param_group(&param);
+    return ret;
+}
+
+void test_handle_pg_struct_without_field_rejected(void) {
+    const uint8_t bytes[] = {0x00, 0x01, 0x01, 0x01, 0x01, GROUP_ITER_SEQUENTIAL};
+
+    TEST_ASSERT_FALSE(parse_group(bytes, sizeof(bytes)));
+}
+
+void test_handle_pg_struct_without_version_rejected(void) {
+    const uint8_t bytes[] = {0x01, 0x01, GROUP_ITER_SEQUENTIAL, 0x02, 0x00};
+
+    TEST_ASSERT_FALSE(parse_group(bytes, sizeof(bytes)));
 }
 
 void test_handle_pg_struct_iteration_out_of_range_rejected(void) {
@@ -312,6 +340,8 @@ int main(void) {
     RUN_TEST(test_group_depth_cap_rejects);
     RUN_TEST(test_handle_pg_struct_version_other_than_one_refused);
     RUN_TEST(test_handle_pg_struct_version_and_iteration_ok);
+    RUN_TEST(test_handle_pg_struct_without_field_rejected);
+    RUN_TEST(test_handle_pg_struct_without_version_rejected);
     RUN_TEST(test_handle_pg_struct_iteration_out_of_range_rejected);
     RUN_TEST(test_handle_pg_struct_field_appends_to_list);
     RUN_TEST(test_handle_pg_struct_field_subparse_failure_rejected);

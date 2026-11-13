@@ -7,11 +7,13 @@
 #include "ui_nbgl.h"
 #include "cmd_get_tx_simulation.h"
 #include "app_mem_utils.h"
+#include "get_public_key.h"
 
 static const uint8_t EIP_712_MAGIC[] = {0x19, 0x01};
 
 static char *s_domain_hash_str = NULL;
 static char *s_message_hash_str = NULL;
+static char *s_from_str = NULL;
 
 void ui_712_approve_cb(void) {
     if (appState != APP_STATE_SIGNING_EIP712) {
@@ -72,6 +74,30 @@ void ui_712_reject_cb(void) {
 void eip712_hash_strs_cleanup(void) {
     APP_MEM_FREE_AND_NULL((void **) &s_domain_hash_str);
     APP_MEM_FREE_AND_NULL((void **) &s_message_hash_str);
+    APP_MEM_FREE_AND_NULL((void **) &s_from_str);
+}
+
+bool eip712_format_from(const bip32_path_t *bip32) {
+    if ((s_from_str == NULL) && !APP_MEM_CALLOC((void **) &s_from_str, ADDRESS_LENGTH_HEX_STR)) {
+        return false;
+    }
+    if (!get_displayable_address(bip32,
+                                 s_from_str,
+                                 ADDRESS_LENGTH_HEX_STR,
+                                 g_chain_config->chain_id)) {
+        s_from_str[0] = '\0';
+        return false;
+    }
+    return true;
+}
+
+bool eip712_set_from_pair(nbgl_contentTagValue_t *pair) {
+    if ((s_from_str == NULL) || (s_from_str[0] == '\0')) {
+        return false;
+    }
+    pair->item = "From";
+    pair->value = s_from_str;
+    return true;
 }
 
 void eip712_format_hash_strs(char *domain_str, char *message_str) {

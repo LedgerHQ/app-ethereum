@@ -10,6 +10,7 @@
 #include "tlv_library.h"
 #include "tlv_utils.h"
 #include "map_entry.h"
+#include "lcx_crc.h"
 
 #define MAP_REF_STRUCT_VERSION 0x01
 #define VALUE_STRUCT_VERSION   0x01
@@ -207,12 +208,6 @@ static bool value_get_rlp(const s_value *value, s_parsed_value_collection *colle
             }
             collection->value[0].length = ADDRESS_LENGTH;
             collection->size = 1;
-            // The descriptor already shows the sender of the root operation: the review must
-            // not add its own row for it. The calls a typed message names do not count, the
-            // review of a message shows the sender of the message.
-            if (operation_ctx_is_root()) {
-                operation_ctx_set_root_from_shown();
-            }
             break;
 
         // Recipient address (20 bytes)
@@ -231,11 +226,6 @@ static bool value_get_rlp(const s_value *value, s_parsed_value_collection *colle
             }
             collection->value[0].length = INT256_LENGTH;
             collection->size = 1;
-            if (operation_ctx_is_root()) {
-                // The descriptor already shows the root native value; the GCS
-                // review must not add its own duplicate row for it.
-                operation_ctx_set_root_value_shown();
-            }
             break;
 
         // Chain ID, normalized to a big-endian 64-bit value
@@ -349,6 +339,50 @@ bool value_get(const s_value *value, s_parsed_value_collection *collection) {
             return false;
     }
     return true;
+}
+
+uint32_t value_source_key(const s_value *value) {
+    uint32_t key = cx_crc32(&value->source, sizeof(value->source));
+
+    switch (value->source) {
+        case SOURCE_CALLDATA:
+            return cx_crc32_update(key, &value->data_path, sizeof(value->data_path));
+        case SOURCE_EIP712:
+            return cx_crc32_update(key, &value->eip712_path, sizeof(value->eip712_path));
+        case SOURCE_RLP:
+            return cx_crc32_update(key, &value->container_path, sizeof(value->container_path));
+        case SOURCE_CONSTANT:
+            key = cx_crc32_update(key, &value->constant.size, sizeof(value->constant.size));
+            return cx_crc32_update(key, value->constant.buf, value->constant.size);
+        case SOURCE_MAP_REF:
+            return cx_crc32_update(key, &value->map_ref, sizeof(value->map_ref));
+        default:
+            return key;
+    }
+}
+
+void value_set_shown(const s_value *value, uint8_t index) {
+    uint8_t what = 0;
+
+    if (value->source == SOURCE_RLP) {
+        switch (value->container_path) {
+            case CP_FROM:
+                what = OPERATION_SHOWN_FROM;
+                break;
+            case CP_TO:
+                what = OPERATION_SHOWN_TO;
+                break;
+            case CP_VALUE:
+                what = OPERATION_SHOWN_VALUE;
+                break;
+            case CP_CHAIN_ID:
+                what = OPERATION_SHOWN_CHAIN_ID;
+                break;
+            default:
+                break;
+        }
+    }
+    operation_ctx_set_shown(what, value_source_key(value), index);
 }
 
 void value_cleanup(const s_value *value, const s_parsed_value_collection *collection) {

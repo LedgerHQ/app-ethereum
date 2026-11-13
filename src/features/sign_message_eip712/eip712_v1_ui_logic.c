@@ -170,7 +170,18 @@ bool ui_712_set_intent(void) {
  */
 bool ui_712_set_title(const char *str, size_t length) {
     s_ui_712_pair *new_pair = NULL;
+    const s_ui_712_pair *last = ui_ctx->ui_pairs;
 
+    if (last != NULL) {
+        while (((const flist_node_t *) last)->next != NULL) {
+            last = (const s_ui_712_pair *) ((const flist_node_t *) last)->next;
+        }
+        // A new title only follows a pair that received its value
+        if (last->value == NULL) {
+            PRINTF("Previous EIP-712 title still has no value\n");
+            return false;
+        }
+    }
     if (APP_MEM_CALLOC((void **) &new_pair, sizeof(*new_pair)) == false) {
         return false;
     }
@@ -481,23 +492,23 @@ static bool ui_712_set_intent_field(const char *value) {
 static bool handle_fallback_empty_calldata(const s_eip712_calldata_info *calldata_info) {
     char *buf = strings.tmp.tmp;
     size_t buf_size = sizeof(strings.tmp.tmp);
-    uint64_t chain_id;
+    uint64_t chain_id = calldata_info->chain_id;
+    uint64_t domain_chain_id = 0;
+    bool has_domain_chain = td_get_domain_chain_id(&domain_chain_id);
     uint8_t decimals;
     const char *ticker;
 
+    // A call that names no chain is on the domain's
+    if ((chain_id == 0) && has_domain_chain) {
+        chain_id = domain_chain_id;
+    }
     if (calldata_info->amount_state == CALLDATA_INFO_PARAM_SET) {
         if (!ui_712_set_intent_field("Send")) {
             return false;
         }
-
-        if (calldata_info->chain_id != 0) {
-            chain_id = calldata_info->chain_id;
-        } else {
-            if (!td_get_domain_chain_id(&chain_id)) {
-                return false;
-            }
+        if (chain_id == 0) {
+            return false;
         }
-
         ticker = get_displayable_ticker(&chain_id, g_chain_config, true);
         decimals = WEI_TO_ETHER;
         if (!amountToString(calldata_info->amount,
@@ -520,44 +531,42 @@ static bool handle_fallback_empty_calldata(const s_eip712_calldata_info *calldat
     e_name_type types[] = {TN_TYPE_ACCOUNT};
     e_name_source sources[] = {TN_SOURCE_ENS, TN_SOURCE_LAB, TN_SOURCE_MAB};
     const s_trusted_name *trusted_name;
+    const char *name = NULL;
 
     if (!ui_712_set_title("To", 2)) {
         return false;
     }
 #ifdef HAVE_ADDRESS_BOOK
     // Address Book contacts take priority over Trusted Names for the callee address.
-    {
-        const s_ab_contact *ab_contact =
-            get_address_book_contact(calldata_info->chain_id, calldata_info->callee);
-        if ((ab_contact != NULL) &&
-            is_displayable_string(
-                ab_contact->contact_name,
-                strnlen(ab_contact->contact_name, sizeof(ab_contact->contact_name)))) {
-            if (!ui_712_set_value(ab_contact->contact_name, strlen(ab_contact->contact_name))) {
-                return false;
-            }
-            return true;
-        }
+    const s_ab_contact *ab_contact = get_address_book_contact(chain_id, calldata_info->callee);
+    if ((ab_contact != NULL) && is_displayable_string(ab_contact->contact_name,
+                                                      strnlen(ab_contact->contact_name,
+                                                              sizeof(ab_contact->contact_name)))) {
+        name = ab_contact->contact_name;
     }
 #endif  // HAVE_ADDRESS_BOOK
     // Fall back to a Trusted Name, then to the raw checksummed hex address.
-    if ((trusted_name = get_trusted_name(ARRAYLEN(types),
-                                         types,
-                                         ARRAYLEN(sources),
-                                         sources,
-                                         &calldata_info->chain_id,
-                                         calldata_info->callee)) != NULL) {
-        if (!ui_712_set_value(trusted_name->name, strlen(trusted_name->name))) {
+    if ((name == NULL) && ((trusted_name = get_trusted_name(ARRAYLEN(types),
+                                                            types,
+                                                            ARRAYLEN(sources),
+                                                            sources,
+                                                            &chain_id,
+                                                            calldata_info->callee)) != NULL)) {
+        name = trusted_name->name;
+    }
+    if (name == NULL) {
+        if (!getEthDisplayableAddress(calldata_info->callee, buf, buf_size, chain_id)) {
             return false;
         }
-    } else {
-        if (!getEthDisplayableAddress(calldata_info->callee,
-                                      buf,
-                                      buf_size,
-                                      calldata_info->chain_id)) {
-            return false;
-        }
-        if (!ui_712_set_value(buf, strlen(buf))) {
+        name = buf;
+    }
+    if (!ui_712_set_value(name, strlen(name))) {
+        return false;
+    }
+    // A call on another chain than the domain's is told apart by its network
+    if ((chain_id != 0) && (!has_domain_chain || (chain_id != domain_chain_id))) {
+        if (!get_network_as_string_from_chain_id(buf, buf_size, chain_id) ||
+            !ui_712_set_title("Network", 7) || !ui_712_set_value(buf, strlen(buf))) {
             return false;
         }
     }
@@ -1325,18 +1334,22 @@ bool ui_712_push_pairs(void) {
     // Keep the queued-pair count at its native width: narrowing it here would
     // wrap past the 8-bit pair counter and allocate fewer entries than the loop
     // below writes. ui_pairs_init() rejects anything the counter cannot hold.
-    nbPairs = flist_size((flist_node_t **) &ui_ctx->ui_pairs);
+    nbPairs = 1 + flist_size((flist_node_t **) &ui_ctx->ui_pairs);
     if (N_storage.displayHash) {
-        nbPairs += 2;
+        nbPairs += EIP712_HASH_ROWS;
     }
 
     if (!ui_pairs_init(nbPairs)) {
         return false;
     }
+    if (!eip712_set_from_pair(&g_pairs[pair])) {
+        return false;
+    }
+    pair++;
     // Initialize the tag/value pairs from the chain list
     tmp = ui_ctx->ui_pairs;
     while (tmp != NULL) {
-        if (pair >= g_pairsList->nbPairs) {
+        if ((pair >= g_pairsList->nbPairs) || (tmp->key == NULL) || (tmp->value == NULL)) {
             return false;
         }
         if (tmp->start_intent) {

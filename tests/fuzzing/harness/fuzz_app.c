@@ -158,6 +158,7 @@ static const tlv_tag_info_t TAGS_GCS_FIELD[] = {
     {0x03, 1, 64},
     {0x04, 1, 1},
     {0x05, 1, 64},
+    {0x06, 1, 32},
 };
 
 static const tlv_tag_info_t TAGS_AUTH_7702[] = {

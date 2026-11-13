@@ -439,6 +439,9 @@ __attribute__((noinline)) bool format_param_raw(const s_field *field) {
             // Add to field table only if required to be displayed
             if (ret && to_be_displayed) {
                 ret = add_to_field_table(PARAM_TYPE_RAW, field->name, buf, NULL);
+                if (ret) {
+                    value_set_shown(&field->param_raw.value, i);
+                }
             }
         }
     }

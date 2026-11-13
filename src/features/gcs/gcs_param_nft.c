@@ -95,6 +95,7 @@ __attribute__((noinline)) bool format_param_nft(const s_param_nft *param, const 
                         if (!(ret = add_to_field_table(PARAM_TYPE_NFT, name, buf, asset))) {
                             break;
                         }
+                        value_set_shown(&param->collection, collection_idx);
                     }
                 }
             }

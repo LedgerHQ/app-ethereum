@@ -22,8 +22,7 @@
  *   - EIP-712 short-circuit: when appState == APP_STATE_SIGNING_EIP712
  *     the call routes through ui_712_set_* helpers instead of growing
  *     the table,
- *   - set_intent_field rewrites the type based on
- *     txContext.current_batch_size,
+ *   - set_intent_field picks the type from the batch size it is given,
  *   - get_from_field_table returns entries in insertion order.
  */
 
@@ -209,21 +208,19 @@ void test_add_in_eip712_routes_to_ui_helpers(void) {
     TEST_ASSERT_EQUAL(g_ui_712_value_calls, 1);
     TEST_ASSERT_EQUAL_STRING(g_ui_712_last_title, "From");
     TEST_ASSERT_EQUAL_STRING(g_ui_712_last_value, "0xabc");
-    // ui_712_set_intent only fires for INTENT + batch > 1
+    // ui_712_set_intent only fires for INTENT
     TEST_ASSERT_EQUAL(g_ui_712_intent_calls, 0);
 }
 
-void test_add_intent_in_eip712_with_batch_calls_set_intent(void) {
+void test_intent_field_in_eip712_with_batch_calls_set_intent(void) {
     appState = APP_STATE_SIGNING_EIP712;
-    txContext.current_batch_size = 2;
-    TEST_ASSERT_TRUE(add_to_field_table(PARAM_TYPE_INTENT, "TxKind", "Approve", NULL));
+    TEST_ASSERT_TRUE(set_intent_field("Approve", 2));
     TEST_ASSERT_EQUAL(g_ui_712_intent_calls, 1);
 }
 
-void test_add_intent_in_eip712_single_batch_skips_set_intent(void) {
+void test_intent_field_in_eip712_single_batch_skips_set_intent(void) {
     appState = APP_STATE_SIGNING_EIP712;
-    txContext.current_batch_size = 1;
-    TEST_ASSERT_TRUE(add_to_field_table(PARAM_TYPE_INTENT, "TxKind", "Approve", NULL));
+    TEST_ASSERT_TRUE(set_intent_field("Approve", 1));
     TEST_ASSERT_EQUAL(g_ui_712_intent_calls, 0);
 }
 
@@ -232,8 +229,7 @@ void test_add_intent_in_eip712_single_batch_skips_set_intent(void) {
 // =============================================================================
 
 void test_set_intent_field_single_batch_uses_raw_type(void) {
-    txContext.current_batch_size = 1;
-    TEST_ASSERT_TRUE(set_intent_field("approve()"));
+    TEST_ASSERT_TRUE(set_intent_field("approve()", 1));
     const s_field_table_entry *e = get_from_field_table(0);
     TEST_ASSERT_EQUAL_STRING(e->key, "Transaction type");
     TEST_ASSERT_EQUAL_STRING(e->value, "approve()");
@@ -243,9 +239,14 @@ void test_set_intent_field_single_batch_uses_raw_type(void) {
     TEST_ASSERT_EQUAL(e->type, PARAM_TYPE_RAW);
 }
 
+void test_set_intent_field_root_uses_raw_type(void) {
+    TEST_ASSERT_TRUE(set_intent_field("approve()", 0));
+    const s_field_table_entry *e = get_from_field_table(0);
+    TEST_ASSERT_FALSE(e->start_intent);
+}
+
 void test_set_intent_field_multi_batch_marks_intent(void) {
-    txContext.current_batch_size = 3;
-    TEST_ASSERT_TRUE(set_intent_field("approve()"));
+    TEST_ASSERT_TRUE(set_intent_field("approve()", 3));
     const s_field_table_entry *e = get_from_field_table(0);
     TEST_ASSERT_TRUE(e->start_intent);
     TEST_ASSERT_EQUAL(e->type, PARAM_TYPE_RAW);  // INTENT gets remapped to RAW
@@ -323,9 +324,10 @@ int main(void) {
     RUN_TEST(test_add_address_book_keeps_own_copy_of_contact);
     RUN_TEST(test_add_token_keeps_own_copy_of_token);
     RUN_TEST(test_add_in_eip712_routes_to_ui_helpers);
-    RUN_TEST(test_add_intent_in_eip712_with_batch_calls_set_intent);
-    RUN_TEST(test_add_intent_in_eip712_single_batch_skips_set_intent);
+    RUN_TEST(test_intent_field_in_eip712_with_batch_calls_set_intent);
+    RUN_TEST(test_intent_field_in_eip712_single_batch_skips_set_intent);
     RUN_TEST(test_set_intent_field_single_batch_uses_raw_type);
+    RUN_TEST(test_set_intent_field_root_uses_raw_type);
     RUN_TEST(test_set_intent_field_multi_batch_marks_intent);
     RUN_TEST(test_cleanup_empties_table);
     return UNITY_END();

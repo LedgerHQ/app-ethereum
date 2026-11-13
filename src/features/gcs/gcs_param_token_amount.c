@@ -165,7 +165,7 @@ static bool process_token_amount(const s_param_token_amount *param,
     }
     value_set_shown(&param->value, value_index);
     if (param->has_token) {
-        value_set_shown(&param->token, token_index);
+        value_set_selector_shown(&param->token, token_index);
     }
     return true;
 }

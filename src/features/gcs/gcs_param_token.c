@@ -111,7 +111,7 @@ __attribute__((noinline)) bool format_param_token(const s_param_token *param, co
             if (!(ret = add_to_field_table(PARAM_TYPE_TOKEN, name, ticker, token_info))) {
                 break;
             }
-            value_set_shown(&param->address, i);
+            value_set_selector_shown(&param->address, i);
         }
     }
     value_cleanup(&param->address, &collec);

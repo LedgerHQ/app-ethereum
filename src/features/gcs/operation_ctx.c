@@ -26,6 +26,7 @@ typedef struct {
     uint32_t key;
     uint8_t ctx_id;
     uint8_t index;
+    uint8_t as;  // OPERATION_SHOWN_* the row can stand for
 } s_shown_value;
 
 // Past it, a value is not recorded, and the review adds its row: a duplicate rather than a gap
@@ -559,13 +560,13 @@ bool operation_ctx_init(s_calldata *calldata,
     return true;
 }
 
-void operation_ctx_set_shown(uint8_t what, uint32_t key, uint8_t index) {
+void operation_ctx_set_shown(uint8_t what, uint8_t as, uint32_t key, uint8_t index) {
     s_shown_value *node;
 
     if (g_operation_ctx_current == NULL) {
         return;
     }
-    g_operation_ctx_current->shown |= what;
+    g_operation_ctx_current->shown |= what & as;
     if ((flist_size((flist_node_t **) &g_shown_values) >= MAX_SHOWN_VALUES) ||
         !APP_MEM_CALLOC((void **) &node, sizeof(*node))) {
         return;
@@ -573,6 +574,7 @@ void operation_ctx_set_shown(uint8_t what, uint32_t key, uint8_t index) {
     node->key = key;
     node->ctx_id = g_operation_ctx_current->id;
     node->index = index;
+    node->as = as;
     flist_push_back((flist_node_t **) &g_shown_values, (flist_node_t *) node);
 }
 
@@ -602,14 +604,16 @@ bool operation_ctx_set_last_origin(const s_call_origin *origin) {
 }
 
 // Whether a row of the operation that made the call shows the value the call took
-static bool is_shown_by_parent(const s_operation_ctx *call, const s_call_origin_value *origin) {
+static bool is_shown_by_parent(const s_operation_ctx *call,
+                               uint8_t what,
+                               const s_call_origin_value *origin) {
     if (!call->has_parent || !origin->set) {
         return false;
     }
     for (const s_shown_value *node = g_shown_values; node != NULL;
          node = (const s_shown_value *) ((const flist_node_t *) node)->next) {
-        if ((node->ctx_id == call->parent_id) && (node->key == origin->key) &&
-            (node->index == origin->index)) {
+        if ((node->ctx_id == call->parent_id) && ((node->as & what) != 0) &&
+            (node->key == origin->key) && (node->index == origin->index)) {
             return true;
         }
     }
@@ -623,7 +627,7 @@ static bool is_parent_callee(const s_operation_ctx *call, const uint8_t *addr) {
 static bool needs_row(const s_operation_ctx *call,
                       uint8_t what,
                       const s_call_origin_value *origin) {
-    return ((call->shown & what) == 0) && !is_shown_by_parent(call, origin);
+    return ((call->shown & what) == 0) && !is_shown_by_parent(call, what, origin);
 }
 
 // The row is part of the review of the call, whose fields are all in already

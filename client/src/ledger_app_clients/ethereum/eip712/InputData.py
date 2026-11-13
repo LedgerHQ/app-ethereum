@@ -62,12 +62,19 @@ def get_typesize(typename):
     return (typename, typesize)
 
 
+# An EIP-712 integer is 8 to 256 bits wide, in steps of 8
+def integer_size(typesize):
+    if typesize is None or not 8 <= typesize <= 256 or typesize % 8 != 0:
+        raise ValueError(f"Invalid integer width: {typesize}")
+    return typesize // 8
+
+
 def parse_int(typesize):
-    return (EIP712FieldType.INT, int(typesize / 8))
+    return (EIP712FieldType.INT, integer_size(typesize))
 
 
 def parse_uint(typesize):
-    return (EIP712FieldType.UINT, int(typesize / 8))
+    return (EIP712FieldType.UINT, integer_size(typesize))
 
 
 def parse_address(typesize):

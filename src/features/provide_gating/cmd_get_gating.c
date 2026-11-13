@@ -46,9 +46,6 @@
 #endif  // HAVE_EIP712_V1
 #include "lcx_sha256.h"
 
-// Display the Dated Signing screen 1/X times
-#define GATED_SIGNING_MAX_COUNT 10
-
 #define TYPE_GATED_SIGNING 0x0D
 #define STRUCT_VERSION     0x01
 
@@ -811,19 +808,11 @@ bool set_gating_warning(void) {
         return false;
     }
 
-    // Bump the persistent counter. The uint8_t wraps every 256 signing
-    // operations; 256 is not a multiple of GATED_SIGNING_MAX_COUNT, so a
-    // naive `counter + 1` would shift the "display every Nth" cadence after
-    // each wrap and eventually skip a screen entirely. Detect the wrap and
-    // re-anchor to 1 so the next signing operation displays and the cycle
-    // resumes aligned.
-    counter = N_storage.gating_counter + 1;
-    if (counter == 0) {
-        counter = 1;
-    }
+    // Counter cycles 1..GATED_SIGNING_MAX_COUNT; the screen is displayed when it is 1
+    counter = (N_storage.gating_counter % GATED_SIGNING_MAX_COUNT) + 1;
     PRINTF("[GATING] Counter: %d/%d\n", counter, GATED_SIGNING_MAX_COUNT);
     nvm_write((void *) &N_storage.gating_counter, (void *) &counter, sizeof(counter));
-    if ((counter % GATED_SIGNING_MAX_COUNT) != 1) {
+    if (counter != 1) {
         PRINTF("[GATING] Skip gating screen\n");
         return true;
     }

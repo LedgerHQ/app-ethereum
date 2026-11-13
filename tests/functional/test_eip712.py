@@ -743,6 +743,16 @@ def test_eip712_integer_out_of_range(encode: Callable[[str, int], bytes], value:
         encode(value, 1)
 
 
+@pytest.mark.parametrize("parse", [InputData.parse_uint, InputData.parse_int], ids=["uint", "int"])
+@pytest.mark.parametrize(
+    "typesize", [None, 0, 9, 264, 257], ids=["no_width", "zero", "not_multiple_of_8", "above_max", "above_max_not_multiple_of_8"]
+)
+def test_eip712_integer_invalid_width(parse: Callable[[int | None], tuple], typesize: int | None):
+    """The client refuses an integer type whose width EIP-712 does not define instead of rounding it."""
+    with pytest.raises(ValueError):
+        parse(typesize)
+
+
 def get_filter_file_from_data_file(data_file: Path) -> Path:
     test_path = f"{data_file.parent}/{'-'.join(data_file.stem.split('-')[:-1])}"
     return Path(f"{test_path}-filter.json")

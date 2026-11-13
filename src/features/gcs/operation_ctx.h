@@ -24,6 +24,8 @@
 #define OPERATION_SHOWN_TO       (1 << 1)
 #define OPERATION_SHOWN_VALUE    (1 << 2)
 #define OPERATION_SHOWN_CHAIN_ID (1 << 3)
+#define OPERATION_SHOWN_ALL \
+    (OPERATION_SHOWN_FROM | OPERATION_SHOWN_TO | OPERATION_SHOWN_VALUE | OPERATION_SHOWN_CHAIN_ID)
 
 // A value of a nested call, as the descriptor of the operation that made the call reads it
 typedef struct {
@@ -203,10 +205,11 @@ void operation_ctx_cleanup(void);
  * Record that a row of the review shows a value of the operation being described
  *
  * @param[in] what OPERATION_SHOWN_* of the value, when it is one of the operation; 0 otherwise
+ * @param[in] as OPERATION_SHOWN_* the row can stand for
  * @param[in] key see value_source_key()
  * @param[in] index position of the value in the collection it was read in
  */
-void operation_ctx_set_shown(uint8_t what, uint32_t key, uint8_t index);
+void operation_ctx_set_shown(uint8_t what, uint8_t as, uint32_t key, uint8_t index);
 bool operation_ctx_is_root_value_shown(void);
 bool operation_ctx_is_root_from_shown(void);
 /**

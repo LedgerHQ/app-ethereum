@@ -543,8 +543,12 @@ __attribute__((weak)) bool operation_ctx_is_root(void) {
 
 // What a review row shows is recorded for the dedup of the review rows; tests that exercise it
 // install their own strong definitions.
-__attribute__((weak)) void operation_ctx_set_shown(uint8_t what, uint32_t key, uint8_t index) {
+__attribute__((weak)) void operation_ctx_set_shown(uint8_t what,
+                                                   uint8_t as,
+                                                   uint32_t key,
+                                                   uint8_t index) {
     (void) what;
+    (void) as;
     (void) key;
     (void) index;
 }
@@ -559,6 +563,11 @@ __attribute__((weak)) bool operation_ctx_add_unshown_rows(void) {
 }
 
 __attribute__((weak)) void value_set_shown(const void *value, uint8_t index) {
+    (void) value;
+    (void) index;
+}
+
+__attribute__((weak)) void value_set_selector_shown(const void *value, uint8_t index) {
     (void) value;
     (void) index;
 }

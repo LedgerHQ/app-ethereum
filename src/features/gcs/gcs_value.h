@@ -86,3 +86,10 @@ uint32_t value_source_key(const s_value *value);
  * @param[in] index position of the value in the collection it was read in
  */
 void value_set_shown(const s_value *value, uint8_t index);
+/**
+ * Record that a row of the review shows the asset a value selects, which names its contract only
+ *
+ * @param[in] value the address of the asset
+ * @param[in] index position of the value in the collection it was read in
+ */
+void value_set_selector_shown(const s_value *value, uint8_t index);

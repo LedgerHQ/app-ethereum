@@ -83,6 +83,12 @@ void value_set_shown(const s_value *value, uint8_t index) {
     (void) index;
     g_shown_calls++;
 }
+static int g_selector_shown_calls = 0;
+void value_set_selector_shown(const s_value *value, uint8_t index) {
+    (void) value;
+    (void) index;
+    g_selector_shown_calls++;
+}
 
 // ===========================================================================
 // Test data
@@ -342,21 +348,24 @@ static bool format_one_native_candidate(const uint8_t *amount, bool above_thresh
     return format_param_token_amount(&param, "Amount");
 }
 
-// Both the amount and the token are shown
+// The amount is shown, and the token as the asset it selects
 void test_token_amount_native_marks_value_and_token_shown(void) {
     TEST_ASSERT_TRUE(format_one_native_candidate(g_amount1, false));
-    TEST_ASSERT_EQUAL_INT(2, g_shown_calls);
+    TEST_ASSERT_EQUAL_INT(1, g_shown_calls);
+    TEST_ASSERT_EQUAL_INT(1, g_selector_shown_calls);
 }
 
 void test_token_amount_native_above_threshold_marks_value_and_token_shown(void) {
     TEST_ASSERT_TRUE(format_one_native_candidate(g_amount2, true));
-    TEST_ASSERT_EQUAL_INT(2, g_shown_calls);
+    TEST_ASSERT_EQUAL_INT(1, g_shown_calls);
+    TEST_ASSERT_EQUAL_INT(1, g_selector_shown_calls);
 }
 
 void test_token_amount_token_marks_each_shown_value(void) {
     g_get_matching_token_info_or_dummy_ret = &g_usdc_info;
     test_token_amount_broadcast_ok();
-    TEST_ASSERT_EQUAL_INT(4, g_shown_calls);
+    TEST_ASSERT_EQUAL_INT(2, g_shown_calls);
+    TEST_ASSERT_EQUAL_INT(2, g_selector_shown_calls);
 }
 
 // ===========================================================================
@@ -365,6 +374,7 @@ void test_token_amount_token_marks_each_shown_value(void) {
 
 void setUp(void) {
     g_shown_calls = 0;
+    g_selector_shown_calls = 0;
 }
 void tearDown(void) {
 }

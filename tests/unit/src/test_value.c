@@ -134,9 +134,10 @@ bool operation_ctx_is_root(void) {
 }
 static uint8_t g_shown_what = 0;
 static int g_set_shown_calls = 0;
-void operation_ctx_set_shown(uint8_t what, uint32_t key, uint8_t index) {
+void operation_ctx_set_shown(uint8_t what, uint8_t as, uint32_t key, uint8_t index) {
     (void) key;
     (void) index;
+    what &= as;
     g_shown_what |= what;
     g_set_shown_calls++;
     if (what & OPERATION_SHOWN_FROM) g_root_from_shown_calls++;
@@ -295,6 +296,21 @@ void test_shown_container_values_are_marked(void) {
     TEST_ASSERT_EQUAL(OPERATION_SHOWN_FROM | OPERATION_SHOWN_TO | OPERATION_SHOWN_VALUE |
                           OPERATION_SHOWN_CHAIN_ID,
                       g_shown_what);
+}
+
+// An asset selector names a contract: it stands for no sender, amount nor network
+void test_shown_selector_marks_the_callee_only(void) {
+    const s_value from = {.source = SOURCE_RLP, .container_path = CP_FROM};
+    const s_value to = {.source = SOURCE_RLP, .container_path = CP_TO};
+    const s_value value = {.source = SOURCE_RLP, .container_path = CP_VALUE};
+    const s_value chain = {.source = SOURCE_RLP, .container_path = CP_CHAIN_ID};
+
+    value_set_selector_shown(&from, 0);
+    value_set_selector_shown(&value, 0);
+    value_set_selector_shown(&chain, 0);
+    TEST_ASSERT_EQUAL(0, g_shown_what);
+    value_set_selector_shown(&to, 0);
+    TEST_ASSERT_EQUAL(OPERATION_SHOWN_TO, g_shown_what);
 }
 
 // Any other shown value is recorded by its source only
@@ -945,6 +961,7 @@ int main(void) {
     RUN_TEST(test_value_get_rlp_chain_id_bigendian);
     RUN_TEST(test_reading_container_values_does_not_mark_them_shown);
     RUN_TEST(test_shown_container_values_are_marked);
+    RUN_TEST(test_shown_selector_marks_the_callee_only);
     RUN_TEST(test_shown_value_of_another_source_marks_nothing);
     RUN_TEST(test_source_key_identifies_the_source);
     RUN_TEST(test_container_to_is_the_callee_of_the_operation);

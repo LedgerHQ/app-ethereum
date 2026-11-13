@@ -361,7 +361,7 @@ uint32_t value_source_key(const s_value *value) {
     }
 }
 
-void value_set_shown(const s_value *value, uint8_t index) {
+static void set_shown(const s_value *value, uint8_t index, uint8_t as) {
     uint8_t what = 0;
 
     if (value->source == SOURCE_RLP) {
@@ -382,7 +382,15 @@ void value_set_shown(const s_value *value, uint8_t index) {
                 break;
         }
     }
-    operation_ctx_set_shown(what, value_source_key(value), index);
+    operation_ctx_set_shown(what, as, value_source_key(value), index);
+}
+
+void value_set_shown(const s_value *value, uint8_t index) {
+    set_shown(value, index, OPERATION_SHOWN_ALL);
+}
+
+void value_set_selector_shown(const s_value *value, uint8_t index) {
+    set_shown(value, index, OPERATION_SHOWN_TO);
 }
 
 void value_cleanup(const s_value *value, const s_parsed_value_collection *collection) {

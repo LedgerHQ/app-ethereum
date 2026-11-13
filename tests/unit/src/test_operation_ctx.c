@@ -553,7 +553,10 @@ static void describe_root(const uint8_t *from, const uint8_t *to, uint64_t chain
 // The shown flags belong to the calls, which a typed message releases without gcs_cleanup()
 void test_operation_ctx_cleanup_forgets_what_the_descriptors_showed(void) {
     describe_root(g_addr_a, g_addr_b, 1);
-    operation_ctx_set_shown(OPERATION_SHOWN_FROM | OPERATION_SHOWN_VALUE, 0, 0);
+    operation_ctx_set_shown(OPERATION_SHOWN_FROM | OPERATION_SHOWN_VALUE,
+                            OPERATION_SHOWN_ALL,
+                            0,
+                            0);
     TEST_ASSERT_TRUE(operation_ctx_is_root_from_shown());
     TEST_ASSERT_TRUE(operation_ctx_is_root_value_shown());
     operation_ctx_cleanup();
@@ -606,8 +609,8 @@ void test_unshown_rows_of_a_nested_call_are_added(void) {
 // A row of the parent reads the callee and the amount where the call takes them from
 void test_values_shown_by_the_parent_add_no_row(void) {
     describe_root(g_addr_a, g_addr_b, 1);
-    operation_ctx_set_shown(0, KEY_CALLEE, 0);
-    operation_ctx_set_shown(0, KEY_AMOUNT, 0);
+    operation_ctx_set_shown(0, OPERATION_SHOWN_ALL, KEY_CALLEE, 0);
+    operation_ctx_set_shown(0, OPERATION_SHOWN_ALL, KEY_AMOUNT, 0);
     describe_nested(NULL, g_amount_1eth, NULL);
     TEST_ASSERT_TRUE(operation_ctx_add_unshown_rows());
     TEST_ASSERT_EQUAL_INT(0, g_rows_count);
@@ -616,7 +619,7 @@ void test_values_shown_by_the_parent_add_no_row(void) {
 // The same source at another position of the collection is another value
 void test_value_shown_at_another_index_adds_its_row(void) {
     describe_root(g_addr_a, g_addr_b, 1);
-    operation_ctx_set_shown(0, KEY_CALLEE, 1);
+    operation_ctx_set_shown(0, OPERATION_SHOWN_ALL, KEY_CALLEE, 1);
     describe_nested(NULL, NULL, NULL);
     TEST_ASSERT_TRUE(operation_ctx_add_unshown_rows());
     TEST_ASSERT_TRUE(has_row("To"));
@@ -626,7 +629,7 @@ void test_value_shown_at_another_index_adds_its_row(void) {
 void test_values_shown_by_the_call_add_no_row(void) {
     describe_root(g_addr_a, g_addr_b, 1);
     describe_nested(NULL, g_amount_1eth, NULL);
-    operation_ctx_set_shown(OPERATION_SHOWN_TO | OPERATION_SHOWN_VALUE, 0, 0);
+    operation_ctx_set_shown(OPERATION_SHOWN_TO | OPERATION_SHOWN_VALUE, OPERATION_SHOWN_ALL, 0, 0);
     TEST_ASSERT_TRUE(operation_ctx_add_unshown_rows());
     TEST_ASSERT_EQUAL_INT(0, g_rows_count);
 }
@@ -635,7 +638,7 @@ void test_zero_amount_adds_no_row(void) {
     static const uint8_t zero[INT256_LENGTH] = {0};
 
     describe_root(g_addr_a, g_addr_b, 1);
-    operation_ctx_set_shown(0, KEY_CALLEE, 0);
+    operation_ctx_set_shown(0, OPERATION_SHOWN_ALL, KEY_CALLEE, 0);
     describe_nested(NULL, zero, NULL);
     TEST_ASSERT_TRUE(operation_ctx_add_unshown_rows());
     TEST_ASSERT_EQUAL_INT(0, g_rows_count);
@@ -645,7 +648,7 @@ void test_call_on_another_chain_adds_its_network(void) {
     uint64_t chain = 42161;
 
     describe_root(g_addr_a, g_addr_b, 1);
-    operation_ctx_set_shown(0, KEY_CALLEE, 0);
+    operation_ctx_set_shown(0, OPERATION_SHOWN_ALL, KEY_CALLEE, 0);
     describe_nested(NULL, NULL, &chain);
     TEST_ASSERT_TRUE(operation_ctx_add_unshown_rows());
     TEST_ASSERT_TRUE(has_row("Network"));
@@ -655,7 +658,7 @@ void test_call_on_another_chain_adds_its_network(void) {
 // The contract the parent calls makes the call: its sender is the contract already reviewed
 void test_call_sent_by_the_parent_callee_adds_no_sender(void) {
     describe_root(g_addr_a, g_addr_b, 1);
-    operation_ctx_set_shown(0, KEY_CALLEE, 0);
+    operation_ctx_set_shown(0, OPERATION_SHOWN_ALL, KEY_CALLEE, 0);
     describe_nested(g_addr_b, NULL, NULL);
     TEST_ASSERT_TRUE(operation_ctx_add_unshown_rows());
     TEST_ASSERT_FALSE(has_row("From"));
@@ -663,7 +666,7 @@ void test_call_sent_by_the_parent_callee_adds_no_sender(void) {
 
 void test_call_sent_by_another_account_adds_its_sender(void) {
     describe_root(g_addr_a, g_addr_b, 1);
-    operation_ctx_set_shown(0, KEY_CALLEE, 0);
+    operation_ctx_set_shown(0, OPERATION_SHOWN_ALL, KEY_CALLEE, 0);
     describe_nested(g_addr_c, NULL, NULL);
     TEST_ASSERT_TRUE(operation_ctx_add_unshown_rows());
     TEST_ASSERT_TRUE(has_row("From"));
@@ -688,6 +691,19 @@ void test_root_call_adds_no_row(void) {
     describe_root(g_addr_a, g_addr_b, 1);
     TEST_ASSERT_TRUE(operation_ctx_add_unshown_rows());
     TEST_ASSERT_EQUAL_INT(0, g_rows_count);
+}
+
+// A row naming the asset a value selects stands for the callee only
+void test_selector_stands_for_no_amount(void) {
+    describe_root(g_addr_a, g_addr_b, 1);
+    operation_ctx_set_shown(OPERATION_SHOWN_VALUE, OPERATION_SHOWN_TO, 0, 0);
+    TEST_ASSERT_FALSE(operation_ctx_is_root_value_shown());
+    operation_ctx_set_shown(0, OPERATION_SHOWN_TO, KEY_CALLEE, 0);
+    operation_ctx_set_shown(0, OPERATION_SHOWN_TO, KEY_AMOUNT, 0);
+    describe_nested(NULL, g_amount_1eth, NULL);
+    TEST_ASSERT_TRUE(operation_ctx_add_unshown_rows());
+    TEST_ASSERT_FALSE(has_row("To"));
+    TEST_ASSERT_TRUE(has_row("Amount"));
 }
 
 void test_unshown_rows_need_a_call_being_described(void) {
@@ -1419,6 +1435,7 @@ int main(void) {
     RUN_TEST(test_call_sent_by_another_account_adds_its_sender);
     RUN_TEST(test_call_to_the_parent_callee_adds_no_callee);
     RUN_TEST(test_root_call_adds_no_row);
+    RUN_TEST(test_selector_stands_for_no_amount);
     RUN_TEST(test_unshown_rows_need_a_call_being_described);
     RUN_TEST(test_process_empty_calls_before_removes_empty_predecessors);
     RUN_TEST(test_process_empty_calls_before_keeps_execution_order);

@@ -89,12 +89,29 @@ void ui_idle(void) {
 
 static int g_ui_191_calls = 0;
 static char g_ui_191_display[1024];
-void ui_191_start(const char *display_buffer) {
+static bool g_ui_191_is_hex = false;
+static bool g_ui_191_ret = true;
+static char g_ui_191_from[64];
+bool ui_191_start(const char *display_buffer, bool is_hex, const char *from) {
     g_ui_191_calls++;
+    strlcpy(g_ui_191_from, from, sizeof(g_ui_191_from));
+    g_ui_191_is_hex = is_hex;
     if (display_buffer != NULL) {
         strncpy(g_ui_191_display, display_buffer, sizeof(g_ui_191_display) - 1);
         g_ui_191_display[sizeof(g_ui_191_display) - 1] = '\0';
     }
+    return g_ui_191_ret;
+}
+
+static bool g_derive_ret = true;
+bool get_displayable_address(const bip32_path_t *bip32,
+                             char *out,
+                             size_t out_size,
+                             uint64_t chain_id) {
+    (void) bip32;
+    (void) chain_id;
+    strlcpy(out, "0xSigner", out_size);
+    return g_derive_ret;
 }
 
 // The real implementation measures the rendered message against the review's page
@@ -159,6 +176,10 @@ static void reset(void) {
     g_ui_idle_calls = 0;
     g_ui_191_calls = 0;
     memset(g_ui_191_display, 0, sizeof(g_ui_191_display));
+    g_ui_191_is_hex = false;
+    g_ui_191_ret = true;
+    memset(g_ui_191_from, 0, sizeof(g_ui_191_from));
+    g_derive_ret = true;
     memset(&tmpCtx, 0, sizeof(tmpCtx));
     memset(&strings, 0, sizeof(strings));
 }
@@ -212,6 +233,21 @@ void test_first_truncated_before_msg_length_rejected(void) {
     TEST_ASSERT_EQUAL(sw, SWO_INCORRECT_DATA);
 }
 
+void test_first_length_above_16_bits_rejected(void) {
+    uint8_t data[64];
+    size_t len = build_first_apdu(data, sizeof(data), 0x10005, (uint8_t *) "hello", 5);
+    uint16_t sw = handle_sign_personal_message(P1_FIRST, data, (uint8_t) len);
+    TEST_ASSERT_EQUAL(sw, SWO_INCORRECT_DATA);
+    TEST_ASSERT_EQUAL(g_ui_191_calls, 0);
+}
+
+void test_first_length_above_display_limit_rejected(void) {
+    uint8_t data[64];
+    size_t len = build_first_apdu(data, sizeof(data), (UINT16_MAX - 3) / 2 + 1, NULL, 0);
+    uint16_t sw = handle_sign_personal_message(P1_FIRST, data, (uint8_t) len);
+    TEST_ASSERT_EQUAL(sw, SWO_INCORRECT_DATA);
+}
+
 void test_first_keccak_init_failure_propagates(void) {
     g_keccak_init_ret = CX_INVALID_PARAMETER;
     uint8_t data[64];
@@ -235,6 +271,8 @@ void test_single_chunk_ascii_starts_ui(void) {
     TEST_ASSERT_EQUAL(sw, SWO_NO_RESPONSE);
     TEST_ASSERT_EQUAL(g_ui_191_calls, 1);
     TEST_ASSERT_EQUAL_STRING(g_ui_191_display, "hello");
+    TEST_ASSERT_EQUAL_STRING(g_ui_191_from, "0xSigner");
+    TEST_ASSERT_FALSE(g_ui_191_is_hex);
 }
 
 void test_single_chunk_hex_uses_0x_prefix(void) {
@@ -246,6 +284,7 @@ void test_single_chunk_hex_uses_0x_prefix(void) {
     uint16_t sw = handle_sign_personal_message(P1_FIRST, data, (uint8_t) len);
     TEST_ASSERT_EQUAL(sw, SWO_NO_RESPONSE);
     TEST_ASSERT_EQUAL_STRING(g_ui_191_display, "0x010203");
+    TEST_ASSERT_TRUE(g_ui_191_is_hex);
 }
 
 void test_multichunk_completes_on_last_chunk(void) {
@@ -290,6 +329,26 @@ void test_final_finalize_failure_resets_state(void) {
     TEST_ASSERT_EQUAL(g_ui_191_calls, 0);
 }
 
+void test_ui_start_failure_returns_insufficient_memory(void) {
+    g_ui_191_ret = false;
+    uint8_t data[64];
+    size_t len = build_first_apdu(data, sizeof(data), 4, (uint8_t *) "ping", 4);
+    uint16_t sw = handle_sign_personal_message(P1_FIRST, data, (uint8_t) len);
+    TEST_ASSERT_EQUAL(sw, SWO_INSUFFICIENT_MEMORY);
+    TEST_ASSERT_EQUAL(g_ui_191_calls, 1);
+    TEST_ASSERT_EQUAL(g_ui_idle_calls, 1);
+}
+
+void test_signer_derivation_failure_skips_review(void) {
+    g_derive_ret = false;
+    uint8_t data[64];
+    size_t len = build_first_apdu(data, sizeof(data), 4, (uint8_t *) "ping", 4);
+    uint16_t sw = handle_sign_personal_message(P1_FIRST, data, (uint8_t) len);
+    TEST_ASSERT_EQUAL(sw, SWO_INCORRECT_DATA);
+    TEST_ASSERT_EQUAL(g_ui_191_calls, 0);
+    TEST_ASSERT_EQUAL(g_ui_idle_calls, 1);
+}
+
 void test_cleanup_after_p1_first_when_busy(void) {
     // Set up a successful single-chunk run, then send P1_FIRST again
     // while still in SIGNING_MESSAGE state — handler must reject and
@@ -322,13 +381,14 @@ void test_hash_is_keccak_seeded_with_prefix(void) {
     // number of cx_hash_no_throw invocations on the FIRST path: one
     // for SIGN_MAGIC, one for the decimal length string. The third
     // invocation comes from process_data() consuming the inline chunk.
+    // The message is left incomplete so that the review does not reuse the buffer.
     uint8_t data[64];
-    size_t len = build_first_apdu(data, sizeof(data), 5, (uint8_t *) "hello", 5);
+    size_t len = build_first_apdu(data, sizeof(data), 7, (uint8_t *) "hello", 5);
     (void) handle_sign_personal_message(P1_FIRST, data, (uint8_t) len);
     TEST_ASSERT_EQUAL(g_cx_hash_calls, 3);
     // strings.tmp.tmp must contain the decimal representation of the
     // message length so it can be fed to the hash.
-    TEST_ASSERT_EQUAL_STRING(strings.tmp.tmp, "5");
+    TEST_ASSERT_EQUAL_STRING(strings.tmp.tmp, "7");
 }
 
 // =============================================================================
@@ -367,12 +427,16 @@ int main(void) {
     RUN_TEST(test_p1_more_without_prior_first_rejected);
     RUN_TEST(test_first_bad_bip32_returns_incorrect_data);
     RUN_TEST(test_first_truncated_before_msg_length_rejected);
+    RUN_TEST(test_first_length_above_16_bits_rejected);
+    RUN_TEST(test_first_length_above_display_limit_rejected);
     RUN_TEST(test_first_keccak_init_failure_propagates);
     RUN_TEST(test_single_chunk_ascii_starts_ui);
     RUN_TEST(test_single_chunk_hex_uses_0x_prefix);
     RUN_TEST(test_multichunk_completes_on_last_chunk);
     RUN_TEST(test_chunk_overflow_rejected);
     RUN_TEST(test_final_finalize_failure_resets_state);
+    RUN_TEST(test_ui_start_failure_returns_insufficient_memory);
+    RUN_TEST(test_signer_derivation_failure_skips_review);
     RUN_TEST(test_cleanup_after_p1_first_when_busy);
     RUN_TEST(test_message_cleanup_safe_when_nothing_allocated);
     RUN_TEST(test_hash_is_keccak_seeded_with_prefix);

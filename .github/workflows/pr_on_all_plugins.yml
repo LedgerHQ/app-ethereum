@@ -39,7 +39,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout SDK repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           submodules: true
           repository: LedgerHQ/ethereum-plugin-sdk
@@ -92,12 +92,10 @@ jobs:
       fail-fast: false
       matrix:
         repo: ${{ fromJSON(needs.build-repositories-matrix.outputs.repo-matrix) }}
-    env:
-      GITHUB_TOKEN: ${{ secrets.CI_BOT_TOKEN }}
 
     steps:
       - name: Checkout plugin repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           repository: LedgerHQ/${{ matrix.repo }}
           submodules: recursive
@@ -143,12 +141,16 @@ jobs:
           git push -u origin "$branch_name" --force
 
       - name: Create 'auto' label if missing
+        env:
+          GITHUB_TOKEN: ${{ secrets.CI_BOT_TOKEN }}
         run: |
           if [[ -z $(gh label list --search auto) ]]; then
             gh label create 'auto' --color 'b4a8d1' --description 'Automatically created'
           fi
 
       - name: Create pull request and comment on SDK issue
+        env:
+          GITHUB_TOKEN: ${{ secrets.CI_BOT_TOKEN }}
         run: |
           # Github limits the number of possible PR being opened in a given time window.
           # The limits are 20 creation per minute and 150 per hour.
@@ -176,19 +178,18 @@ jobs:
     steps:
       - name: Collect all comments on the SDK issue
         run: |
-          # Get the full text of the issue: metadata + title + rich comments
-          content="$(gh issue view --comments "${{ needs.open-issue.outputs.issue_url }}")"
+          # gh api uses id instead of url
+          issue_id="$(basename "${{ needs.open-issue.outputs.issue_url }}")"
+          # The open-prs jobs comment with this same token
+          bot_login="$(gh api user --jq '.login')"
           # New header of the issue body
           header="Bumping Ethereum plugin SDK to latest version ${{ needs.get-sdk-ref.outputs.sdk_ref }} for all Ethereum plugins:"
-          # Filter the full text of the issue to collect only the PR urls
-          lines=""
-          while IFS= read -r line; do
-            if [[ "$line" =~ "OPENED" ]]; then
-              lines+=$(echo "$line" | cut -d ' ' -f2)$'\n'
-            fi
-          done < <(echo "$content")
-          # Use print to resolve the '\n' chars
-          new_body="$(printf "$header\n$lines")"
+          # Collect only the plugin PR urls posted by the bot
+          lines="$(gh api --paginate "repos/${{ github.repository }}/issues/${issue_id}/comments" \
+                     --jq ".[] | select(.user.login == \"${bot_login}\") | .body" \
+                   | { grep -E '^OPENED https://github\.com/LedgerHQ/app-plugin-[A-Za-z0-9._-]+/pull/[0-9]+$' || true; } \
+                   | cut -d ' ' -f2)"
+          new_body="$(printf '%s\n%s\n' "$header" "$lines")"
           echo "New issue body: $new_body"
           # Set the consolidated body of the issue
           gh issue edit "${{ needs.open-issue.outputs.issue_url }}" --body "$new_body"

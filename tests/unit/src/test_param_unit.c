@@ -1,7 +1,7 @@
 /**
  * @file test_param_unit.c
  * @brief Unit tests for the UNIT parameter in
- *        src/features/generic_tx_parser/gtp_param_unit.c.
+ *        src/features/gcs/gcs_param_unit.c.
  *
  * UNIT renders a numeric value with a unit suffix, e.g. "1000 USDC" or
  * "10.00 USDC", after rescaling the input by param->decimals. The
@@ -13,8 +13,9 @@
  *
  * The TLV side has an additional handler per tag compared to amount /
  * duration: TAG_BASE copies a NUL-terminated string (rejecting payloads
- * >= 11 bytes so the trailing NUL always fits) and TAG_PREFIX validates
- * the payload size even though the field is currently unused.
+ * >= 11 bytes so the trailing NUL always fits) and TAG_PREFIX is a bool
+ * that has to be false: the prefix is not applied to the value, so a
+ * descriptor asking for it is refused.
  */
 
 #include "unity.h"
@@ -22,10 +23,10 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#include "gtp_param_unit.h"
-#include "gtp_parsed_value.h"
-#include "gtp_value.h"
-#include "gtp_field.h"
+#include "gcs_param_unit.h"
+#include "gcs_parsed_value.h"
+#include "gcs_value.h"
+#include "gcs_field.h"
 #include "shared_context.h"
 
 // =============================================================================
@@ -33,6 +34,16 @@
 // =============================================================================
 
 static bool g_add_to_field_table_ret = true;
+static int g_root_value_shown_calls = 0;
+
+void value_set_shown(const s_value *value, uint8_t index) {
+    (void) value;
+    (void) index;
+    g_root_value_shown_calls++;
+}
+static char g_last_value[128];
+static char g_values[4][128];
+static int g_value_count = 0;
 
 // =============================================================================
 // Wrapped dependencies
@@ -60,6 +71,10 @@ bool add_to_field_table(e_param_type type,
                         const char *value,
                         const void *extra_data) {
     (void) extra_data;
+    strlcpy(g_last_value, value, sizeof(g_last_value));
+    if (g_value_count < (int) ARRAYLEN(g_values)) {
+        strlcpy(g_values[g_value_count++], value, sizeof(g_values[0]));
+    }
     return (bool) g_add_to_field_table_ret;
 }
 
@@ -72,6 +87,10 @@ static void reset(void) {
     g_vg_call = 0;
     g_vg_ret = true;
     g_hvs_ret = true;
+    g_last_value[0] = '\0';
+    memset(g_values, 0, sizeof(g_values));
+    g_value_count = 0;
+    g_root_value_shown_calls = 0;
 }
 
 // Helper: build a single-value collection from a BE byte buffer.
@@ -97,6 +116,7 @@ void test_format_no_decimals(void) {
     strlcpy(param.base, "USDC", sizeof(param.base));
     param.decimals = 0;
     TEST_ASSERT_TRUE(format_param_unit(&param, "Stake"));
+    TEST_ASSERT_EQUAL_INT(1, g_root_value_shown_calls);
 }
 
 void test_format_with_decimals(void) {
@@ -138,9 +158,137 @@ void test_format_iterates_multiple_values(void) {
     TEST_ASSERT_TRUE(format_param_unit(&param, "Stake"));
 }
 
+void test_format_signed_word_negative(void) {
+    // int64 -1234 as a sign-extended 32-byte ABI word, decimals=2 → "-12.34"
+    static uint8_t v[32];
+    memset(v, 0xFF, sizeof(v));
+    v[30] = 0xFB;
+    v[31] = 0x2E;
+    set_single_value(v, sizeof(v));
+    g_add_to_field_table_ret = true;
+
+    s_param_unit param = {0};
+    param.value.type_family = TF_INT;
+    param.value.type_size = 8;
+    strlcpy(param.base, "USDC", sizeof(param.base));
+    param.decimals = 2;
+    TEST_ASSERT_TRUE(format_param_unit(&param, "Stake"));
+    TEST_ASSERT_EQUAL_STRING("-12.34 USDC", g_last_value);
+}
+
+void test_format_signed_negative_below_one(void) {
+    // int8 -1 with decimals=2 → "-0.01"
+    static const uint8_t v[] = {0xFF};
+    set_single_value(v, sizeof(v));
+    g_add_to_field_table_ret = true;
+
+    s_param_unit param = {0};
+    param.value.type_family = TF_INT;
+    param.value.type_size = 1;
+    strlcpy(param.base, "PT", sizeof(param.base));
+    param.decimals = 2;
+    TEST_ASSERT_TRUE(format_param_unit(&param, "Stake"));
+    TEST_ASSERT_EQUAL_STRING("-0.01 PT", g_last_value);
+}
+
+void test_format_signed_positive(void) {
+    static const uint8_t v[] = {0x00, 0x00, 0x03, 0xE8};
+    set_single_value(v, sizeof(v));
+    g_add_to_field_table_ret = true;
+
+    s_param_unit param = {0};
+    param.value.type_family = TF_INT;
+    param.value.type_size = 4;
+    strlcpy(param.base, "PT", sizeof(param.base));
+    param.decimals = 0;
+    TEST_ASSERT_TRUE(format_param_unit(&param, "Stake"));
+    TEST_ASSERT_EQUAL_STRING("1000 PT", g_last_value);
+}
+
+void test_format_unsigned_high_bit_stays_positive(void) {
+    static const uint8_t v[] = {0xFF};
+    set_single_value(v, sizeof(v));
+    g_add_to_field_table_ret = true;
+
+    s_param_unit param = {0};
+    param.value.type_family = TF_UINT;
+    param.value.type_size = 1;
+    strlcpy(param.base, "PT", sizeof(param.base));
+    param.decimals = 0;
+    TEST_ASSERT_TRUE(format_param_unit(&param, "Stake"));
+    TEST_ASSERT_EQUAL_STRING("255 PT", g_last_value);
+}
+
 // =============================================================================
 // format_param_unit — failure paths
 // =============================================================================
+
+static bool format_signed(const uint8_t *v,
+                          size_t len,
+                          uint8_t type_size,
+                          uint8_t decimals,
+                          const char *base) {
+    s_param_unit param = {0};
+
+    g_vg_call = 0;
+    set_single_value(v, len);
+    g_add_to_field_table_ret = true;
+    param.value.type_family = TF_INT;
+    param.value.type_size = type_size;
+    strlcpy(param.base, base, sizeof(param.base));
+    param.decimals = decimals;
+    return format_param_unit(&param, "Delta");
+}
+
+void test_format_signed_int8_with_decimals(void) {
+    static const uint8_t v[] = {0xC8};
+
+    TEST_ASSERT_TRUE(format_signed(v, sizeof(v), 1, 2, "%"));
+    TEST_ASSERT_EQUAL_STRING("-0.56 %", g_last_value);
+}
+
+void test_format_signed_minimum(void) {
+    static const uint8_t int8_min[] = {0x80};
+    static uint8_t int256_min[32];
+
+    TEST_ASSERT_TRUE(format_signed(int8_min, sizeof(int8_min), 1, 0, "PT"));
+    TEST_ASSERT_EQUAL_STRING("-128 PT", g_last_value);
+    int256_min[0] = 0x80;
+    TEST_ASSERT_TRUE(format_signed(int256_min, sizeof(int256_min), 32, 0, "PT"));
+    TEST_ASSERT_EQUAL_STRING(
+        "-57896044618658097711785492504343953926634992332820282019728792003956564819968 PT",
+        g_last_value);
+}
+
+// A value shorter than its type has no sign bit of its own
+void test_format_signed_shorter_than_its_type_stays_positive(void) {
+    static const uint8_t v[] = {0xC8};
+
+    TEST_ASSERT_TRUE(format_signed(v, sizeof(v), 2, 0, "PT"));
+    TEST_ASSERT_EQUAL_STRING("200 PT", g_last_value);
+}
+
+void test_format_signed_each_value_of_a_collection(void) {
+    static const uint8_t negative[] = {0xFF};
+    static const uint8_t positive[] = {0x05};
+    static const uint8_t minimum[] = {0x80};
+    s_param_unit param = {0};
+
+    g_vg[0].size = 3;
+    g_vg[0].value[0] = (s_parsed_value) {.ptr = negative, .size = 1, .offset = 0, .length = 1};
+    g_vg[0].value[1] = (s_parsed_value) {.ptr = positive, .size = 1, .offset = 0, .length = 1};
+    g_vg[0].value[2] = (s_parsed_value) {.ptr = minimum, .size = 1, .offset = 0, .length = 1};
+    g_add_to_field_table_ret = true;
+    param.value.type_family = TF_INT;
+    param.value.type_size = 1;
+    strlcpy(param.base, "PT", sizeof(param.base));
+    param.decimals = 1;
+    TEST_ASSERT_TRUE(format_param_unit(&param, "Delta"));
+    TEST_ASSERT_EQUAL(3, g_value_count);
+    TEST_ASSERT_EQUAL_STRING("-0.1 PT", g_values[0]);
+    TEST_ASSERT_EQUAL_STRING("0.5 PT", g_values[1]);
+    TEST_ASSERT_EQUAL_STRING("-12.8 PT", g_values[2]);
+}
 
 void test_format_value_get_failure_returns_false(void) {
     g_vg_ret = false;
@@ -185,8 +333,21 @@ static bool run_tlv(const uint8_t *bytes, size_t size, s_param_unit *param) {
     return handle_param_unit_struct(&buf, &ctx);
 }
 
+void test_tlv_version_other_than_one_refused(void) {
+    uint8_t bytes[] =
+        {0x00, 0x01, 0x01, 0x01, 0x00, 0x02, 0x04, 'U', 'S', 'D', 'C', 0x03, 0x01, 0x06};
+    const uint8_t other_versions[] = {0x00, 0x02, 0xFF};
+    s_param_unit param = {0};
+
+    TEST_ASSERT_TRUE(run_tlv(bytes, sizeof(bytes), &param));
+    for (size_t i = 0; i < sizeof(other_versions); i++) {
+        bytes[2] = other_versions[i];
+        TEST_ASSERT_FALSE(run_tlv(bytes, sizeof(bytes), &param));
+    }
+}
+
 void test_tlv_happy_path(void) {
-    // VERSION=1, VALUE empty, BASE="USDC", DECIMALS=6, PREFIX=true
+    // VERSION=1, VALUE empty, BASE="USDC", DECIMALS=6, PREFIX=false
     const uint8_t bytes[] = {
         0x00,
         0x01,
@@ -204,7 +365,7 @@ void test_tlv_happy_path(void) {
         0x06,
         0x04,
         0x01,
-        0x01,
+        0x00,
     };
     s_param_unit param = {0};
     TEST_ASSERT_TRUE(run_tlv(bytes, sizeof(bytes), &param));
@@ -224,9 +385,10 @@ void test_tlv_base_too_long_rejected(void) {
     TEST_ASSERT_FALSE(run_tlv(bytes, sizeof(bytes), &param));
 }
 
-void test_tlv_prefix_wrong_size_rejected(void) {
-    // PREFIX must be exactly sizeof(bool) bytes — usually 1.
-    const uint8_t bytes[] = {
+// PREFIX is a bool. The prefix is not applied to the value, so a descriptor that asks for it is
+// refused, and one that does not is accepted
+static bool run_with_prefix(const uint8_t *prefix, size_t prefix_size) {
+    uint8_t bytes[32] = {
         0x00,
         0x01,
         0x01,
@@ -240,12 +402,37 @@ void test_tlv_prefix_wrong_size_rejected(void) {
         0x01,
         0x00,
         0x04,
-        0x02,
-        0x00,
-        0x01,
     };
+    size_t size = 13;
     s_param_unit param = {0};
-    TEST_ASSERT_FALSE(run_tlv(bytes, sizeof(bytes), &param));
+
+    bytes[size++] = (uint8_t) prefix_size;
+    if (prefix_size > 0) {
+        memcpy(&bytes[size], prefix, prefix_size);
+    }
+    size += prefix_size;
+    return run_tlv(bytes, size, &param);
+}
+
+void test_tlv_prefix_false_accepted(void) {
+    const uint8_t no_prefix[] = {0x00};
+    TEST_ASSERT_TRUE(run_with_prefix(no_prefix, sizeof(no_prefix)));
+}
+
+void test_tlv_prefix_true_refused(void) {
+    const uint8_t prefix[] = {0x01};
+    TEST_ASSERT_FALSE(run_with_prefix(prefix, sizeof(prefix)));
+}
+
+void test_tlv_prefix_that_is_not_a_bool_refused(void) {
+    const uint8_t two[] = {0x02};
+    const uint8_t max[] = {0xFF};
+    TEST_ASSERT_FALSE(run_with_prefix(two, sizeof(two)));
+    TEST_ASSERT_FALSE(run_with_prefix(max, sizeof(max)));
+}
+
+void test_tlv_prefix_empty_refused(void) {
+    TEST_ASSERT_FALSE(run_with_prefix(NULL, 0));
 }
 
 void test_tlv_duplicate_base_rejected(void) {
@@ -287,12 +474,24 @@ int main(void) {
     RUN_TEST(test_format_with_decimals);
     RUN_TEST(test_format_fractional_with_decimals);
     RUN_TEST(test_format_iterates_multiple_values);
+    RUN_TEST(test_format_signed_word_negative);
+    RUN_TEST(test_format_signed_negative_below_one);
+    RUN_TEST(test_format_signed_positive);
+    RUN_TEST(test_format_unsigned_high_bit_stays_positive);
+    RUN_TEST(test_format_signed_int8_with_decimals);
+    RUN_TEST(test_format_signed_minimum);
+    RUN_TEST(test_format_signed_shorter_than_its_type_stays_positive);
+    RUN_TEST(test_format_signed_each_value_of_a_collection);
     RUN_TEST(test_format_value_get_failure_returns_false);
     RUN_TEST(test_format_empty_base_rejected);
     RUN_TEST(test_format_add_to_field_table_failure_propagates);
+    RUN_TEST(test_tlv_version_other_than_one_refused);
     RUN_TEST(test_tlv_happy_path);
     RUN_TEST(test_tlv_base_too_long_rejected);
-    RUN_TEST(test_tlv_prefix_wrong_size_rejected);
+    RUN_TEST(test_tlv_prefix_false_accepted);
+    RUN_TEST(test_tlv_prefix_true_refused);
+    RUN_TEST(test_tlv_prefix_that_is_not_a_bool_refused);
+    RUN_TEST(test_tlv_prefix_empty_refused);
     RUN_TEST(test_tlv_duplicate_base_rejected);
     return UNITY_END();
 }

@@ -1,6 +1,73 @@
 import json
 
-from client.gcs import PathArray, PathLeaf, PathLeafType, PathRef, PathTuple
+from client.gcs import (
+    Eip712PathArray,
+    Eip712PathLeafSlice,
+    PathArray,
+    PathLeaf,
+    PathLeafType,
+    PathRef,
+    PathTuple,
+    Value,
+)
+
+
+class RawValue(Value):
+    """A VALUE sent as the given TLV payload, to build what the Value serializer never produces."""
+
+    def __init__(self, payload: bytes):
+        self.payload = payload
+
+    def serialize(self) -> bytes:
+        return self.payload
+
+
+def raw_bounds(start: bytes | None, end: bytes | None, start_tag: int, end_tag: int) -> bytes:
+    """START and END as the given bytes, whatever their length."""
+    payload = b""
+    if start is not None:
+        payload += Value.serialize_field(start_tag, start)
+    if end is not None:
+        payload += Value.serialize_field(end_tag, end)
+    return payload
+
+
+class RawPathArray(PathArray):
+    """An array step of a DATA_PATH whose weight and bounds are sent as the given bytes."""
+
+    def __init__(self, start: bytes | None = None, end: bytes | None = None, weight: bytes | None = b"\x01"):
+        super().__init__(1)
+        self.raw_weight = weight
+        self.raw_start = start
+        self.raw_end = end
+
+    def serialize(self) -> bytes:
+        payload = b"" if self.raw_weight is None else Value.serialize_field(0x01, self.raw_weight)
+        return payload + raw_bounds(self.raw_start, self.raw_end, 0x02, 0x03)
+
+
+class RawEip712PathArray(Eip712PathArray):
+    """An array step of an EIP712_PATH whose bounds are sent as the given bytes."""
+
+    def __init__(self, start: bytes | None = None, end: bytes | None = None):
+        super().__init__()
+        self.raw_start = start
+        self.raw_end = end
+
+    def serialize(self) -> bytes:
+        return raw_bounds(self.raw_start, self.raw_end, 0x01, 0x02)
+
+
+class RawEip712PathLeafSlice(Eip712PathLeafSlice):
+    """A leaf slice of an EIP712_PATH whose bounds are sent as the given bytes."""
+
+    def __init__(self, start: bytes | None = None, end: bytes | None = None):
+        super().__init__()
+        self.raw_start = start
+        self.raw_end = end
+
+    def serialize(self) -> bytes:
+        return raw_bounds(self.raw_start, self.raw_end, 0x01, 0x02)
 
 
 def is_dynamic_type(param_type: str, param: dict) -> bool:

@@ -102,6 +102,8 @@ bool handle_check_register_identity(identity_t *params) {
     }
     PRINTF("Address validation successful\n");
 
+    // Start from an empty context: display buffers are only allocated when NULL
+    address_book_review_cleanup();
     if (APP_MEM_PERMANENT((void **) &g_ctx.register_identity.identity, sizeof(identity_t)) ==
         false) {
         PRINTF("Failed to allocate identity\n");
@@ -139,17 +141,17 @@ nbgl_contentTagValue_t *get_register_identity_tagValue(uint8_t pairIndex) {
             break;
 
         case 2:
-            if (APP_MEM_PERMANENT((void **) &g_ctx.register_identity.identifier_display,
-                                  ADDRESS_LENGTH_HEX_STR) == false) {
+            // NBGL calls this on every page refresh: allocate once, freed on review cleanup
+            if ((g_ctx.register_identity.identifier_display == NULL) &&
+                (APP_MEM_PERMANENT((void **) &g_ctx.register_identity.identifier_display,
+                                   ADDRESS_LENGTH_HEX_STR) == false)) {
                 PRINTF("Failed to allocate identifier display buffer\n");
                 return NULL;
             }
-            g_ctx.register_identity.identifier_display[0] = '0';
-            g_ctx.register_identity.identifier_display[1] = 'x';
-            if (bytes_to_lowercase_hex(g_ctx.register_identity.identifier_display + 2,
-                                       ADDRESS_LENGTH_HEX_STR - 2,
-                                       g_ctx.register_identity.identity->identifier,
-                                       g_ctx.register_identity.identity->identifier_len) < 0) {
+            if (bytes_to_lowercase_hex_0x(g_ctx.register_identity.identifier_display,
+                                          ADDRESS_LENGTH_HEX_STR,
+                                          g_ctx.register_identity.identity->identifier,
+                                          g_ctx.register_identity.identity->identifier_len) < 0) {
                 PRINTF("Failed to format identifier\n");
                 APP_MEM_FREE_AND_NULL((void **) &g_ctx.register_identity.identifier_display);
                 return NULL;
@@ -159,8 +161,9 @@ nbgl_contentTagValue_t *get_register_identity_tagValue(uint8_t pairIndex) {
             break;
 
         case 3:
-            if (APP_MEM_PERMANENT((void **) &g_ctx.register_identity.network_display,
-                                  MAX_NETWORK_LEN) == false) {
+            if ((g_ctx.register_identity.network_display == NULL) &&
+                (APP_MEM_PERMANENT((void **) &g_ctx.register_identity.network_display,
+                                   MAX_NETWORK_LEN) == false)) {
                 PRINTF("Failed to allocate network display buffer\n");
                 return NULL;
             }
@@ -224,8 +227,8 @@ void finalize_ui_edit_identifier(void) {
  * @brief Handle called to validate and store the Edit Address (Identifier) parameters.
  *
  * Validates the new identifier (must be a valid 20-byte Ethereum address),
- * then allocates and converts both identifiers to hex strings for use by
- * get_edit_identifier_tagValue().
+ * then allocates and converts both identifiers to hex strings and the chain ID
+ * to a network name for use by get_edit_identifier_tagValue().
  *
  * @param[in] params Contact name, previous identifier, and new identity data
  * @return true if the edit is acceptable, false to reject
@@ -252,6 +255,8 @@ bool handle_check_edit_identifier(const edit_identifier_t *params) {
         return false;
     }
 
+    // A new review may replace the previous status screen before its finalizer runs
+    address_book_review_cleanup();
     // Allocate contact name
     if (APP_MEM_PERMANENT((void **) &g_ctx.edit_identifier.contact_name, CONTACT_NAME_LENGTH) ==
         false) {
@@ -276,12 +281,10 @@ bool handle_check_edit_identifier(const edit_identifier_t *params) {
         APP_MEM_FREE_AND_NULL((void **) &g_ctx.edit_identifier.scope);
         return false;
     }
-    g_ctx.edit_identifier.old_identifier[0] = '0';
-    g_ctx.edit_identifier.old_identifier[1] = 'x';
-    if (bytes_to_lowercase_hex(g_ctx.edit_identifier.old_identifier + 2,
-                               ADDRESS_LENGTH_HEX_STR - 2,
-                               params->old_identifier,
-                               params->old_identifier_len) < 0) {
+    if (bytes_to_lowercase_hex_0x(g_ctx.edit_identifier.old_identifier,
+                                  ADDRESS_LENGTH_HEX_STR,
+                                  params->old_identifier,
+                                  params->old_identifier_len) < 0) {
         PRINTF("Failed to format previous identifier\n");
         APP_MEM_FREE_AND_NULL((void **) &g_ctx.edit_identifier.contact_name);
         APP_MEM_FREE_AND_NULL((void **) &g_ctx.edit_identifier.scope);
@@ -298,17 +301,37 @@ bool handle_check_edit_identifier(const edit_identifier_t *params) {
         APP_MEM_FREE_AND_NULL((void **) &g_ctx.edit_identifier.old_identifier);
         return false;
     }
-    g_ctx.edit_identifier.new_identifier[0] = '0';
-    g_ctx.edit_identifier.new_identifier[1] = 'x';
-    if (bytes_to_lowercase_hex(g_ctx.edit_identifier.new_identifier + 2,
-                               ADDRESS_LENGTH_HEX_STR - 2,
-                               params->identity.identifier,
-                               params->identity.identifier_len) < 0) {
+    if (bytes_to_lowercase_hex_0x(g_ctx.edit_identifier.new_identifier,
+                                  ADDRESS_LENGTH_HEX_STR,
+                                  params->identity.identifier,
+                                  params->identity.identifier_len) < 0) {
         PRINTF("Failed to format new identifier\n");
         APP_MEM_FREE_AND_NULL((void **) &g_ctx.edit_identifier.contact_name);
         APP_MEM_FREE_AND_NULL((void **) &g_ctx.edit_identifier.scope);
         APP_MEM_FREE_AND_NULL((void **) &g_ctx.edit_identifier.old_identifier);
         APP_MEM_FREE_AND_NULL((void **) &g_ctx.edit_identifier.new_identifier);
+        return false;
+    }
+
+    // Allocate and format network name
+    if (APP_MEM_PERMANENT((void **) &g_ctx.edit_identifier.network_display, MAX_NETWORK_LEN) ==
+        false) {
+        PRINTF("Failed to allocate network_display\n");
+        APP_MEM_FREE_AND_NULL((void **) &g_ctx.edit_identifier.contact_name);
+        APP_MEM_FREE_AND_NULL((void **) &g_ctx.edit_identifier.scope);
+        APP_MEM_FREE_AND_NULL((void **) &g_ctx.edit_identifier.old_identifier);
+        APP_MEM_FREE_AND_NULL((void **) &g_ctx.edit_identifier.new_identifier);
+        return false;
+    }
+    if (get_network_as_string_from_chain_id(g_ctx.edit_identifier.network_display,
+                                            MAX_NETWORK_LEN,
+                                            params->identity.chain_id) == false) {
+        PRINTF("Failed to get network name from chain ID\n");
+        APP_MEM_FREE_AND_NULL((void **) &g_ctx.edit_identifier.contact_name);
+        APP_MEM_FREE_AND_NULL((void **) &g_ctx.edit_identifier.scope);
+        APP_MEM_FREE_AND_NULL((void **) &g_ctx.edit_identifier.old_identifier);
+        APP_MEM_FREE_AND_NULL((void **) &g_ctx.edit_identifier.new_identifier);
+        APP_MEM_FREE_AND_NULL((void **) &g_ctx.edit_identifier.network_display);
         return false;
     }
     address_book_review_set_flow(AB_FLOW_EDIT_IDENTIFIER);
@@ -322,6 +345,7 @@ bool handle_check_edit_identifier(const edit_identifier_t *params) {
  * Pair 1: address name (contact scope) (unchanged)
  * Pair 2: old address (previous identifier - hex with "0x" prefix)
  * Pair 3: new address (new identifier - hex with "0x" prefix)
+ * Pair 4: network
  *
  * @param[in] pairIndex Index of the tag-value pair
  * @return Pointer to the pair, or NULL if index is invalid
@@ -351,6 +375,11 @@ nbgl_contentTagValue_t *get_edit_identifier_tagValue(uint8_t pairIndex) {
             g_ctx.current_pair.value = g_ctx.edit_identifier.new_identifier;
             break;
 
+        case 4:
+            g_ctx.current_pair.item = "Network";
+            g_ctx.current_pair.value = g_ctx.edit_identifier.network_display;
+            break;
+
         default:
             PRINTF("Unexpected pair index: %d\n", pairIndex);
             return NULL;
@@ -364,13 +393,13 @@ nbgl_contentTagValue_t *get_edit_identifier_tagValue(uint8_t pairIndex) {
  */
 
 /**
- * @brief Update cached contacts whose name matches the previous contact name.
+ * @brief Update the cached contacts of the edited group whose name matches the previous name.
  *
  * Called by the SDK only when the user confirmed the name change and the new
- * HMAC proof was successfully sent to the host. Renames all entries in the
- * Provide Contact cache whose contact_name equals @p edit->old_contact_name
- * so that the wallet immediately sees the new name on the next transaction
- * review without requiring a re-provide.
+ * HMAC proof was successfully sent to the host. Renames the entries of group
+ * @p edit->gid in the Provide Contact cache whose contact_name equals
+ * @p edit->old_contact_name so that the wallet immediately sees the new name on the next
+ * transaction review without requiring a re-provide.
  *
  * @param[in] edit Parsed edit data containing old_contact_name and the new
  *                 contact_name
@@ -379,7 +408,7 @@ void on_edit_contact_name_applied(const edit_contact_name_t *edit) {
     if (edit == NULL) {
         return;
     }
-    update_contact_name(edit->old_contact_name, edit->contact_name);
+    update_contact_name(edit->gid, edit->old_contact_name, edit->contact_name);
 }
 
 /**
@@ -387,10 +416,9 @@ void on_edit_contact_name_applied(const edit_contact_name_t *edit) {
  *
  * Called by the SDK only when the user confirmed the address change and the new
  * HMAC proof was successfully sent to the host. Replaces the identifier in the
- * Provide Contact cache entry that matches (@p edit->old_identifier,
- * @p edit->identity.chain_id) so that the wallet immediately sees the contact
- * name on the next transaction review to the new address without requiring a
- * re-provide.
+ * Provide Contact cache entry that matches (@p edit->identity.gid,
+ * @p edit->old_identifier, @p edit->identity.chain_id) so that the wallet immediately sees the
+ * contact name on the next transaction review to the new address without requiring a re-provide.
  *
  * @param[in] edit Parsed edit data containing old_identifier (raw bytes),
  *                 old_identifier_len, and the new identity
@@ -399,7 +427,8 @@ void on_edit_identifier_applied(const edit_identifier_t *edit) {
     if (edit == NULL) {
         return;
     }
-    update_contact_identifier(edit->old_identifier,
+    update_contact_identifier(edit->identity.gid,
+                              edit->old_identifier,
                               edit->identity.chain_id,
                               edit->identity.identifier);
 }
@@ -409,9 +438,9 @@ void on_edit_identifier_applied(const edit_identifier_t *edit) {
  *
  * Called by the SDK only when the user confirmed the scope change and the new
  * HMAC proof was successfully sent to the host. Replaces the scope field in the
- * Provide Contact cache entry that matches (@p edit->identity.identifier,
- * @p edit->identity.chain_id) so that the wallet immediately sees the updated
- * scope on the next transaction review without requiring a re-provide.
+ * Provide Contact cache entry that matches (@p edit->identity.gid,
+ * @p edit->identity.identifier, @p edit->identity.chain_id, @p edit->old_scope) so that the wallet
+ * immediately sees the updated scope on the next transaction review without requiring a re-provide.
  *
  * @param[in] edit Parsed edit data containing old_scope and the new
  *                 identity (identifier, chain_id, new scope)
@@ -420,7 +449,11 @@ void on_edit_scope_applied(const edit_scope_t *edit) {
     if (edit == NULL) {
         return;
     }
-    update_contact_scope(edit->identity.identifier, edit->identity.chain_id, edit->identity.scope);
+    update_contact_scope(edit->identity.gid,
+                         edit->identity.identifier,
+                         edit->identity.chain_id,
+                         edit->old_scope,
+                         edit->identity.scope);
 }
 
 /* =========================================================================
@@ -472,6 +505,7 @@ bool handle_provide_identity(const identity_t *contact) {
     }
 
     node->type = AB_CONTACT_IDENTITY;
+    memcpy(node->gid, contact->gid, GID_SIZE);
     strlcpy(node->contact_name, contact->contact_name, sizeof(node->contact_name));
     strlcpy(node->scope, contact->scope, sizeof(node->scope));
     memcpy(node->identifier, contact->identifier, ADDRESS_LENGTH);

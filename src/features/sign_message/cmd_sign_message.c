@@ -6,16 +6,21 @@
 #include "ui_utils.h"
 #include "mem_utils.h"
 #include "hash_bytes.h"
+#include "get_public_key.h"
 
 typedef struct {
     uint16_t msg_length;
     uint16_t processed_size;
     char *received_buffer;
     char *display_buffer;
+    bool is_hex;  // display_buffer holds the hex encoding of a binary message
 } signMsgCtx_t;
 
 cx_sha3_t *g_msg_hash_ctx = NULL;
 static signMsgCtx_t *signMsgCtx = NULL;
+
+// Largest length whose hex display form (length * 2 + 3) fits in a uint16_t.
+#define MAX_MSG_LENGTH ((UINT16_MAX - 3) / 2)
 
 static const char SIGN_MAGIC[] =
     "\x19"
@@ -38,6 +43,7 @@ static void set_idle(void) {
  */
 static uint16_t first_apdu_data(uint8_t **data, uint8_t *length) {
     cx_err_t error = CX_INTERNAL_ERROR;
+    uint32_t msg_length;
 
     // Initialize the Message Context
     message_cleanup();
@@ -60,7 +66,12 @@ static uint16_t first_apdu_data(uint8_t **data, uint8_t *length) {
     }
 
     // Get the message length
-    signMsgCtx->msg_length = (uint16_t) U4BE(*data, 0);
+    msg_length = U4BE(*data, 0);
+    if (msg_length > MAX_MSG_LENGTH) {
+        PRINTF("Error: message too long (%u > %u)\n", msg_length, MAX_MSG_LENGTH);
+        return SWO_INCORRECT_DATA;
+    }
+    signMsgCtx->msg_length = (uint16_t) msg_length;
 
     // Allocate the buffer for the message
     if (APP_MEM_CALLOC((void **) &(signMsgCtx->received_buffer), signMsgCtx->msg_length) == false) {
@@ -151,16 +162,14 @@ static uint16_t final_process(void) {
     // Guard against uint16_t overflow in the display buffer length calculation.
     // In the worst case (hex path) the length becomes msg_length * 2 + 3, so
     // reject messages that would cause that expression to exceed UINT16_MAX.
-    if (signMsgCtx->msg_length > ((UINT16_MAX - 3) / 2)) {
-        PRINTF("Error: message too long (%u > %u)\n",
-               signMsgCtx->msg_length,
-               ((UINT16_MAX - 3) / 2));
+    if (signMsgCtx->msg_length > MAX_MSG_LENGTH) {
+        PRINTF("Error: message too long (%u > %u)\n", signMsgCtx->msg_length, MAX_MSG_LENGTH);
         error = SWO_INCORRECT_DATA;
         goto end;
     }
 
     // Display buffer length
-    buffer_length = signMsgCtx->msg_length;
+    buffer_length = signMsgCtx->msg_length + 1;
 
     // Determine if the buffer is Ascii or hex
     for (i = 0; i < signMsgCtx->msg_length; i++) {
@@ -168,13 +177,12 @@ static uint16_t final_process(void) {
             !isspace((unsigned char) signMsgCtx->received_buffer[i])) {
             // Hexadecimal message
             is_hex = true;
-            buffer_length *= 2;  // To convert hex byte to char
-            buffer_length += 2;  // for "0x"
+            buffer_length = HEX_0X_STRING_SIZE(signMsgCtx->msg_length);
             break;
         }
     }
+    signMsgCtx->is_hex = is_hex;
     // Allocate the buffer for the display
-    buffer_length++;  // for the NULL byte
     if (APP_MEM_CALLOC((void **) &(signMsgCtx->display_buffer), buffer_length) == false) {
         PRINTF("Error: Not enough memory!\n");
         error = SWO_INSUFFICIENT_MEMORY;
@@ -182,13 +190,11 @@ static uint16_t final_process(void) {
     }
 
     if (is_hex) {
-        // Copy the "0x" prefix
-        memcpy(signMsgCtx->display_buffer, "0x", 2);
         // Convert the message to ascii
-        if (bytes_to_lowercase_hex(signMsgCtx->display_buffer + 2,
-                                   buffer_length - 2,
-                                   (const uint8_t *) signMsgCtx->received_buffer,
-                                   signMsgCtx->msg_length) < 0) {
+        if (bytes_to_lowercase_hex_0x(signMsgCtx->display_buffer,
+                                      buffer_length,
+                                      (const uint8_t *) signMsgCtx->received_buffer,
+                                      signMsgCtx->msg_length) < 0) {
             // SHould never happen, buffer is large enough
             PRINTF("Error: Not enough memory!\n");
             error = SWO_INSUFFICIENT_MEMORY;
@@ -299,7 +305,19 @@ uint16_t handle_sign_personal_message(uint8_t p1, const uint8_t *const payload, 
             set_idle();
             return sw;
         }
-        ui_191_start(signMsgCtx->display_buffer);
+        if (!get_displayable_address(&tmpCtx.messageSigningContext.bip32,
+                                     strings.common.fromAddress,
+                                     sizeof(strings.common.fromAddress),
+                                     g_chain_config->chain_id)) {
+            set_idle();
+            return SWO_INCORRECT_DATA;
+        }
+        if (!ui_191_start(signMsgCtx->display_buffer,
+                          signMsgCtx->is_hex,
+                          strings.common.fromAddress)) {
+            set_idle();
+            return SWO_INSUFFICIENT_MEMORY;
+        }
         return SWO_NO_RESPONSE;
     }
     return SWO_SUCCESS;

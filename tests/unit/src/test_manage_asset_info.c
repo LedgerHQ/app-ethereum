@@ -81,14 +81,35 @@ void test_token_match_returns_token_skips_nft(void) {
     TEST_ASSERT_EQUAL_PTR(got, (extraInfo_t *) &s_token_fake);
 }
 
-void test_no_token_falls_back_to_nft(void) {
+void test_external_plugin_never_gets_nft(void) {
     reset();
     uint64_t cid = 1;
     uint8_t addr[20] = {0};
     g_token_ret = NULL;
     g_nft_ret = &s_nft_fake;
-    extraInfo_t *got = get_matching_asset_info(&cid, addr);
-    TEST_ASSERT_EQUAL_PTR(got, (extraInfo_t *) &s_nft_fake);
+    TEST_ASSERT_NULL(get_matching_asset_info(&cid, addr));
+}
+
+void test_each_plugin_gets_its_asset_kind(void) {
+    const struct {
+        pluginType_t type;
+        const void *expected;
+    } cases[] = {
+        {PLUGIN_TYPE_EXTERNAL, &s_token_fake},
+        {PLUGIN_TYPE_OLD_INTERNAL, &s_token_fake},
+        {PLUGIN_TYPE_ERC721, &s_nft_fake},
+        {PLUGIN_TYPE_ERC1155, &s_nft_fake},
+    };
+    uint64_t cid = 1;
+    uint8_t addr[20] = {0};
+
+    // A token and an NFT record share the same address
+    g_token_ret = &s_token_fake;
+    g_nft_ret = &s_nft_fake;
+    for (size_t i = 0; i < sizeof(cases) / sizeof(cases[0]); ++i) {
+        pluginType = cases[i].type;
+        TEST_ASSERT_EQUAL_PTR(cases[i].expected, get_matching_asset_info(&cid, addr));
+    }
 }
 
 void test_no_token_no_nft_returns_null(void) {
@@ -131,7 +152,8 @@ void tearDown(void) {
 int main(void) {
     UNITY_BEGIN();
     RUN_TEST(test_token_match_returns_token_skips_nft);
-    RUN_TEST(test_no_token_falls_back_to_nft);
+    RUN_TEST(test_external_plugin_never_gets_nft);
+    RUN_TEST(test_each_plugin_gets_its_asset_kind);
     RUN_TEST(test_no_token_no_nft_returns_null);
     RUN_TEST(test_no_reading_plugin_returns_null);
     RUN_TEST(test_forget_known_assets_clears_both);

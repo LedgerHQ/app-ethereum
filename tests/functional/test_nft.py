@@ -89,7 +89,7 @@ def common_test_nft(
     # Send Network information (name, ticker, icon)
     name, ticker, icon = get_network_config(backend.device.type, collec.chain_id)
     if name and ticker:
-        app_client.provide_network_information(DynamicNetwork(name, ticker, collec.chain_id, icon))
+        app_client.provide_network_info(DynamicNetwork(name, ticker, collec.chain_id, icon))
 
     if DEVICE_ADDR is None:  # to only have to request it once
         with app_client.get_public_addr(display=False):
@@ -236,6 +236,32 @@ def test_nft_erc721_attached_value_not_payable(scenario_navigator: NavigateWithS
         "data": data,
     }
     app_client.set_plugin(ERC721_PLUGIN, collec.addr, get_selector_from_data(data), collec.chain_id)
+    app_client.provide_nft_metadata(collec.name, collec.addr, collec.chain_id)
+
+    with pytest.raises(ExceptionRAPDU) as e:
+        with app_client.sign(BIP32_PATH, tx_params):
+            pass
+    assert e.value.status == StatusWord.SWO_INCORRECT_DATA
+
+
+@pytest.mark.parametrize("kept_bytes", [4, -1], ids=["selector_only", "last_byte_missing"])
+def test_nft_erc721_incomplete_calldata(scenario_navigator: NavigateWithScenario, kept_bytes: int):
+    """A calldata missing some parameters must be refused, not reviewed with zeros."""
+    app_client = EthAppClient(scenario_navigator.backend)
+    collec = collecs_721[0]
+    action = actions_721[2]  # transferFrom: head words only, no trailing payload
+
+    data = bytes.fromhex(collec.contract.encode_abi(action.fn_name, action.fn_args)[2:])
+    tx_params = {
+        "nonce": NONCE,
+        "gasPrice": Web3.to_wei(GAS_PRICE, "gwei"),
+        "gas": GAS_LIMIT,
+        "to": collec.addr,
+        "value": 0,
+        "chainId": collec.chain_id,
+        "data": "0x" + data[:kept_bytes].hex(),
+    }
+    app_client.set_plugin(ERC721_PLUGIN, collec.addr, data[:4], collec.chain_id)
     app_client.provide_nft_metadata(collec.name, collec.addr, collec.chain_id)
 
     with pytest.raises(ExceptionRAPDU) as e:

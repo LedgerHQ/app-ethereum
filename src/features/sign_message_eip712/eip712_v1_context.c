@@ -1,4 +1,7 @@
+#ifdef HAVE_EIP712_V1
+
 #include "eip712_v1_context.h"
+#include "eip712_session.h"
 #include "app_mem_utils.h"
 #include "mem_utils.h"
 #include "eip712_v1_ui_logic.h"
@@ -10,12 +13,15 @@
 s_eip712_v1_context *eip712_v1_context = NULL;
 
 /**
- * Initialize the EIP712 context
+ * Initialize the context of a V1 message, and open its session
+ *
+ * The session is only opened once the context is complete, which the V1 commands rely on.
  *
  * @return a boolean indicating if the initialization was successful or not
  */
 bool eip712_v1_context_init(void) {
-    if (eip712_v1_context != NULL) {
+    // neither a session nor what a failed initialization left
+    if ((eip712_session_get() != EIP712_SESSION_NONE) || (eip712_v1_context != NULL)) {
         reset_app_context();
         return false;
     }
@@ -33,19 +39,21 @@ bool eip712_v1_context_init(void) {
         return false;
     }
 
-    appState = APP_STATE_PREPARING_EIP712;
+    if (!eip712_session_open(EIP712_SESSION_V1)) {
+        return false;
+    }
     return true;
 }
 
 /**
  * De-initialize the EIP712 context
  *
- * Only tears down the EIP-712-specific state. \ref reset_app_context calls this itself
- * to fold it into the generic app reset; this must not call back into it.
+ * Only tears down the V1-specific state: the typed data is shared with V2 and freed by whoever
+ * resets the app. \ref reset_app_context calls this itself to fold it into the generic app
+ * reset; this must not call back into it.
  */
 void eip712_v1_context_deinit(void) {
     v1_parse_deinit();
-    td_deinit();
     ui_712_deinit();
     APP_MEM_FREE_AND_NULL((void **) &eip712_v1_context);
 }
@@ -65,3 +73,5 @@ bool eip712_v1_sign_claim(void) {
     eip712_v1_context->sign_claimed = true;
     return true;
 }
+
+#endif  // HAVE_EIP712_V1

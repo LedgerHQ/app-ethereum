@@ -7,9 +7,11 @@
 #include "utils.h"
 #include "calldata.h"
 #include "app_mem_utils.h"
-#include "tx_ctx.h"
+#include "operation_ctx.h"
 #include "tlv_library.h"
 #include "tlv_utils.h"
+
+#define DATA_PATH_STRUCT_VERSION 0x01
 
 #define DATA_PATH_TAGS(X)                                    \
     X(0x00, TAG_VERSION, handle_version, ENFORCE_UNIQUE_TAG) \
@@ -20,7 +22,10 @@
     X(0x05, TAG_SLICE, handle_slice, ALLOW_MULTIPLE_TAG)
 
 static bool handle_version(const tlv_data_t *data, s_data_path_context *context) {
-    return tlv_get_uint8_range(data, &context->data_path->version, 0, UINT8_MAX);
+    return tlv_get_uint8_range(data,
+                               &context->data_path->version,
+                               DATA_PATH_STRUCT_VERSION,
+                               DATA_PATH_STRUCT_VERSION);
 }
 
 static bool handle_tuple(const tlv_data_t *data, s_data_path_context *context) {
@@ -63,9 +68,8 @@ static bool handle_leaf(const tlv_data_t *data, s_data_path_context *context) {
     if (!get_uint8_t_from_tlv_data(data, &tmp)) {
         return false;
     }
+    // Only STATIC and DYNAMIC leaves can be read from the calldata
     switch (tmp) {
-        case LEAF_TYPE_ARRAY:
-        case LEAF_TYPE_TUPLE:
         case LEAF_TYPE_STATIC:
         case LEAF_TYPE_DYNAMIC:
             break;
@@ -107,14 +111,54 @@ static bool data_path_common_handler(const tlv_data_t *data, s_data_path_context
     return true;
 }
 
+/**
+ * @brief Check the path ends with its only LEAF, optionally followed by one SLICE
+ */
+static bool data_path_has_valid_shape(const s_data_path *data_path) {
+    uint8_t leaf_idx;
+
+    if (data_path->size == 0) {
+        return false;
+    }
+    leaf_idx = data_path->size - 1;
+    if ((data_path->elements[leaf_idx].type == ELEMENT_TYPE_SLICE) && (leaf_idx > 0)) {
+        leaf_idx -= 1;
+    }
+    if (data_path->elements[leaf_idx].type != ELEMENT_TYPE_LEAF) {
+        return false;
+    }
+    for (uint8_t i = 0; i < leaf_idx; ++i) {
+        if ((data_path->elements[i].type == ELEMENT_TYPE_LEAF) ||
+            (data_path->elements[i].type == ELEMENT_TYPE_SLICE)) {
+            return false;
+        }
+    }
+    return true;
+}
+
 bool handle_data_path_struct(const buffer_t *buf, s_data_path_context *context) {
     TLV_reception_t received_tags;
-    return data_path_tlv_parser(buf, context, &received_tags);
+
+    if (!data_path_tlv_parser(buf, context, &received_tags)) {
+        return false;
+    }
+    if (!TLV_CHECK_RECEIVED_TAGS(received_tags, TAG_VERSION)) {
+        PRINTF("DATA_PATH: missing version\n");
+        return false;
+    }
+    // A path not ending with a single LEAF yields no value, or several per pass
+    if (!data_path_has_valid_shape(context->data_path)) {
+        PRINTF("DATA_PATH: invalid shape\n");
+        return false;
+    }
+    return true;
 }
 
 static bool path_tuple(const s_tuple_args *tuple, uint32_t *offset, uint32_t *ref_offset) {
     *ref_offset = *offset;
-    *offset += tuple->value;
+    if (__builtin_add_overflow(*offset, tuple->value, offset)) {
+        return false;
+    }
     return true;
 }
 
@@ -200,33 +244,21 @@ static bool path_leaf(const s_leaf_args *leaf,
 }
 
 static bool path_slice(const s_slice_args *slice, s_parsed_value_collection *collection) {
-    uint16_t start;
-    uint16_t end;
-    uint16_t value_length;
+    s_parsed_value *value;
+    uint16_t offset;
+    uint16_t size;
 
     if (collection->size == 0) {
         return false;
     }
 
-    value_length = collection->value[collection->size - 1].length;
-    if (slice->has_start) {
-        start = (slice->start < 0) ? ((int32_t) value_length + slice->start) : slice->start;
-    } else {
-        start = 0;
-    }
-
-    if (slice->has_end) {
-        end = (slice->end < 0) ? ((int32_t) value_length + slice->end) : slice->end;
-    } else {
-        end = value_length;
-    }
-
-    if ((start >= end) || (end > value_length)) {
+    value = &collection->value[collection->size - 1];
+    if (!slice_bytes(slice, value->length, &offset, &size)) {
         return false;
     }
-    collection->value[collection->size - 1].ptr += start;
-    collection->value[collection->size - 1].length = (end - start);
-    collection->value[collection->size - 1].offset += start;
+    value->ptr += offset;
+    value->length = size;
+    value->offset += offset;
     return true;
 }
 
@@ -262,20 +294,15 @@ static bool path_array(const s_array_args *array,
     }
     array_size = read_u16_be(chunk, chunk_offset);
 
-    int32_t start_signed;
-    int32_t end_signed;
-
-    if (array->has_start) {
-        start_signed = (array->start < 0) ? ((int32_t) array_size + array->start) : array->start;
-    } else {
-        start_signed = 0;
-    }
-
-    if (array->has_end) {
-        end_signed = (array->end < 0) ? ((int32_t) array_size + array->end) : array->end;
-    } else {
-        end_signed = array_size;
-    }
+    const s_slice_args bounds_args = {
+        .has_start = array->has_start,
+        .start = array->start,
+        .has_end = array->has_end,
+        .end = array->end,
+    };
+    const s_slice_bounds bounds = slice_resolve(&bounds_args, array_size);
+    const int32_t start_signed = bounds.start;
+    const int32_t end_signed = bounds.end;
 
     // A descriptor bound is only meaningful inside the array the calldata actually
     // declares. An absolute bound past its end would walk chunks beyond the array,
@@ -291,6 +318,7 @@ static bool path_array(const s_array_args *array,
     start = (uint16_t) start_signed;
     end = (uint16_t) end_signed;
 
+    // An array of the calldata has to leave something to iterate over
     if (end <= start) {
         return false;
     }
@@ -329,8 +357,13 @@ bool data_path_get(const s_data_path *data_path, s_parsed_value_collection *coll
     uint32_t offset;
     uint32_t ref_offset;
     s_arrays_info arinf = {0};
+    uint8_t passes = 0;
 
     do {
+        // A well-formed path yields one value per pass
+        if (passes++ >= MAX_VALUE_COLLECTION_SIZE) {
+            return false;
+        }
         arinf.index = 0;
         offset = 0;
         ref_offset = offset;

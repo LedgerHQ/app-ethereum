@@ -54,9 +54,10 @@ def check_glyph(file: str) -> bool:
         logger.error(f"Glyph extension should be '.gif', '.bmp', or '.png', not '.{extension}'")
         return False
 
+    # Only the first frame, so that an animated image cannot expand into a huge output
     try:
-        content = subprocess.check_output(["identify", "-verbose", file], text=True)
-    except subprocess.CalledProcessError as e:
+        content = subprocess.check_output(["identify", "-verbose", f"{file}[0]"], text=True, timeout=10)
+    except (subprocess.CalledProcessError, subprocess.TimeoutExpired) as e:
         logger.error(f"Failed to identify file: {e}")
         return False
 

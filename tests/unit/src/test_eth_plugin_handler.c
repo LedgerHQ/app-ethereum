@@ -28,6 +28,7 @@
 #include "eth_plugin_internal.h"
 #include "eth_plugin_interface.h"
 #include "erc20_plugin.h"
+#include "eth2_plugin.h"
 #include "eip7002_plugin.h"
 #include "eip7251_plugin.h"
 #include "shared_context.h"
@@ -78,6 +79,7 @@ union extraInfo_t *get_matching_asset_info(const uint64_t *chain_id, const uint8
 // =============================================================================
 static eth_plugin_result_t g_plugin_result = ETH_PLUGIN_RESULT_OK;
 static int g_erc20_calls = 0;
+static int g_eth2_calls = 0;
 static int g_erc721_calls = 0;
 static int g_erc1155_calls = 0;
 static int g_swap_with_calldata_calls = 0;
@@ -112,8 +114,8 @@ void erc20_plugin_call(eth_plugin_msg_t message, void *parameters) {
     set_plugin_result(message, parameters);
 }
 void eth2_plugin_call(eth_plugin_msg_t message, void *parameters) {
-    (void) message;
-    (void) parameters;
+    g_eth2_calls++;
+    set_plugin_result(message, parameters);
 }
 void erc721_plugin_call(eth_plugin_msg_t message, void *parameters) {
     g_erc721_calls++;
@@ -153,16 +155,6 @@ __attribute__((noreturn)) void app_exit(void) {
     }
 }
 
-// os_longjmp is overridden locally (vs. the silent stub in mocks/mock.c)
-// to make any unexpected exception loud — the external-plugin path is
-// not exercised by these tests, so reaching it would be a bug.
-__attribute__((noreturn)) void os_longjmp(unsigned int e) {
-    (void) e;
-    TEST_FAIL_MESSAGE("os_longjmp() reached unexpectedly");
-    while (1) {
-    }
-}
-
 // Plugin selectors / addresses referenced by INTERNAL_ETH_PLUGINS.
 // Production code links these against the actual plugin .c files; here
 // we provide concrete byte arrays so the matching_selector /
@@ -174,12 +166,10 @@ const uint8_t *const ERC20_SELECTORS[NUM_ERC20_SELECTORS] = {
     g_erc20_transfer_selector,
     g_erc20_approve_selector,
 };
-#ifdef HAVE_ETH2
 static const uint8_t g_eth2_selector[4] = {0x22, 0x89, 0x51, 0x18};
 static const uint8_t g_eth2_address[ADDRESS_LENGTH] = {0xE2};
 const uint8_t *const ETH2_SELECTORS[NUM_ETH2_SELECTORS] = {g_eth2_selector};
 const uint8_t *const ETH2_ADDRESSES[NUM_ETH2_ADDRESSES] = {g_eth2_address};
-#endif
 static const uint8_t g_eip7002_address[ADDRESS_LENGTH] = {0x70};
 static const uint8_t g_eip7251_address[ADDRESS_LENGTH] = {0x72};
 const uint8_t *const EIP7002_ADDRESSES[NUM_EIP7002_ADDRESSES] = {g_eip7002_address};
@@ -199,6 +189,7 @@ static void reset(void) {
     s_displayable_ticker = "ETH";
     g_plugin_result = ETH_PLUGIN_RESULT_OK;
     g_erc20_calls = 0;
+    g_eth2_calls = 0;
     g_erc721_calls = 0;
     g_erc1155_calls = 0;
     g_swap_with_calldata_calls = 0;
@@ -493,6 +484,17 @@ void test_call_old_internal_routes_by_alias(void) {
     TEST_ASSERT_EQUAL(g_erc20_calls, 1);
 }
 
+void test_call_old_internal_routes_eth2_alias(void) {
+    pluginType = PLUGIN_TYPE_OLD_INTERNAL;
+    strlcpy(dataContext.tokenContext.pluginName,
+            "-eth2",
+            sizeof(dataContext.tokenContext.pluginName));
+    ethPluginInitContract_t msg = {0};
+    eth_plugin_call(ETH_PLUGIN_INIT_CONTRACT, &msg);
+    TEST_ASSERT_EQUAL(1, g_eth2_calls);
+    TEST_ASSERT_EQUAL(0, g_erc20_calls);
+}
+
 void test_call_unsupported_plugin_type_returns_error(void) {
     pluginType = (pluginType_t) 0xFF;
     ethPluginInitContract_t msg = {0};
@@ -669,6 +671,60 @@ void test_perform_init_none_matches_eip7002_by_address(void) {
     TEST_ASSERT_EQUAL_STRING(dataContext.tokenContext.pluginName, "-eip7002");
 }
 
+void test_perform_init_none_address_entry_wins_over_erc20_selector(void) {
+    // An ERC-20 selector sent to an address-bound plugin must reach that plugin.
+    pluginType = PLUGIN_TYPE_NONE;
+    uint8_t contract[ADDRESS_LENGTH];
+    memcpy(contract, g_eip7002_address, ADDRESS_LENGTH);
+    ethPluginInitContract_t init = {.selector = g_erc20_transfer_selector};
+
+    eth_plugin_perform_init(contract, &init);
+
+    TEST_ASSERT_EQUAL(pluginType, PLUGIN_TYPE_OLD_INTERNAL);
+    TEST_ASSERT_EQUAL_STRING(dataContext.tokenContext.pluginName, "-eip7002");
+}
+
+void test_perform_init_none_matches_eth2_deposit(void) {
+    // ETH2 entry is bound to both the deposit contract and the deposit selector.
+    pluginType = PLUGIN_TYPE_NONE;
+    uint8_t contract[ADDRESS_LENGTH];
+    memcpy(contract, g_eth2_address, ADDRESS_LENGTH);
+    ethPluginInitContract_t init = {.selector = g_eth2_selector};
+
+    eth_plugin_perform_init(contract, &init);
+
+    TEST_ASSERT_EQUAL(PLUGIN_TYPE_OLD_INTERNAL, pluginType);
+    TEST_ASSERT_EQUAL_STRING("-eth2", dataContext.tokenContext.pluginName);
+    TEST_ASSERT_EQUAL(ETH_PLUGIN_RESULT_OK, dataContext.tokenContext.pluginStatus);
+}
+
+void test_perform_init_none_eth2_selector_other_contract_no_match(void) {
+    pluginType = PLUGIN_TYPE_NONE;
+    G_called_from_swap = false;
+    uint8_t contract[ADDRESS_LENGTH];
+    memset(contract, 0xCD, ADDRESS_LENGTH);
+    ethPluginInitContract_t init = {.selector = g_eth2_selector};
+
+    eth_plugin_perform_init(contract, &init);
+
+    TEST_ASSERT_EQUAL(PLUGIN_TYPE_NONE, pluginType);
+    TEST_ASSERT_EQUAL(ETH_PLUGIN_RESULT_UNAVAILABLE, dataContext.tokenContext.pluginStatus);
+}
+
+void test_perform_init_none_erc20_selector_on_eth2_contract_matches_erc20(void) {
+    // The ETH2 entry also requires its selector, so an ERC-20 call to that contract
+    // falls through to the selector-only ERC-20 entry.
+    pluginType = PLUGIN_TYPE_NONE;
+    uint8_t contract[ADDRESS_LENGTH];
+    memcpy(contract, g_eth2_address, ADDRESS_LENGTH);
+    ethPluginInitContract_t init = {.selector = g_erc20_transfer_selector};
+
+    eth_plugin_perform_init(contract, &init);
+
+    TEST_ASSERT_EQUAL(PLUGIN_TYPE_OLD_INTERNAL, pluginType);
+    TEST_ASSERT_EQUAL_STRING("-erc20", dataContext.tokenContext.pluginName);
+}
+
 void test_perform_init_none_no_match_unavailable(void) {
     // Contract not in any address-bound plugin, selector not in any
     // selector-bound plugin → old_internal returns false. Then
@@ -744,6 +800,7 @@ int main(void) {
     RUN_TEST(test_call_erc1155_dispatches);
     RUN_TEST(test_call_swap_with_calldata_dispatches);
     RUN_TEST(test_call_old_internal_routes_by_alias);
+    RUN_TEST(test_call_old_internal_routes_eth2_alias);
     RUN_TEST(test_call_unsupported_plugin_type_returns_error);
     RUN_TEST(test_call_init_error_result_propagates);
     RUN_TEST(test_call_init_unknown_result_returns_unavailable);
@@ -761,6 +818,10 @@ int main(void) {
     RUN_TEST(test_perform_init_swap_with_calldata_sets_ok);
     RUN_TEST(test_perform_init_none_matches_erc20_transfer);
     RUN_TEST(test_perform_init_none_matches_eip7002_by_address);
+    RUN_TEST(test_perform_init_none_address_entry_wins_over_erc20_selector);
+    RUN_TEST(test_perform_init_none_matches_eth2_deposit);
+    RUN_TEST(test_perform_init_none_eth2_selector_other_contract_no_match);
+    RUN_TEST(test_perform_init_none_erc20_selector_on_eth2_contract_matches_erc20);
     RUN_TEST(test_perform_init_none_no_match_unavailable);
     RUN_TEST(test_perform_init_none_no_match_swap_mode_returns_error);
     return UNITY_END();

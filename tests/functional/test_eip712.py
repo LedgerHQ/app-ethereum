@@ -1,8 +1,11 @@
 # Large test file containing multiple test cases for EIP-712 signing
+import contextlib
 import fnmatch
 import hashlib
 import json
 import os
+import threading
+import time
 from collections.abc import Callable
 from ctypes import c_uint64
 from pathlib import Path
@@ -12,6 +15,7 @@ import client.response_parser as ResponseParser
 import pytest
 import web3
 from client.client import EIP712CalldataParamPresence, EIP712FieldType, EthAppClient
+from client.dynamic_networks import DynamicNetwork
 from client.eip712 import InputData
 from client.gating import Gating
 from client.gcs import (
@@ -35,11 +39,13 @@ from client.trusted_name import TrustedName, TrustedNameSource, TrustedNameType
 from client.tx_simu import TxSimu
 from client.utils import get_selector_from_data, recover_message
 from constants import ABIS_FOLDER
+from dynamic_networks_cfg import get_network_config
 from eth_account.messages import encode_typed_data
 from fields_utils import get_all_paths, get_all_tuple_array_paths
 from ragger.backend import BackendInterface
 from ragger.error import ExceptionRAPDU
 from ragger.navigator import NavigateWithScenario
+from test_eip712_v2 import reset_app
 from test_gcs import compute_inst_hash
 
 BIP32_PATH = "m/44'/60'/0'/0/0"
@@ -110,6 +116,14 @@ def eip712_new_common(
     nb_warnings: int = 0,
 ) -> None:
     app_client = EthAppClient(scenario_navigator.backend)
+
+    # Provide the network info. Must happen before process_data, which streams the
+    # message root and freezes the "Network" review value.
+    chain_id = data.get("domain", {}).get("chainId")
+    if chain_id is not None:
+        name, ticker, icon = get_network_config(scenario_navigator.backend.device.type, chain_id)
+        if name and ticker:
+            app_client.provide_network_info(DynamicNetwork(name, ticker, chain_id, icon))
 
     InputData.process_data(app_client, data, filters)
     do_compare = snapshots_dirname is not None
@@ -335,6 +349,44 @@ def test_eip712_array_element_filtered_late(
     assert e.value.status == StatusWord.SWO_REFERENCED_DATA_NOT_FOUND
 
 
+def test_eip712_filter_replayed_before_value(scenario_navigator: NavigateWithScenario, monkeypatch: pytest.MonkeyPatch):
+    """A field filter sent twice before its value must be refused."""
+    app_client = EthAppClient(scenario_navigator.backend)
+
+    data = {
+        "domain": {
+            "chainId": 1,
+            "name": "Advanced test",
+            "verifyingContract": "0xCcCCccccCCCCcCCCCCCcCcCccCcCCCcCcccccccC",
+            "version": "1",
+        },
+        "message": {"to": "0x6B175474E89094C44Da98b954EedeAC495271d0F"},
+        "primaryType": "Transfer",
+        "types": {
+            "EIP712Domain": [
+                {"name": "name", "type": "string"},
+                {"name": "version", "type": "string"},
+                {"name": "chainId", "type": "uint256"},
+                {"name": "verifyingContract", "type": "address"},
+            ],
+            "Transfer": [{"name": "to", "type": "address"}],
+        },
+    }
+    filters = {"name": "Advanced Filtering", "fields": {"to": {"type": "raw", "name": "To"}}}
+
+    send_filter = InputData.send_filter
+
+    def send_filter_twice(path: str, discarded: bool):
+        send_filter(path, discarded)
+        return send_filter(path, discarded)
+
+    monkeypatch.setattr(InputData, "send_filter", send_filter_twice)
+
+    with pytest.raises(ExceptionRAPDU) as e:
+        InputData.process_data(app_client, data, filters)
+    assert e.value.status == StatusWord.SWO_PARAMETER_ERROR_NO_INFO
+
+
 @pytest.mark.parametrize(
     "filtering,status",
     [(False, StatusWord.SWO_INCORRECT_DATA), (True, StatusWord.SWO_PARAMETER_ERROR_NO_INFO)],
@@ -375,6 +427,194 @@ def test_eip712_string_embedded_nul(scenario_navigator: NavigateWithScenario, fi
     assert e.value.status == status
 
 
+def test_eip712_fixed_bytes_short_value(scenario_navigator: NavigateWithScenario):
+    """A bytesN value shorter than N bytes is right-padded, as in the ABI encoding."""
+    data = {
+        "domain": {
+            "chainId": 1,
+            "name": "Fixed bytes test",
+            "verifyingContract": "0xCcCCccccCCCCcCCCCCCcCcCccCcCCCcCcccccccC",
+            "version": "1",
+        },
+        "message": {"tag": "0x01"},
+        "primaryType": "Tagged",
+        "types": {
+            "EIP712Domain": [
+                {"name": "name", "type": "string"},
+                {"name": "version", "type": "string"},
+                {"name": "chainId", "type": "uint256"},
+                {"name": "verifyingContract", "type": "address"},
+            ],
+            "Tagged": [
+                {"name": "tag", "type": "bytes4"},
+            ],
+        },
+    }
+    settings_toggle(
+        scenario_navigator.backend.device,
+        scenario_navigator.navigator,
+        [SettingID.BLIND_SIGNING],
+    )
+    eip712_new_common(scenario_navigator, data, nb_warnings=1)
+
+
+# What makes the encoded type string ambiguous. A struct name holding type text lets a host sign a
+# flat struct whose type hash and encoded data equal those of a nested one, hiding its members.
+TYPE_DELIMITERS = {
+    "comma": "a,b",
+    "open_paren": "a(b",
+    "close_paren": "a)b",
+    "open_bracket": "a[0",
+    "close_bracket": "a]",
+    "space": "a b",
+    "nested_type_text": "Transfer(Details details,uint256 nonce)Details",
+    "empty": "",
+}
+
+
+@pytest.mark.parametrize("name", TYPE_DELIMITERS.values(), ids=TYPE_DELIMITERS.keys())
+def test_eip712_struct_name_ambiguous(backend: BackendInterface, name: str):
+    app_client = EthAppClient(backend)
+
+    with pytest.raises(ExceptionRAPDU) as e:
+        with app_client.eip712_send_struct_def_struct_name(name):
+            pass
+    assert e.value.status == StatusWord.SWO_PARAMETER_ERROR_NO_INFO
+
+
+@pytest.mark.parametrize("name", TYPE_DELIMITERS.values(), ids=TYPE_DELIMITERS.keys())
+def test_eip712_struct_reference_ambiguous(backend: BackendInterface, name: str):
+    app_client = EthAppClient(backend)
+
+    with app_client.eip712_send_struct_def_struct_name("Test"):
+        pass
+    with pytest.raises(ExceptionRAPDU) as e:
+        with app_client.eip712_send_struct_def_struct_field(EIP712FieldType.CUSTOM, name, None, [], "x"):
+            pass
+    assert e.value.status == StatusWord.SWO_PARAMETER_ERROR_NO_INFO
+
+
+@pytest.mark.parametrize(
+    "key_name,accepted",
+    [("a,b", False), ("a(b", False), ("a)b", False), ("a b", True), ("a[0]", True)],
+    ids=["comma", "open_paren", "close_paren", "space", "brackets"],
+)
+def test_eip712_field_name_ambiguous(backend: BackendInterface, key_name: str, accepted: bool):
+    app_client = EthAppClient(backend)
+
+    with app_client.eip712_send_struct_def_struct_name("Test"):
+        pass
+    if accepted:
+        with app_client.eip712_send_struct_def_struct_field(EIP712FieldType.BOOL, "bool", None, [], key_name):
+            pass
+        assert app_client.response().status == StatusWord.SWO_SUCCESS
+        reset_app(app_client)
+    else:
+        with pytest.raises(ExceptionRAPDU) as e:
+            with app_client.eip712_send_struct_def_struct_field(EIP712FieldType.BOOL, "bool", None, [], key_name):
+                pass
+        assert e.value.status == StatusWord.SWO_PARAMETER_ERROR_NO_INFO
+
+
+@pytest.mark.parametrize("address", ["0x01", "0x" + "11" * 21], ids=["short", "long"])
+def test_eip712_address_wrong_length(address: str):
+    """The client refuses an address that is not 20 bytes long instead of padding it."""
+    with pytest.raises(ValueError):
+        InputData.encode_address(address, 20)
+
+
+class RecordingClient:
+    """Fake client recording every command it is given, slow enough to interleave threads."""
+
+    class Response:
+        status = StatusWord.SWO_SUCCESS
+        data = b""
+
+    def __init__(self) -> None:
+        self.calls: list[tuple[str, tuple]] = []
+
+    def response(self) -> "RecordingClient.Response":
+        return self.Response()
+
+    def __getattr__(self, name: str) -> Callable:
+        def command(*args, **kwargs):
+            time.sleep(0.001)
+            self.calls.append((name, args))
+            return contextlib.nullcontext(self.Response())
+
+        return command
+
+
+def test_eip712_process_data_concurrent_calls():
+    """Concurrent process_data() calls must not mix their messages."""
+
+    def message(name: str) -> dict:
+        return {
+            "domain": {"chainId": 1, "name": name},
+            "message": {"owner": name},
+            "primaryType": "Owned",
+            "types": {
+                "EIP712Domain": [
+                    {"name": "name", "type": "string"},
+                    {"name": "chainId", "type": "uint256"},
+                ],
+                "Owned": [{"name": "owner", "type": "string"}],
+            },
+        }
+
+    expected = {}
+    for name in ("alice", "bob"):
+        client = RecordingClient()
+        InputData.process_data(client, message(name))  # type: ignore[arg-type]
+        expected[name] = client.calls
+
+    clients = {name: RecordingClient() for name in expected}
+    threads = [threading.Thread(target=InputData.process_data, args=(clients[name], message(name))) for name in clients]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join()
+
+    for name, client in clients.items():
+        assert client.calls == expected[name], f"{name} received commands of another message"
+
+
+@pytest.mark.parametrize(
+    "field, value",
+    [({"name": "chainId", "type": "uint256"}, 1), ({"name": "name", "type": "string"}, "Fee")],
+    ids=["chainId", "name"],
+)
+def test_eip712_filtered_field_named_as_domain_field(scenario_navigator: NavigateWithScenario, field: dict, value):
+    """A filtered message field sharing its name with an unfiltered domain field must be signed."""
+    data = {
+        "domain": {
+            "chainId": 1,
+            "name": "Advanced test",
+            "verifyingContract": "0xCcCCccccCCCCcCCCCCCcCcCccCcCCCcCcccccccC",
+            "version": "1",
+        },
+        "message": {field["name"]: value, "expiry": 1735689600},
+        "primaryType": "Approval",
+        "types": {
+            "EIP712Domain": [
+                {"name": "name", "type": "string"},
+                {"name": "version", "type": "string"},
+                {"name": "chainId", "type": "uint256"},
+                {"name": "verifyingContract", "type": "address"},
+            ],
+            "Approval": [field, {"name": "expiry", "type": "uint256"}],
+        },
+    }
+    filters = {
+        "name": "Advanced Filtering",
+        "fields": {
+            field["name"]: {"type": "raw", "name": "Field"},
+            "expiry": {"type": "datetime", "name": "Expiry"},
+        },
+    }
+    eip712_new_common(scenario_navigator, data, filters)
+
+
 @pytest.mark.parametrize("delta", [-1, 1], ids=["short", "long"])
 def test_eip712_fixed_bytes_wrong_length(scenario_navigator: NavigateWithScenario, monkeypatch: pytest.MonkeyPatch, delta: int):
     """A bytesN value must be exactly N bytes long."""
@@ -408,6 +648,109 @@ def test_eip712_fixed_bytes_wrong_length(scenario_navigator: NavigateWithScenari
     with pytest.raises(ExceptionRAPDU) as e:
         InputData.process_data(app_client, data)
     assert e.value.status == StatusWord.SWO_PARAMETER_ERROR_NO_INFO
+
+
+def _integers_message() -> dict:
+    return {
+        "domain": {
+            "chainId": 1,
+            "name": "Integers test",
+            "verifyingContract": "0xCcCCccccCCCCcCCCCCCcCcCccCcCCCcCcccccccC",
+            "version": "1",
+        },
+        "message": {"amount": "42", "delta": "-1"},
+        "primaryType": "Integers",
+        "types": {
+            "EIP712Domain": [
+                {"name": "name", "type": "string"},
+                {"name": "version", "type": "string"},
+                {"name": "chainId", "type": "uint256"},
+                {"name": "verifyingContract", "type": "address"},
+            ],
+            "Integers": [
+                {"name": "amount", "type": "uint8"},
+                {"name": "delta", "type": "int8"},
+            ],
+        },
+    }
+
+
+INTEGERS_FILTERS = {
+    "name": "Integers test",
+    "fields": {
+        "amount": {"type": "raw", "name": "Amount"},
+        "delta": {"type": "raw", "name": "Delta"},
+    },
+}
+
+
+@pytest.mark.parametrize("width", [None, 32], ids=["one_extra_byte", "full_word"])
+def test_eip712_integer_padded(scenario_navigator: NavigateWithScenario, monkeypatch: pytest.MonkeyPatch, width: int | None):
+    """An integer wider than its type is accepted when its extra bytes are zero or sign padding."""
+
+    def padded(signed: bool) -> Callable[[str, int], bytes]:
+        def encode(value: str | int, typesize: int) -> bytes:
+            number = int(value, 0) if isinstance(value, str) else value
+            return number.to_bytes(width or typesize + 1, "big", signed=signed)
+
+        return encode
+
+    monkeypatch.setitem(InputData.encoding_functions, EIP712FieldType.UINT, padded(False))
+    monkeypatch.setitem(InputData.encoding_functions, EIP712FieldType.INT, padded(True))
+    snapshots_dirname = scenario_navigator.test_name if width is None else None
+    eip712_new_common(scenario_navigator, _integers_message(), INTEGERS_FILTERS, snapshots_dirname)
+
+
+@pytest.mark.parametrize(
+    "field_type, raw",
+    [
+        (EIP712FieldType.UINT, b"\x01\xff"),
+        (EIP712FieldType.INT, b"\xff\x01"),
+        (EIP712FieldType.INT, b"\x00\xff"),
+    ],
+    ids=["uint_out_of_range", "positive_int_with_sign_padding", "negative_int_with_zero_padding"],
+)
+def test_eip712_integer_wider_than_its_type(
+    scenario_navigator: NavigateWithScenario, monkeypatch: pytest.MonkeyPatch, field_type: EIP712FieldType, raw: bytes
+):
+    """An integer whose extra leading bytes are not zero or sign padding does not fit its type."""
+    app_client = EthAppClient(scenario_navigator.backend)
+    encode_original = InputData.encoding_functions[field_type]
+
+    def encode_one_byte_fields_raw(value: str, typesize: int) -> bytes:
+        return raw if typesize == 1 else encode_original(value, typesize)
+
+    monkeypatch.setitem(InputData.encoding_functions, field_type, encode_one_byte_fields_raw)
+
+    with pytest.raises(ExceptionRAPDU) as e:
+        InputData.process_data(app_client, _integers_message(), INTEGERS_FILTERS)
+    assert e.value.status == StatusWord.SWO_PARAMETER_ERROR_NO_INFO
+
+
+@pytest.mark.parametrize(
+    "encode, value",
+    [
+        (InputData.encode_uint, "256"),
+        (InputData.encode_uint, "-1"),
+        (InputData.encode_int, "128"),
+        (InputData.encode_int, "-129"),
+    ],
+    ids=["uint_above_max", "uint_negative", "int_above_max", "int_below_min"],
+)
+def test_eip712_integer_out_of_range(encode: Callable[[str, int], bytes], value: str):
+    """The client refuses an integer that does not fit its type instead of truncating it."""
+    with pytest.raises(ValueError):
+        encode(value, 1)
+
+
+@pytest.mark.parametrize("parse", [InputData.parse_uint, InputData.parse_int], ids=["uint", "int"])
+@pytest.mark.parametrize(
+    "typesize", [None, 0, 9, 264, 257], ids=["no_width", "zero", "not_multiple_of_8", "above_max", "above_max_not_multiple_of_8"]
+)
+def test_eip712_integer_invalid_width(parse: Callable[[int | None], tuple], typesize: int | None):
+    """The client refuses an integer type whose width EIP-712 does not define instead of rounding it."""
+    with pytest.raises(ValueError):
+        parse(typesize)
 
 
 def get_filter_file_from_data_file(data_file: Path) -> Path:
@@ -735,6 +1078,42 @@ ADVANCED_DATA_SETS = [
             },
         },
         "_unlimited",
+    ),
+    DataSet(
+        {
+            "types": {
+                "EIP712Domain": [
+                    {"name": "name", "type": "string"},
+                    {"name": "version", "type": "string"},
+                    {"name": "chainId", "type": "uint256"},
+                    {"name": "verifyingContract", "type": "address"},
+                ],
+                "Root": [
+                    {"name": "deadline", "type": "uint256"},
+                ],
+            },
+            "primaryType": "Root",
+            "domain": {
+                "name": "test",
+                "version": "1",
+                "verifyingContract": "0x0000000000000000000000000000000000000000",
+                "chainId": 42161,
+            },
+            "message": {
+                "deadline": 1719756000,
+            },
+        },
+        {
+            "name": "Chain ID test",
+            "tokens": [],
+            "fields": {
+                "deadline": {
+                    "type": "datetime",
+                    "name": "Deadline",
+                },
+            },
+        },
+        "_big_chain_id",
     ),
 ]
 
@@ -1099,10 +1478,10 @@ def gcs_handler(app_client: EthAppClient, json_data: dict) -> None:
     assert tx_info.contract_name is not None
     app_client.provide_token_metadata(tx_info.contract_name, tx_info.contract_addr, 6, tx_info.chain_id)
 
-    app_client.provide_transaction_info(tx_info.serialize())
+    app_client.provide_operation_info(tx_info.serialize())
 
     for field in fields:
-        app_client.provide_transaction_field_desc(field.serialize())
+        app_client.provide_operation_field_desc(field.serialize())
 
 
 def gcs_handler_batch(app_client: EthAppClient, json_data: dict) -> None:
@@ -1267,15 +1646,15 @@ def gcs_handler_batch(app_client: EthAppClient, json_data: dict) -> None:
     app_client.provide_proxy_info(proxy_info.serialize())
 
     # Send intermediate execTransaction info description
-    app_client.provide_transaction_info(L0_tx_info.serialize())
+    app_client.provide_operation_info(L0_tx_info.serialize())
     for f0 in L0_fields:
         # Send intermediate execTransaction fields description
-        app_client.provide_transaction_field_desc(f0.serialize())
+        app_client.provide_operation_field_desc(f0.serialize())
 
     # Lower batchExecute description
     for idx, i1 in enumerate(L1_tx_info):
         # Send lower batchExecute info description
-        app_client.provide_transaction_info(i1.serialize())
+        app_client.provide_operation_info(i1.serialize())
         app_client.provide_token_metadata(
             tokens[idx]["ticker"],
             tokens[idx]["address"],
@@ -1284,7 +1663,7 @@ def gcs_handler_batch(app_client: EthAppClient, json_data: dict) -> None:
         )
         for f1 in L1_fields:
             # Send lower batchExecute fields description
-            app_client.provide_transaction_field_desc(f1.serialize())
+            app_client.provide_operation_field_desc(f1.serialize())
 
 
 def gcs_handler_no_param(app_client: EthAppClient, json_data: dict) -> None:
@@ -1300,7 +1679,7 @@ def gcs_handler_no_param(app_client: EthAppClient, json_data: dict) -> None:
         creator_url="weth.io",
     )
 
-    app_client.provide_transaction_info(tx_info.serialize())
+    app_client.provide_operation_info(tx_info.serialize())
 
 
 def eip712_calldata_common(
@@ -1371,8 +1750,117 @@ def test_eip712_calldata_empty_send(scenario_navigator: NavigateWithScenario):
     eip712_calldata_common(scenario_navigator, filename)
 
 
+def eip712_calldata_empty_send_chain_common(scenario_navigator: NavigateWithScenario, dest_chain_id: int, name_chain_id: int):
+    """An empty call whose chain is given by a filter, with a trusted name for its callee."""
+    app_client = EthAppClient(scenario_navigator.backend)
+    with Path(f"{eip712_json_path()}/safe_empty.json").open(encoding="utf-8") as file:
+        data = json.load(file)
+    data["message"]["destChainId"] = dest_chain_id
+    data["types"]["SafeTx"].insert(2, {"type": "uint256", "name": "destChainId"})
+
+    app_client.provide_trusted_name(
+        TrustedName(
+            2,
+            bytes.fromhex(data["message"]["to"][2:]),
+            "MAB_addr",
+            tn_type=TrustedNameType.ACCOUNT,
+            tn_source=TrustedNameSource.MULTISIG_ADDRESS_BOOK,
+            chain_id=name_chain_id,
+            challenge=ResponseParser.challenge(app_client.get_challenge().data),
+            owner=DEVICE_ADDR,
+            owner_deriv_path=BIP32_PATH,
+        )
+    )
+    filters = {
+        "name": "Calldata test",
+        "calldatas": [
+            {
+                "index": 0,
+                "value_flag": True,
+                "callee_flag": EIP712CalldataParamPresence.PRESENT_FILTERED,
+                "chain_id_flag": True,
+                "selector_flag": False,
+                "amount_flag": True,
+                "spender_flag": EIP712CalldataParamPresence.NONE,
+            },
+        ],
+        "fields": {
+            "to": {"type": "calldata_callee", "index": 0},
+            "value": {"type": "calldata_amount", "index": 0},
+            "destChainId": {"type": "calldata_chain_id", "index": 0},
+            "data": {"type": "calldata_value", "index": 0},
+        },
+    }
+    eip712_new_common(scenario_navigator, data, filters, scenario_navigator.test_name)
+
+
+def test_eip712_calldata_empty_send_cross_chain(scenario_navigator: NavigateWithScenario):
+    """An empty call on another chain than the domain's shows its network, and its callee's name there."""
+    # Arbitrum One, the domain being on Ethereum mainnet
+    eip712_calldata_empty_send_chain_common(scenario_navigator, 42161, 42161)
+
+
+def test_eip712_calldata_empty_send_zero_chain(scenario_navigator: NavigateWithScenario):
+    """An empty call whose filter gives no chain is on the domain's: its callee's name is the one there."""
+    eip712_calldata_empty_send_chain_common(scenario_navigator, 0, 1)
+
+
 def test_eip712_calldata_no_param(scenario_navigator: NavigateWithScenario):
     eip712_calldata_common(scenario_navigator, "safe_calldata_no_param", gcs_handler_no_param)
+
+
+def test_eip712_calldata_empty_call_keeps_off_the_next_calldata(scenario_navigator: NavigateWithScenario):
+    """A call without calldata must not become the root with the calldata of the call after it.
+
+    The calldata of the second call is received before the first call is complete, so it is the one
+    waiting when the first call is.
+    """
+    app_client = EthAppClient(scenario_navigator.backend)
+    data = {
+        "types": {
+            "EIP712Domain": [
+                {"name": "chainId", "type": "uint256"},
+                {"name": "verifyingContract", "type": "address"},
+            ],
+            "Calls": [
+                {"name": "dataA", "type": "bytes"},
+                {"name": "dataB", "type": "bytes"},
+                {"name": "toA", "type": "address"},
+                {"name": "toB", "type": "address"},
+            ],
+        },
+        "primaryType": "Calls",
+        "domain": {"chainId": 1, "verifyingContract": "0xc1897a9acbdd54028da5f7b76b5833a91553aaf6"},
+        "message": {
+            "dataA": "0x",
+            "dataB": "0x18160ddd",
+            "toA": "0x23f8abfc2824c397ccb3da89ae772984107ddb99",
+            "toB": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+        },
+    }
+    call = {
+        "handler": None,
+        "value_flag": True,
+        "callee_flag": EIP712CalldataParamPresence.PRESENT_FILTERED,
+        "chain_id_flag": False,
+        "selector_flag": False,
+        "amount_flag": False,
+        "spender_flag": EIP712CalldataParamPresence.NONE,
+    }
+    filters = {
+        "name": "Calls",
+        "calldatas": [{"index": 0, **call}, {"index": 1, **call}],
+        "fields": {
+            "dataA": {"type": "calldata_value", "index": 0},
+            "dataB": {"type": "calldata_value", "index": 1},
+            "toA": {"type": "calldata_callee", "index": 0},
+            "toB": {"type": "calldata_callee", "index": 1},
+        },
+    }
+
+    with pytest.raises(ExceptionRAPDU) as e:
+        InputData.process_data(app_client, data, filters)
+    assert e.value.status == StatusWord.SWO_PARAMETER_ERROR_NO_INFO
 
 
 def test_eip712_gondi(scenario_navigator: NavigateWithScenario):

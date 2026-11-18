@@ -1,6 +1,5 @@
 #include "typed_data.h"
 #include "sol_typenames.h"
-#include "eip712_v1_context.h"
 #include "common_utils.h"
 #include "app_mem_utils.h"
 #include "read.h"
@@ -39,6 +38,12 @@ static void delete_struct(s_struct_712 *s) {
     APP_MEM_FREE(s->name);
     flist_clear((flist_node_t **) &s->fields, (f_list_node_del) &delete_struct_field_internal);
     APP_MEM_FREE(s);
+}
+
+void td_discard_struct_def(s_struct_712 *struct_def) {
+    if (struct_def != NULL) {
+        delete_struct(struct_def);
+    }
 }
 
 static void delete_value(s_struct_712_value *v) {
@@ -114,6 +119,55 @@ bool td_append_child(s_struct_712_value *parent, const s_struct_712_value *child
     return true;
 }
 
+uint16_t td_value_child_count(const s_struct_712_value *node) {
+    uint16_t count = 0;
+
+    if ((node == NULL) || (node->kind == VAL_ATOMIC)) {
+        return 0;
+    }
+    for (const s_struct_712_value *child = node->children; child != NULL;
+         child = (const s_struct_712_value *) ((const flist_node_t *) child)->next) {
+        count += 1;
+    }
+    return count;
+}
+
+const s_struct_712_value *td_value_child(const s_struct_712_value *node, uint16_t index) {
+    const s_struct_712_value *child;
+
+    if ((node == NULL) || (node->kind == VAL_ATOMIC)) {
+        return NULL;
+    }
+    child = node->children;
+    for (uint16_t i = 0; (child != NULL) && (i < index); ++i) {
+        child = (const s_struct_712_value *) ((const flist_node_t *) child)->next;
+    }
+    return child;
+}
+
+const s_struct_712_field *td_value_expected_field(const s_struct_712_value *node) {
+    const s_struct_712_field *field;
+    const s_struct_712_value *child;
+
+    if (node == NULL) {
+        return NULL;
+    }
+    // every element of an array conforms to the array's own field
+    if (node->kind == VAL_ARRAY) {
+        return node->field;
+    }
+    if ((node->kind != VAL_STRUCT) || (node->struct_type == NULL)) {
+        return NULL;
+    }
+    // walk both lists in lockstep: the nth value fills the nth declared field
+    field = node->struct_type->fields;
+    for (child = node->children; (child != NULL) && (field != NULL);
+         child = (const s_struct_712_value *) ((const flist_node_t *) child)->next) {
+        field = (const s_struct_712_field *) ((const flist_node_t *) field)->next;
+    }
+    return field;
+}
+
 bool td_leaf_write(s_struct_712_value *leaf, size_t offset, const uint8_t *data, size_t length) {
     if ((leaf == NULL) || (leaf->kind != VAL_ATOMIC)) {
         return false;
@@ -152,6 +206,9 @@ bool td_field_set_type_size(s_struct_712_field *field, size_t type_size) {
     if (field->type == TYPE_STRUCT) {
         return false;
     }
+    if ((type_size == 0) || (type_size > 32)) {
+        return false;
+    }
     field->type_size = type_size;
     return true;
 }
@@ -180,6 +237,9 @@ bool td_field_set_struct_name(s_struct_712_field *field, const uint8_t *name, si
 
 bool td_field_set_array_level_count(s_struct_712_field *field, uint8_t count) {
     if (field == NULL) {
+        return false;
+    }
+    if (count > TD_MAX_ARRAY_LEVELS) {
         return false;
     }
     if (field->array_levels != NULL) {
@@ -215,7 +275,7 @@ bool td_field_set_key_name(s_struct_712_field *field, const uint8_t *name, size_
     if (field == NULL) {
         return false;
     }
-    if (name == NULL) {
+    if ((name == NULL) && (length > 0)) {
         return false;
     }
     if (field->key_name != NULL) {
@@ -225,7 +285,9 @@ bool td_field_set_key_name(s_struct_712_field *field, const uint8_t *name, size_
     if ((field->key_name = APP_MEM_ALLOC(length + 1)) == NULL) {
         return false;
     }
-    memcpy(field->key_name, name, length);
+    if (length > 0) {
+        memcpy(field->key_name, name, length);
+    }
     field->key_name[length] = '\0';
     return true;
 }
@@ -252,25 +314,99 @@ const char *td_get_struct_field_typename(const s_struct_712_field *field_ptr) {
     return get_struct_field_sol_typename(field_ptr);
 }
 
+bool td_is_valid_struct_name(const uint8_t *name, size_t length) {
+    if ((name == NULL) || (length == 0)) {
+        return false;
+    }
+    for (size_t i = 0; i < length; ++i) {
+        const uint8_t c = name[i];
+
+        // A name is kept as a C string, so a NUL would cut it short. '(' ')' ',' '[' ']' and the
+        // space delimit a type in the encoded type string
+        if ((c == '\0') || (c == ' ') || (strchr("(),[]", c) != NULL)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+bool td_is_valid_field_name(const uint8_t *name, size_t length) {
+    if ((name == NULL) && (length > 0)) {
+        return false;
+    }
+    for (size_t i = 0; i < length; ++i) {
+        const uint8_t c = name[i];
+
+        // same as a struct name, but a space is fine: the first one of a member ends its type,
+        // which never holds one, and '[' ']' only delimit an array in a type
+        if ((c == '\0') || (strchr("(),", c) != NULL)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+bool td_is_valid_leaf(const s_struct_712_field *field, const uint8_t *value, size_t length) {
+    if ((field == NULL) || ((value == NULL) && (length > 0))) {
+        return false;
+    }
+    switch (field->type) {
+        case TYPE_SOL_UINT:
+        case TYPE_SOL_INT:
+            // zero is the single byte 00, any other value has no leading 00
+            return (length >= 1) && (length <= field->type_size) &&
+                   ((length == 1) || (value[0] != 0x00));
+        case TYPE_SOL_BYTES_FIX:
+            return length == field->type_size;
+        case TYPE_SOL_ADDRESS:
+            return length == ADDRESS_LENGTH;
+        case TYPE_SOL_BOOL:
+            return (length == 1) && (value[0] <= 0x01);
+        case TYPE_SOL_STRING:
+        case TYPE_SOL_BYTES_DYN:
+            return true;
+        case TYPE_STRUCT:
+        case TYPES_COUNT:
+        default:
+            return false;
+    }
+}
+
+typedef struct {
+    const uint8_t *name;
+    size_t length;
+} s_struct_name_query;
+
 static bool match_struct_name(const s_struct_712 *node, const void *context_ptr) {
-    return (node->name != NULL) && (strcmp(node->name, (const char *) context_ptr) == 0);
+    const s_struct_name_query *query = context_ptr;
+
+    // a stored name is a C string and holds no NUL, so its strlen() is its whole length
+    return (node->name != NULL) && (strlen(node->name) == query->length) &&
+           (memcmp(node->name, query->name, query->length) == 0);
+}
+
+const s_struct_712 *td_find_struct_n(const uint8_t *name, size_t length) {
+    s_struct_name_query query = {.name = name, .length = length};
+
+    if (name == NULL) {
+        return NULL;
+    }
+    return td_find_struct_if(match_struct_name, &query);
 }
 
 const s_struct_712 *td_find_struct(const char *name) {
     if (name == NULL) {
         return NULL;
     }
-    return td_find_struct_if(match_struct_name, (const void *) name);
+    return td_find_struct_n((const uint8_t *) name, strlen(name));
 }
 
-s_struct_712 *td_create_struct_def(const char *name) {
+s_struct_712 *td_create_struct_def(const uint8_t *name, size_t length) {
     s_struct_712 *def;
-    size_t length;
 
     if (name == NULL) {
         return NULL;
     }
-    length = strlen(name);
 
     if ((def = APP_MEM_ALLOC(sizeof(*def))) == NULL) {
         return NULL;
@@ -286,8 +422,12 @@ s_struct_712 *td_create_struct_def(const char *name) {
     return def;
 }
 
-bool td_add_struct_def(const s_struct_712 *struct_def) {
+bool td_add_struct_def(s_struct_712 *struct_def) {
     if (struct_def == NULL) {
+        return false;
+    }
+    if (td_find_struct(struct_def->name) != NULL) {
+        td_discard_struct_def(struct_def);
         return false;
     }
     flist_push_back((flist_node_t **) &g_structs, (flist_node_t *) struct_def);
@@ -306,16 +446,9 @@ bool td_set_domain(s_struct_712_value *node) {
     if (node == NULL) {
         return false;
     }
-    if (g_impl.domain != NULL) {
-        APP_MEM_FREE(node);
-        return false;
-    }
-    if (node->kind != VAL_STRUCT) {
-        APP_MEM_FREE(node);
-        return false;
-    }
-    if (strcmp(node->struct_type->name, "EIP712Domain") != 0) {
-        APP_MEM_FREE(node);
+    if ((g_impl.domain != NULL) || (node->kind != VAL_STRUCT) ||
+        (strcmp(node->struct_type->name, TD_DOMAIN_STRUCT_NAME) != 0)) {
+        td_discard_container_value(node);
         return false;
     }
     g_impl.domain = node;
@@ -326,12 +459,8 @@ bool td_set_message(s_struct_712_value *node) {
     if (node == NULL) {
         return false;
     }
-    if (g_impl.message != NULL) {
-        APP_MEM_FREE(node);
-        return false;
-    }
-    if (node->kind != VAL_STRUCT) {
-        APP_MEM_FREE(node);
+    if ((g_impl.message != NULL) || (node->kind != VAL_STRUCT)) {
+        td_discard_container_value(node);
         return false;
     }
     g_impl.message = node;
@@ -346,6 +475,21 @@ bool td_has_message(void) {
     return g_impl.message != NULL;
 }
 
+bool td_has_schema(void) {
+    return g_structs != NULL;
+}
+
+const char *td_get_message_type_name(void) {
+    if ((g_impl.message == NULL) || (g_impl.message->struct_type == NULL)) {
+        return NULL;
+    }
+    return g_impl.message->struct_type->name;
+}
+
+const s_struct_712_value *td_get_message_root(void) {
+    return g_impl.message;
+}
+
 bool td_get_domain_chain_id(uint64_t *chain_id) {
     if (g_impl.domain != NULL) {
         for (const s_struct_712_value *child = g_impl.domain->children; child != NULL;
@@ -353,6 +497,13 @@ bool td_get_domain_chain_id(uint64_t *chain_id) {
             if ((child->kind == VAL_ATOMIC) && (strcmp(child->field->key_name, "chainId") == 0)) {
                 const uint8_t *data = child->data;
                 uint16_t length = child->length;
+
+                // the standard gives chainId an unsigned integer type: the bytes of any other
+                // type are not a number
+                if (child->field->type != TYPE_SOL_UINT) {
+                    PRINTF("Error: chainId is not an unsigned integer (%u)!\n", child->field->type);
+                    return false;
+                }
 
                 // tolerate zero-left-padded values (the domain hash commits to the full bytes,
                 // the numeric value must stay identical); non-zero padding is rejected at
@@ -373,7 +524,19 @@ bool td_get_domain_chain_id(uint64_t *chain_id) {
     return false;
 }
 
-bool td_get_domain_contract_addr(uint8_t addr[ADDRESS_LENGTH]) {
+bool td_domain_has_member(const char *name) {
+    if (g_impl.domain != NULL) {
+        for (const s_struct_712_field *field = g_impl.domain->struct_type->fields; field != NULL;
+             field = (const s_struct_712_field *) ((const flist_node_t *) field)->next) {
+            if (strcmp(field->key_name, name) == 0) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+static bool get_domain_contract_addr(uint8_t addr[ADDRESS_LENGTH], bool accept_ethermint) {
     const char *ethermint_vc = "cosmos";
 
     if (g_impl.domain != NULL) {
@@ -392,7 +555,7 @@ bool td_get_domain_contract_addr(uint8_t addr[ADDRESS_LENGTH]) {
                         }
                         break;
                     case TYPE_SOL_STRING:
-                        if ((length != strlen(ethermint_vc)) ||
+                        if (!accept_ethermint || (length != strlen(ethermint_vc)) ||
                             (strncmp((char *) data, ethermint_vc, length) != 0)) {
                             PRINTF("Error: non standard verifyingContract\n");
                             return false;
@@ -410,6 +573,14 @@ bool td_get_domain_contract_addr(uint8_t addr[ADDRESS_LENGTH]) {
         }
     }
     return false;
+}
+
+bool td_get_domain_contract_addr(uint8_t addr[ADDRESS_LENGTH]) {
+    return get_domain_contract_addr(addr, true);
+}
+
+bool td_get_domain_verifying_address(uint8_t addr[ADDRESS_LENGTH]) {
+    return get_domain_contract_addr(addr, false);
 }
 
 /**
@@ -499,6 +670,15 @@ bool td_visit_struct_fields(const s_struct_712 *s,
 
 bool td_hash_pass(void) {
     return value_hash_pass(&g_impl);
+}
+
+bool td_hash_domain(uint8_t out[CX_KECCAK_256_SIZE]) {
+    return value_hash_domain(&g_impl, out);
+}
+
+bool td_hash_domain_with_contract(const uint8_t contract[ADDRESS_LENGTH],
+                                  uint8_t out[CX_KECCAK_256_SIZE]) {
+    return value_hash_domain_with_contract(&g_impl, contract, out);
 }
 
 const s_struct_712 *td_find_struct_if(td_f_struct_pred pred, const void *ctx) {

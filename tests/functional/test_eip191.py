@@ -51,6 +51,11 @@ def test_personal_sign_non_ascii(scenario_navigator: NavigateWithScenario, test_
     common(scenario_navigator, test_name, msg)
 
 
+def test_personal_sign_hex_looking_text(scenario_navigator: NavigateWithScenario, test_name: str):
+    """A text message that looks like hex keeps the "Message" label, unlike a binary message."""
+    common(scenario_navigator, test_name, "0x01")
+
+
 def test_personal_sign_opensea(scenario_navigator: NavigateWithScenario, test_name: str):
 
     msg = "Welcome to OpenSea!\n\n"
@@ -107,6 +112,26 @@ def test_personal_sign_long_message(scenario_navigator: NavigateWithScenario):
     with app_client.personal_sign(BIP32_PATH, msg):
         scenario_navigator.review_approve(do_comparison=False)
 
+    vrs = ResponseParser.signature(app_client.response().data)
+    assert recover_message(msg, vrs) == device_addr
+
+
+def test_personal_sign_disallowed_path(scenario_navigator: NavigateWithScenario):
+    """A path the OS refuses to derive fails cleanly before the review, and the app keeps running."""
+    backend = scenario_navigator.backend
+    app_client = EthAppClient(backend)
+    msg = b"Example `personal_sign` message"
+
+    with pytest.raises(ExceptionRAPDU) as err:
+        with app_client.personal_sign("m/44'/0'/0'/0/0", msg):
+            scenario_navigator.review_approve(do_comparison=False)
+    assert err.value.status == StatusWord.SWO_INCORRECT_DATA
+
+    with app_client.get_public_addr(display=False):
+        pass
+    _, device_addr, _ = ResponseParser.pk_addr(app_client.response().data)
+    with app_client.personal_sign(BIP32_PATH, msg):
+        scenario_navigator.review_approve(do_comparison=False)
     vrs = ResponseParser.signature(app_client.response().data)
     assert recover_message(msg, vrs) == device_addr
 

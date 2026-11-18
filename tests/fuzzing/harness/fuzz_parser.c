@@ -16,32 +16,47 @@
 
 #include "shared_context.h"
 #include "buffer.h"
-#include "gtp_field.h"
-#include "gtp_tx_info.h"
+#include "gcs_field.h"
+#include "operation_info.h"
 #include "enum_value.h"
 #include "eip712_v1_commands.h"
 #include "eip712_v1_context.h"
+#include "eip712_session.h"
+#include "eip712_v2_schema.h"
+#include "eip712_v2_values.h"
+#include "eip712_v2_message_info.h"
+#include "eip712_v2_path.h"
+#include "typed_data.h"
+#include "operation_ctx.h"
 #include "calldata.h"
 #include "mem_utils.h"  // app_mem_init()
 
 #include "fuzz_harness.h"
 
 enum {
-    PARSER_GTP_FIELD,
-    PARSER_GTP_TX_INFO,
+    PARSER_GCS_FIELD,
+    PARSER_OPERATION_INFO,
     PARSER_ENUM_VALUE,
     PARSER_EIP712,
     PARSER_CALLDATA,
+    PARSER_EIP712_V2_SCHEMA,
+    PARSER_EIP712_V2_VALUES,
+    PARSER_EIP712_V2_MESSAGE_INFO,
+    PARSER_EIP712_PATH,
     PARSER_COUNT,
 };
 
 #define PARSER_ROW(idx) {.ins = (idx), .flags = FUZZ_CMD_HAS_DATA}
 const fuzz_command_spec_t fuzz_commands[] = {
-    PARSER_ROW(PARSER_GTP_FIELD),
-    PARSER_ROW(PARSER_GTP_TX_INFO),
+    PARSER_ROW(PARSER_GCS_FIELD),
+    PARSER_ROW(PARSER_OPERATION_INFO),
     PARSER_ROW(PARSER_ENUM_VALUE),
     PARSER_ROW(PARSER_EIP712),
     PARSER_ROW(PARSER_CALLDATA),
+    PARSER_ROW(PARSER_EIP712_V2_SCHEMA),
+    PARSER_ROW(PARSER_EIP712_V2_VALUES),
+    PARSER_ROW(PARSER_EIP712_V2_MESSAGE_INFO),
+    PARSER_ROW(PARSER_EIP712_PATH),
 };
 FUZZ_COMMAND_COUNT();
 _Static_assert(ARRAYLEN(fuzz_commands) == PARSER_COUNT, "parser tables out of sync");
@@ -49,6 +64,7 @@ _Static_assert(ARRAYLEN(fuzz_commands) == PARSER_COUNT, "parser tables out of sy
 extern const chain_config_t g_fuzz_chain_config;  // mock/app_globals.c
 
 void fuzz_app_reset(void) {
+    fuzz_pending_reset = false;
     reset_app_context();
     app_mem_init();
 
@@ -57,7 +73,7 @@ void fuzz_app_reset(void) {
     g_chain_config = &g_fuzz_chain_config;
 }
 
-static void run_gtp_field(buffer_t *buf) {
+static void run_gcs_field(buffer_t *buf) {
     s_field field = {0};
     s_field_ctx ctx = {.field = &field};
 
@@ -69,13 +85,37 @@ static void run_gtp_field(buffer_t *buf) {
     (void) format_field(&field, 0);
 }
 
-static void run_gtp_tx_info(buffer_t *buf) {
-    s_tx_info tx_info = {0};
-    s_tx_info_ctx ctx = {.tx_info = &tx_info};
+/* The same struct is a TRANSACTION_INFO and an EIP712_MESSAGE_INFO depending on the command it
+ * comes in, so every input goes through both. As the first TRANSACTION_INFO of a flow, it describes
+ * a transaction carrying the calldata that follows it, which the FIELD steps then format. */
+static void run_operation_info(fuzz_cursor_t *cur) {
+    size_t info_len;
+    const uint8_t *info_payload = fuzz_take_slice16(cur, &info_len);
+    size_t calldata_len;
+    const uint8_t *calldata_blob = fuzz_take_slice16(cur, &calldata_len);
+    buffer_t buf = {.ptr = (uint8_t *) info_payload, .size = info_len, .offset = 0};
+    s_operation_info *info;
 
-    cx_sha256_init(&ctx.struct_hash);
-    if (handle_tx_info_struct(buf, &ctx)) {
-        (void) verify_tx_info_struct(&ctx);
+    if ((info = new_operation_info(&buf, OPERATION_INFO_CTX_EIP712)) != NULL) {
+        delete_operation_info(info);
+    }
+    buf.offset = 0;
+    if ((info = new_operation_info(&buf, OPERATION_INFO_CTX_SIGN_TX)) == NULL) {
+        return;
+    }
+    if ((get_operation_ctx_count() != 0) || operation_ctx_has_message() ||
+        (g_parked_calldata != NULL) ||
+        ((g_parked_calldata = calldata_init(calldata_len, get_selector(info))) == NULL)) {
+        delete_operation_info(info);
+        return;
+    }
+    // A calldata left parked on failure is released by the next reset
+    appState = APP_STATE_SIGNING_TX;
+    if (!calldata_append(g_parked_calldata, calldata_blob, calldata_len) ||
+        !operation_ctx_init(g_parked_calldata, NULL, info->contract_addr, NULL, &info->chain_id) ||
+        !find_matching_operation_ctx(info->contract_addr, get_selector(info), &info->chain_id) ||
+        !operation_ctx_set_info(info)) {
+        delete_operation_info(info);
     }
 }
 
@@ -111,37 +151,61 @@ static void run_eip712(fuzz_cursor_t *cur) {
         uint8_t len;
         const uint8_t *payload = fuzz_take_slice(cur, &len);
 
+        uint16_t sw;
         switch (op % 4) {
             case 0:
-                handle_eip712_v1_struct_def(p2, payload, len);
+                sw = handle_eip712_v1_struct_def(p2, payload, len);
                 break;
             case 1:
-                handle_eip712_v1_struct_impl(p1, p2, payload, len);
+                sw = handle_eip712_v1_struct_impl(p1, p2, payload, len);
                 break;
             case 2:
-                handle_eip712_v1_filtering(p1, p2, payload, len);
+                sw = handle_eip712_v1_filtering(p1, p2, payload, len);
                 break;
             default:
-                handle_eip712_v1_sign(payload, len);
+                sw = handle_eip712_v1_sign(payload, len);
                 break;
+        }
+        // Same reset as main.c before the next command; the context is rebuilt lazily.
+        if (fuzz_pending_reset || ((sw != SWO_NO_RESPONSE) && (sw != SWO_SUCCESS) &&
+                                   (sw != SWO_COMMAND_CODE_NOT_SUPPORTED))) {
+            fuzz_pending_reset = false;
+            reset_app_context();
         }
     }
     eip712_v1_context_deinit();
+    td_deinit();
+    eip712_session_close();
 }
 
 /* Append/read program over one calldata store. The store is local so it cannot
  * outlive the heap that app_mem_init() resets between iterations. */
 static void run_calldata(fuzz_cursor_t *cur) {
-    s_calldata *calldata = calldata_init(CALLDATA_SELECTOR_SIZE + cur->left, NULL);
+    size_t size;
+    const uint8_t *blob = fuzz_take_slice16(cur, &size);
+    s_calldata *calldata = calldata_init(size, NULL);
+    size_t appended = 0;
 
     if (calldata == NULL) {
         return;
     }
     while (cur->left > 0) {
+        uint8_t op = fuzz_take_u8(cur);
         const uint8_t *chunk;
         uint8_t len;
 
-        if (fuzz_take_u8(cur) & 1) {
+        if (op & 1) {
+            // Next piece of the blob, so the store can complete and reads succeed.
+            size_t piece = fuzz_take_u8(cur);
+
+            if (piece > size - appended) {
+                piece = size - appended;
+            }
+            if ((piece > 0) && calldata_append(calldata, blob + appended, piece)) {
+                appended += piece;
+            }
+        } else if (op & 2) {
+            // Bytes from outside the blob, which may overrun the declared size.
             chunk = fuzz_take_slice(cur, &len);
             calldata_append(calldata, chunk, len);
         } else {
@@ -151,21 +215,77 @@ static void run_calldata(fuzz_cursor_t *cur) {
     calldata_delete(calldata);
 }
 
-/* The GTP and enum handlers each take one complete TLV payload. */
+/*
+ * An EIP-712 V2 message, built by one TLV payload per step: its schema, then its values, then its
+ * message info. Each step checks what its command checks, so the steps after it meet the state a
+ * real flow leaves; once a message info is in, the FIELD steps read their EIP712_PATH against the
+ * message.
+ */
+
+// The schema opens a new flow, as its first chunk does after the app was reset
+static void run_eip712_v2_schema(buffer_t *buf) {
+    reset_app_context();
+    if (!eip712_session_open(EIP712_SESSION_V2) || !td_init()) {
+        return;
+    }
+    (void) handle_eip712_v2_schema_struct(buf);
+}
+
+// The values fill a complete schema, once
+static void run_eip712_v2_values(buffer_t *buf) {
+    if ((eip712_session_get() != EIP712_SESSION_V2) || !td_has_schema() || td_has_domain() ||
+        td_has_message()) {
+        return;
+    }
+    (void) handle_eip712_v2_values_struct(buf);
+}
+
+// The info is bound to a message that has its values, and a message has one
+static void run_eip712_v2_message_info(buffer_t *buf) {
+    if ((eip712_session_get() != EIP712_SESSION_V2) || !td_has_domain() || !td_has_message() ||
+        operation_ctx_has_message()) {
+        return;
+    }
+    (void) handle_eip712_v2_message_info_struct(buf);
+}
+
+// A path is resolved against the message, when the steps before built one
+static void run_eip712_path(buffer_t *buf) {
+    s_eip712_path path;
+    s_eip712_path_context ctx = {.path = &path};
+    s_parsed_value_collection collection;
+
+    if (handle_eip712_path_struct(buf, &ctx)) {
+        (void) eip712_path_get(&path, &collection);
+    }
+}
+
+/* The GCS FIELD, enum and EIP-712 V2 handlers each take one complete TLV payload. */
 static void run_tlv_step(uint8_t parser, fuzz_cursor_t *cur) {
-    uint8_t len;
-    const uint8_t *payload = fuzz_take_slice(cur, &len);
+    size_t len;
+    const uint8_t *payload = fuzz_take_slice16(cur, &len);
     buffer_t buf = {.ptr = (uint8_t *) payload, .size = len, .offset = 0};
 
     switch (parser) {
-        case PARSER_GTP_FIELD:
-            run_gtp_field(&buf);
+        case PARSER_GCS_FIELD:
+            run_gcs_field(&buf);
             break;
-        case PARSER_GTP_TX_INFO:
-            run_gtp_tx_info(&buf);
+        case PARSER_ENUM_VALUE:
+            run_enum_value(&buf);
+            break;
+        case PARSER_EIP712_V2_SCHEMA:
+            run_eip712_v2_schema(&buf);
+            break;
+        case PARSER_EIP712_V2_VALUES:
+            run_eip712_v2_values(&buf);
+            break;
+        case PARSER_EIP712_V2_MESSAGE_INFO:
+            run_eip712_v2_message_info(&buf);
+            break;
+        case PARSER_EIP712_PATH:
+            run_eip712_path(&buf);
             break;
         default:
-            run_enum_value(&buf);
             break;
     }
 }
@@ -186,6 +306,9 @@ void fuzz_app_dispatch(void *cmd_v) {
                 break;
             case PARSER_CALLDATA:
                 run_calldata(&cur);
+                break;
+            case PARSER_OPERATION_INFO:
+                run_operation_info(&cur);
                 break;
             default:
                 run_tlv_step(parser, &cur);

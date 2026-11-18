@@ -56,6 +56,21 @@ iteration, several scalar columns).
 Verifies the group/iteration mechanism when the sub-fields are themselves arrays —
 each iteration step pulls one element from each array in lockstep.
 
+### test_gcs_array_bound_lengths
+
+**Purpose**: Test the length of the `START` and `END` bounds of an array step.
+
+A bound of one byte is 0 to 255 and a bound of two bytes is two's complement, so `0xFF` is an
+end past the three elements of the array and `0xFFFF` is -1. A bound of none, three or four bytes
+is refused.
+
+### test_gcs_array_weight_lengths
+
+**Purpose**: Test the `WEIGHT` of an array step.
+
+The weight is a `uint8` read from the whole payload: `0x0001` is 1, `0x0100` does not fit and a
+weight of zero, with one byte or two, is refused.
+
 ### test_gcs_separator
 
 **Purpose**: Test the field-level `SEPARATOR` tag on an array field.
@@ -100,6 +115,8 @@ single secondary value must be *broadcast* (repeated) across the N iterations.
 | MAP_REF / MAP_ENTRY           | Calldata key, ContainerPath.CHAIN_ID key              |
 | PARAM_GROUP / iteration       | Sequential (scalars), sequential (arrays), broadcast  |
 | Separator                     | Field-level separator on arrays                       |
+| Path bounds                   | One and two byte bounds, other lengths refused        |
+| Path weight                   | A uint8 read whole, never zero                        |
 | Formatters                    | Datetime, token amount, enum, …                       |
 | Constraints                   | Equality, range, visibility                           |
 | EIP-7930 interoperable addr   | Address + chain rendering                             |

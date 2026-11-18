@@ -20,14 +20,8 @@ static void reviewChoice(bool confirm) {
 static void buildScreen(e_confirmation_type confirm_type) {
     nbgl_operationType_t op = TYPE_TRANSACTION;
 
-    // Initialize the buffers
-    if (!ui_pairs_init(1)) {
-        // Initialization failed, cleanup and return
-        return;
-    }
-    // Initialize the buffers
-    if (!ui_buffers_init(TITLE_MSG_LEN, 0, FINISH_MSG_LEN)) {
-        // Initialization failed, cleanup and return
+    if (!ui_pairs_init(1) || !ui_buffers_init(TITLE_MSG_LEN, 0, FINISH_MSG_LEN)) {
+        io_seproxyhal_send_status(SWO_INSUFFICIENT_MEMORY, 0, true, true);
         return;
     }
 

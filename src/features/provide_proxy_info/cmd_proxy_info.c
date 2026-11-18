@@ -2,18 +2,18 @@
 #include "proxy_info.h"
 #include "tlv_apdu.h"
 #include "apdu_constants.h"
+#include "challenge.h"
 
 static bool handle_tlv_payload(const buffer_t *buf) {
     s_proxy_info_ctx ctx = {0};
-    bool parsing_ret = false;
+    bool ret;
 
     proxy_cleanup();
     cx_sha256_init(&ctx.struct_hash);
-    parsing_ret = handle_proxy_info_tlv_payload(buf, &ctx);
-    if (!parsing_ret || !verify_proxy_info_struct(&ctx)) {
-        return false;
-    }
-    return true;
+    ret = handle_proxy_info_tlv_payload(buf, &ctx) && verify_proxy_info_struct(&ctx);
+    // A challenge is good for a single attempt, successful or not
+    roll_challenge();
+    return ret;
 }
 
 uint16_t handle_proxy_info(uint8_t p1, uint8_t p2, uint8_t lc, const uint8_t *payload) {

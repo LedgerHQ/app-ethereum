@@ -27,7 +27,7 @@
 
 #include "shared_context.h"
 #include "network.h"
-#include "tx_ctx.h"         // s_calldata + extern g_parked_calldata
+#include "operation_ctx.h"  // s_calldata + extern g_parked_calldata
 #include "nbgl_use_case.h"  // nbgl_warning_t
 
 // Forward-declare to avoid pulling network_info.h, which lives in a
@@ -91,7 +91,7 @@ WEAK swap_value_check_t G_swap_expected_value_check;
 WEAK uint8_t G_swap_expected_value[INT256_LENGTH];
 
 // =============================================================================
-// app/src/features/generic_tx_parser/tx_ctx.c
+// app/src/features/gcs/operation_ctx.c
 // =============================================================================
 // g_parked_calldata is the buffered calldata captured during the
 // EIP-712 preview before the user confirms.
@@ -138,8 +138,8 @@ WEAK nbgl_warning_t warning;
 // txContext.content at this and write fields directly. Each test process
 // runs independently so there is no cross-test bleed at runtime.
 // g_fake_tx_info (test_param_*) is intentionally left as 5 file-local
-// instances: s_tx_info is an anonymous-struct typedef so an extern decl
-// in wraps.h would have to pull gtp_tx_info.h's cx.h chain through every
+// instances: s_operation_info is an anonymous-struct typedef so an extern decl
+// in wraps.h would have to pull operation_info.h's cx.h chain through every
 // test target, and the savings (one line per test) don't justify it.
 
 WEAK txContent_t g_tx_content;

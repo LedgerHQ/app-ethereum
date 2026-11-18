@@ -32,14 +32,14 @@
 #include "eth_ustream.h"
 #include "feature_sign_tx.h"
 #include "Mocknetwork.h"  // network_info_t
-#include "tx_ctx.h"
+#include "operation_ctx.h"
 #include "calldata.h"
 
 // =============================================================================
 // Globals the module reads — provide storage here.
 // =============================================================================
 
-// eth_ustream.c declares s_calldata *g_parked_calldata in tx_ctx.h.
+// eth_ustream.c declares s_calldata *g_parked_calldata in operation_ctx.h.
 
 // =============================================================================
 // SDK crypto stubs — configurable failure injection
@@ -96,17 +96,25 @@ customStatus_e custom_processor(txContext_t *context) {
     return CUSTOM_NOT_HANDLED;
 }
 
-bool tx_ctx_init(s_calldata *calldata,
-                 const uint8_t *from,
-                 const uint8_t *to,
-                 const uint8_t *amount,
-                 const uint64_t *chain_id) {
+// Controlled by the operation_ctx_init failure tests: g_operation_ctx_init_ok selects the
+// return value, g_operation_ctx_init_takes_ownership mimics a failure occurring after
+// the calldata was handed over to the new context (g_parked_calldata cleared).
+static bool g_operation_ctx_init_ok = true;
+static bool g_operation_ctx_init_takes_ownership = false;
+bool operation_ctx_init(s_calldata *calldata,
+                        const uint8_t *from,
+                        const uint8_t *to,
+                        const uint8_t *amount,
+                        const uint64_t *chain_id) {
     (void) calldata;
     (void) from;
     (void) to;
     (void) amount;
     (void) chain_id;
-    return true;
+    if (g_operation_ctx_init_takes_ownership) {
+        g_parked_calldata = NULL;
+    }
+    return g_operation_ctx_init_ok;
 }
 
 // Controlled by the store_calldata tests below: when g_calldata_init_ok
@@ -132,8 +140,13 @@ bool calldata_append(s_calldata *calldata, const uint8_t *buffer, size_t size) {
     return g_calldata_append_ok;
 }
 
+static int g_calldata_delete_calls = 0;
+static int g_calldata_delete_null_calls = 0;
 void calldata_delete(s_calldata *node) {
-    (void) node;
+    g_calldata_delete_calls++;
+    if (node == NULL) {
+        g_calldata_delete_null_calls++;
+    }
 }
 
 // =============================================================================
@@ -151,6 +164,10 @@ static void reset(void) {
     g_calldata_append_ok = true;
     g_calldata_init_calls = 0;
     g_calldata_append_calls = 0;
+    g_calldata_delete_calls = 0;
+    g_calldata_delete_null_calls = 0;
+    g_operation_ctx_init_ok = true;
+    g_operation_ctx_init_takes_ownership = false;
 }
 
 // =============================================================================
@@ -635,23 +652,6 @@ static const uint8_t g_legacy_tx_with_8byte_data[] = {
     0x1B, 0x80, 0x80,                                            // v, r, s
 };
 
-void test_process_data_captures_selector_bytes(void) {
-    cx_sha3_t sha3;
-    txContent_t content = {0};
-    txContext_t ctx;
-    TEST_ASSERT_TRUE(init_tx(&ctx, &sha3, &content, /*store_calldata=*/false));
-    ctx.txType = LEGACY;
-
-    parserStatus_e r =
-        process_tx(&ctx, g_legacy_tx_with_8byte_data, sizeof(g_legacy_tx_with_8byte_data));
-    TEST_ASSERT_EQUAL(r, USTREAM_FINISHED);
-
-    // process_data captures the first 4 bytes of the data field into
-    // ctx.selector_bytes for the gating cross-check.
-    static const uint8_t expected_selector[CALLDATA_SELECTOR_SIZE] = {0xA9, 0x05, 0x9C, 0xBB};
-    TEST_ASSERT_EQUAL_MEMORY(ctx.selector_bytes, expected_selector, CALLDATA_SELECTOR_SIZE);
-}
-
 void test_process_data_store_calldata_happy_path(void) {
     cx_sha3_t sha3;
     txContent_t content = {0};
@@ -682,6 +682,42 @@ void test_process_data_store_calldata_init_failure_rejected(void) {
     TEST_ASSERT_EQUAL(r, USTREAM_FAULT);
     TEST_ASSERT_EQUAL(g_calldata_init_calls, 1);
     TEST_ASSERT_EQUAL(g_calldata_append_calls, 0);  // never reached
+}
+
+// operation_ctx_init failure once parsing is done: the parser must report a fault
+// (not "processing", which the APDU layer turns into 0x9000) and release the
+// parked calldata only while it still owns it.
+void test_process_tx_store_calldata_ctx_init_failure_rejected(void) {
+    cx_sha3_t sha3;
+    txContent_t content = {0};
+    txContext_t ctx;
+    TEST_ASSERT_TRUE(init_tx(&ctx, &sha3, &content, /*store_calldata=*/true));
+    ctx.txType = LEGACY;
+    g_operation_ctx_init_ok = false;
+
+    parserStatus_e r =
+        process_tx(&ctx, g_legacy_tx_with_8byte_data, sizeof(g_legacy_tx_with_8byte_data));
+    TEST_ASSERT_EQUAL(r, USTREAM_FAULT);
+    TEST_ASSERT_EQUAL(g_calldata_delete_calls, 1);
+    TEST_ASSERT_EQUAL(g_calldata_delete_null_calls, 0);
+    TEST_ASSERT_NULL(g_parked_calldata);
+}
+
+void test_process_tx_store_calldata_ctx_init_failure_after_handover_rejected(void) {
+    cx_sha3_t sha3;
+    txContent_t content = {0};
+    txContext_t ctx;
+    TEST_ASSERT_TRUE(init_tx(&ctx, &sha3, &content, /*store_calldata=*/true));
+    ctx.txType = LEGACY;
+    g_operation_ctx_init_ok = false;
+    g_operation_ctx_init_takes_ownership = true;
+
+    parserStatus_e r =
+        process_tx(&ctx, g_legacy_tx_with_8byte_data, sizeof(g_legacy_tx_with_8byte_data));
+    TEST_ASSERT_EQUAL(r, USTREAM_FAULT);
+    // The context owns the calldata now: it must not be deleted here.
+    TEST_ASSERT_EQUAL(g_calldata_delete_calls, 0);
+    TEST_ASSERT_NULL(g_parked_calldata);
 }
 
 // Same legacy envelope but with a 2-byte data field — shorter than
@@ -1021,9 +1057,10 @@ int main(void) {
     RUN_TEST(test_process_tx_eip2930_happy_path);
     RUN_TEST(test_process_tx_eip7702_happy_path);
     RUN_TEST(test_process_tx_eip1559_chainid_overflow_rejected);
-    RUN_TEST(test_process_data_captures_selector_bytes);
     RUN_TEST(test_process_data_store_calldata_happy_path);
     RUN_TEST(test_process_data_store_calldata_init_failure_rejected);
+    RUN_TEST(test_process_tx_store_calldata_ctx_init_failure_rejected);
+    RUN_TEST(test_process_tx_store_calldata_ctx_init_failure_after_handover_rejected);
     RUN_TEST(test_process_data_store_calldata_short_data_rejected);
     RUN_TEST(test_process_tx_eip2930_nonempty_access_list);
     RUN_TEST(test_process_tx_eip7702_nonempty_auth_list);

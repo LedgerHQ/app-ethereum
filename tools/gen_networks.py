@@ -83,7 +83,15 @@ const network_icon_t g_network_icons[{len(networks)}] = {{\
             glyph_file = get_network_glyph_path(net, path)
             if os.path.isfile(glyph_file):
                 if os.path.islink(glyph_file):
-                    glyph_name = Path(os.path.realpath(glyph_file)).stem
+                    target = Path(os.path.realpath(glyph_file))
+                    # Only a glyph built from the glyphs directory has a C_ symbol
+                    if target.parent != Path(os.path.realpath(os.path.dirname(glyph_file))):
+                        print(f"Error: {glyph_file} links outside its directory", file=sys.stderr)
+                        return False
+                    glyph_name = target.stem
+                if not re.fullmatch(r"[A-Za-z0-9_]+", glyph_name):
+                    print(f"Error: invalid glyph name {glyph_name!r}", file=sys.stderr)
+                    return False
                 print(" " * 4, end="", file=out)
                 print(
                     f"{{.chain_id = {net.chain_id}, .icon = &C_{glyph_name}}}, // {net.name}",

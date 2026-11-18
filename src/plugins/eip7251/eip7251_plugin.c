@@ -29,6 +29,7 @@ typedef struct {
         };
     };
     uint8_t received;
+    bool malformed;
 } eip7251_context_t;
 
 static bool target_equals_source(const eip7251_context_t *ctx) {
@@ -39,30 +40,33 @@ static void eip7251_plugin_init_contract(ethPluginInitContract_t *param) {
     eip7251_context_t *context = (eip7251_context_t *) param->pluginContext;
 
     explicit_bzero(context, sizeof(*context));
-    if ((size_t) context->received + CALLDATA_SELECTOR_SIZE >
-        sizeof(context->consolidation_request)) {
-        param->result = ETH_PLUGIN_RESULT_ERROR;
+    // The chain may only be known at finalize, which decides how a malformed request ends
+    if ((param->dataSize != sizeof(context->consolidation_request)) ||
+        ((size_t) context->received + CALLDATA_SELECTOR_SIZE >
+         sizeof(context->consolidation_request))) {
+        context->malformed = true;
     } else {
         memcpy(&context->consolidation_request[context->received],
                param->selector,
                CALLDATA_SELECTOR_SIZE);
         context->received += CALLDATA_SELECTOR_SIZE;
-        param->result = ETH_PLUGIN_RESULT_OK;
     }
+    param->result = ETH_PLUGIN_RESULT_OK;
 }
 
 static void eip7251_plugin_provider_parameter(ethPluginProvideParameter_t *param) {
     eip7251_context_t *context = (eip7251_context_t *) param->pluginContext;
 
-    if ((context->received + param->parameter_size) > sizeof(context->consolidation_request)) {
-        param->result = ETH_PLUGIN_RESULT_ERROR;
+    if (context->malformed ||
+        ((context->received + param->parameter_size) > sizeof(context->consolidation_request))) {
+        context->malformed = true;
     } else {
         memcpy(&context->consolidation_request[context->received],
                param->parameter,
                param->parameter_size);
         context->received += param->parameter_size;
-        param->result = ETH_PLUGIN_RESULT_OK;
     }
+    param->result = ETH_PLUGIN_RESULT_OK;
 }
 
 // EIP-7251 charges a dynamic per-request fee paid in native value. In normal
@@ -95,9 +99,9 @@ static bool has_tx_value(const txContent_t *txContent) {
 static void eip7251_plugin_finalize(ethPluginFinalize_t *param) {
     eip7251_context_t *context = (eip7251_context_t *) param->pluginContext;
 
-    if (get_tx_chain_id() != ETHEREUM_MAINNET_CHAINID) {
-        PRINTF("eip7251: consolidation predeploy only valid on Ethereum mainnet\n");
-        param->result = ETH_PLUGIN_RESULT_ERROR;
+    if (!chain_has_ethereum_staking(get_tx_chain_id())) {
+        PRINTF("eip7251: no consolidation predeploy on this chain, blind signing fallback\n");
+        param->result = ETH_PLUGIN_RESULT_FALLBACK;
         return;
     }
     param->uiType = ETH_UI_TYPE_GENERIC;
@@ -113,9 +117,10 @@ static void eip7251_plugin_finalize(ethPluginFinalize_t *param) {
     if (has_tx_value(param->txContent)) {
         param->numScreens++;
     }
-    param->result = (context->received == sizeof(context->consolidation_request))
-                        ? ETH_PLUGIN_RESULT_OK
-                        : ETH_PLUGIN_RESULT_ERROR;
+    param->result =
+        (!context->malformed && (context->received == sizeof(context->consolidation_request)))
+            ? ETH_PLUGIN_RESULT_OK
+            : ETH_PLUGIN_RESULT_ERROR;
 }
 
 static void eip7251_plugin_query_contract_id(ethQueryContractID_t *param) {
@@ -151,23 +156,21 @@ static void eip7251_plugin_query_contract_ui(ethQueryContractUI_t *param) {
     }
     switch (screen) {
         case S_SOURCE:
-            memcpy(param->msg, "0x", 2);
             strlcpy(param->title, show_target ? "From validator" : "Validator", param->titleLength);
-            if (format_hex(context->source_pubkey,
-                           sizeof(context->source_pubkey),
-                           &param->msg[2],
-                           param->msgLength - 2) < 0) {
+            if (bytes_to_hex_0x(param->msg,
+                                param->msgLength,
+                                context->source_pubkey,
+                                sizeof(context->source_pubkey)) < 0) {
                 param->result = ETH_PLUGIN_RESULT_ERROR;
                 return;
             }
             break;
         case S_TARGET:
-            memcpy(param->msg, "0x", 2);
             strlcpy(param->title, "To validator", param->titleLength);
-            if (format_hex(context->target_pubkey,
-                           sizeof(context->target_pubkey),
-                           &param->msg[2],
-                           param->msgLength - 2) < 0) {
+            if (bytes_to_hex_0x(param->msg,
+                                param->msgLength,
+                                context->target_pubkey,
+                                sizeof(context->target_pubkey)) < 0) {
                 param->result = ETH_PLUGIN_RESULT_ERROR;
                 return;
             }

@@ -46,6 +46,7 @@ typedef struct {
         };
     };
     uint8_t received;
+    bool malformed;
 } eip7002_context_t;
 
 // =============================================================================
@@ -60,6 +61,10 @@ static uint64_t s_tx_chain_id = 1;
 static uint64_t get_tx_chain_id_stub(int cmock_num_calls) {
     (void) cmock_num_calls;
     return s_tx_chain_id;
+}
+static bool chain_has_ethereum_staking_stub(uint64_t chain_id, int cmock_num_calls) {
+    (void) cmock_num_calls;
+    return (chain_id == 1) || (chain_id == 560048);
 }
 
 // =============================================================================
@@ -91,6 +96,7 @@ static void run_init(eip7002_context_t *ctx, const uint8_t *selector, const txCo
     msg.pluginContextLength = sizeof(*ctx);
     msg.selector = selector;
     msg.txContent = tx;
+    msg.dataSize = WITHDRAWAL_REQUEST_SIZE;
     eip7002_plugin_call(ETH_PLUGIN_INIT_CONTRACT, &msg);
 }
 
@@ -125,6 +131,27 @@ void test_init_copies_selector_and_resets_received(void) {
     TEST_ASSERT_EQUAL(ctx.withdrawal_request[55], 0);
 }
 
+void test_init_wrong_data_size_flagged(void) {
+    static const size_t sizes[] = {WITHDRAWAL_REQUEST_SIZE - 1, WITHDRAWAL_REQUEST_SIZE + 1, 0};
+    static const uint8_t selector[CALLDATA_SELECTOR_SIZE] = {0xDE, 0xAD, 0xBE, 0xEF};
+    eip7002_context_t ctx;
+    txContent_t tx = {0};
+
+    for (size_t i = 0; i < sizeof(sizes) / sizeof(sizes[0]); ++i) {
+        ethPluginInitContract_t msg = {0};
+        msg.pluginContext = (uint8_t *) &ctx;
+        msg.pluginContextLength = sizeof(ctx);
+        msg.selector = selector;
+        msg.txContent = &tx;
+        msg.dataSize = sizes[i];
+        eip7002_plugin_call(ETH_PLUGIN_INIT_CONTRACT, &msg);
+        // Rejection is deferred to FINALIZE, once the chain is known.
+        TEST_ASSERT_EQUAL(ETH_PLUGIN_RESULT_OK, msg.result);
+        TEST_ASSERT_TRUE(ctx.malformed);
+        TEST_ASSERT_EQUAL(0, ctx.received);
+    }
+}
+
 void test_parameters_concatenate_into_request(void) {
     eip7002_context_t ctx = {0};
     static const uint8_t selector[CALLDATA_SELECTOR_SIZE] = {0xDE, 0xAD, 0xBE, 0xEF};
@@ -145,17 +172,30 @@ void test_parameters_concatenate_into_request(void) {
     for (int i = 0; i < 8; i++) TEST_ASSERT_EQUAL(ctx.raw_amount[i], 0xAA);
 }
 
-void test_parameter_overflow_rejected(void) {
+void test_parameter_overflow_flagged(void) {
     eip7002_context_t ctx = {.received = WITHDRAWAL_REQUEST_SIZE - 1};
     uint8_t chunk[32];
     memset(chunk, 0xFF, sizeof(chunk));
-    // received(=55) + parameter_size(=32) = 87 > 56 → reject.
+    // received(=55) + parameter_size(=32) = 87 > 56 → flagged, nothing copied.
     ethPluginProvideParameter_t msg = {0};
     msg.pluginContext = (uint8_t *) &ctx;
     msg.parameter = chunk;
     msg.parameter_size = 32;
     eip7002_plugin_call(ETH_PLUGIN_PROVIDE_PARAMETER, &msg);
-    TEST_ASSERT_EQUAL(msg.result, ETH_PLUGIN_RESULT_ERROR);
+    TEST_ASSERT_EQUAL(msg.result, ETH_PLUGIN_RESULT_OK);
+    TEST_ASSERT_TRUE(ctx.malformed);
+    TEST_ASSERT_EQUAL(WITHDRAWAL_REQUEST_SIZE - 1, ctx.received);
+    TEST_ASSERT_EQUAL(0, ctx.withdrawal_request[WITHDRAWAL_REQUEST_SIZE - 1]);
+}
+
+void test_parameter_after_malformed_not_copied(void) {
+    eip7002_context_t ctx = {.malformed = true};
+    uint8_t chunk[32];
+    memset(chunk, 0xFF, sizeof(chunk));
+    feed_param(&ctx, chunk, 32);
+    TEST_ASSERT_TRUE(ctx.malformed);
+    TEST_ASSERT_EQUAL(0, ctx.received);
+    TEST_ASSERT_EQUAL(0, ctx.withdrawal_request[0]);
 }
 
 // =============================================================================
@@ -186,15 +226,47 @@ void test_finalize_incomplete_rejected(void) {
     TEST_ASSERT_EQUAL(msg.result, ETH_PLUGIN_RESULT_ERROR);
 }
 
-void test_finalize_non_mainnet_rejected(void) {
+void test_finalize_non_staking_chain_falls_back(void) {
     eip7002_context_t ctx = {.received = WITHDRAWAL_REQUEST_SIZE};
     txContent_t tx = {0};
     ethPluginFinalize_t msg = {0};
     msg.pluginContext = (uint8_t *) &ctx;
     msg.txContent = &tx;
-    s_tx_chain_id = 2;  // not mainnet
+    s_tx_chain_id = 3151908;  // devnet
+    eip7002_plugin_call(ETH_PLUGIN_FINALIZE, &msg);
+    TEST_ASSERT_EQUAL(msg.result, ETH_PLUGIN_RESULT_FALLBACK);
+}
+
+void test_finalize_malformed_rejected_on_staking_chain(void) {
+    eip7002_context_t ctx = {.received = WITHDRAWAL_REQUEST_SIZE, .malformed = true};
+    txContent_t tx = {0};
+    ethPluginFinalize_t msg = {0};
+    msg.pluginContext = (uint8_t *) &ctx;
+    msg.txContent = &tx;
     eip7002_plugin_call(ETH_PLUGIN_FINALIZE, &msg);
     TEST_ASSERT_EQUAL(msg.result, ETH_PLUGIN_RESULT_ERROR);
+}
+
+void test_finalize_malformed_non_staking_chain_falls_back(void) {
+    eip7002_context_t ctx = {.malformed = true};
+    txContent_t tx = {0};
+    ethPluginFinalize_t msg = {0};
+    msg.pluginContext = (uint8_t *) &ctx;
+    msg.txContent = &tx;
+    s_tx_chain_id = 3151908;  // devnet
+    eip7002_plugin_call(ETH_PLUGIN_FINALIZE, &msg);
+    TEST_ASSERT_EQUAL(msg.result, ETH_PLUGIN_RESULT_FALLBACK);
+}
+
+void test_finalize_hoodi_accepted(void) {
+    eip7002_context_t ctx = {.received = WITHDRAWAL_REQUEST_SIZE};
+    txContent_t tx = {0};
+    ethPluginFinalize_t msg = {0};
+    msg.pluginContext = (uint8_t *) &ctx;
+    msg.txContent = &tx;
+    s_tx_chain_id = 560048;  // Hoodi
+    eip7002_plugin_call(ETH_PLUGIN_FINALIZE, &msg);
+    TEST_ASSERT_EQUAL(msg.result, ETH_PLUGIN_RESULT_OK);
 }
 
 void test_finalize_partial_withdrawal_extra_screen(void) {
@@ -452,6 +524,7 @@ void test_has_tx_value_null_txcontent_returns_false(void) {
 void setUp(void) {
     Mocknetwork_Init();
     get_tx_chain_id_StubWithCallback(get_tx_chain_id_stub);
+    chain_has_ethereum_staking_StubWithCallback(chain_has_ethereum_staking_stub);
     get_displayable_ticker_IgnoreAndReturn("ETH");
     reset();
 }
@@ -463,11 +536,16 @@ void tearDown(void) {
 int main(void) {
     UNITY_BEGIN();
     RUN_TEST(test_init_copies_selector_and_resets_received);
+    RUN_TEST(test_init_wrong_data_size_flagged);
     RUN_TEST(test_parameters_concatenate_into_request);
-    RUN_TEST(test_parameter_overflow_rejected);
+    RUN_TEST(test_parameter_overflow_flagged);
+    RUN_TEST(test_parameter_after_malformed_not_copied);
     RUN_TEST(test_finalize_complete_request_one_screen);
     RUN_TEST(test_finalize_incomplete_rejected);
-    RUN_TEST(test_finalize_non_mainnet_rejected);
+    RUN_TEST(test_finalize_non_staking_chain_falls_back);
+    RUN_TEST(test_finalize_malformed_rejected_on_staking_chain);
+    RUN_TEST(test_finalize_malformed_non_staking_chain_falls_back);
+    RUN_TEST(test_finalize_hoodi_accepted);
     RUN_TEST(test_finalize_partial_withdrawal_extra_screen);
     RUN_TEST(test_finalize_tx_value_above_threshold_extra_screen);
     RUN_TEST(test_finalize_tx_value_below_threshold_hidden);

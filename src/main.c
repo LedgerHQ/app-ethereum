@@ -31,8 +31,6 @@
 #include "handle_get_printable_amount.h"
 #include "handle_check_address.h"
 #include "swap_entrypoints.h"
-#include "eip712_v1_commands.h"
-#include "eip712_v1_context.h"  // eip712_v1_context, eip712_v1_context_deinit
 #include "challenge.h"
 #include "cmd_trusted_name.h"
 #include "crypto_helpers.h"
@@ -48,7 +46,10 @@
 #include "cmd_get_tx_simulation.h"
 #include "cmd_get_gating.h"
 #include "cmd_proxy_info.h"
+#include "tlv_apdu.h"
+#ifdef HAVE_7702_SUPPORT
 #include "commands_7702.h"
+#endif
 #include "sign_message.h"
 #include "ui_utils.h"
 #include "network_info.h"
@@ -58,7 +59,7 @@
 #endif  // HAVE_ADDRESS_BOOK_LEDGER_ACCOUNT
 #endif  // HAVE_ADDRESS_BOOK
 #include "cmd_safe_account.h"
-#include "tx_ctx.h"
+#include "operation_ctx.h"
 #include "enum_value.h"
 #include "proxy_info.h"
 
@@ -81,6 +82,8 @@ uint32_t eth2WithdrawalIndex;
 const internalStorage_t N_storage_real;
 
 const caller_app_t *g_caller_app = NULL;
+// Local copy of the caller description: the caller's own memory is never written to
+static caller_app_t s_caller_app;
 const chain_config_t *g_chain_config;
 
 uint16_t io_seproxyhal_send_status(uint16_t sw, uint32_t tx, bool reset, bool idle) {
@@ -125,6 +128,7 @@ void app_main(void) {
                            cmd.lc,
                            cmd.lc,
                            cmd.data);
+                    tlv_apdu_new_command(cmd.ins);
                     sw = handleApdu(&cmd, &tx);
                 }
             }
@@ -206,12 +210,21 @@ void coin_main(eth_libargs_t *args) {
             g_chain_config = args->chain_config;
         }
         if (args->caller_app != NULL) {
-            if (g_chain_config != NULL) {
-                args->caller_app->type = CALLER_TYPE_CLONE;
-            } else {
-                args->caller_app->type = CALLER_TYPE_PLUGIN;
+            // The name is rendered in several screens: refuse to start without a bounded one
+            if ((args->caller_app->name == NULL) ||
+                (strnlen(args->caller_app->name, MAX_CALLER_NAME_LEN + 1) > MAX_CALLER_NAME_LEN)) {
+                app_exit();
             }
-            g_caller_app = args->caller_app;
+            s_caller_app.name = args->caller_app->name;
+#ifdef HAVE_NBGL
+            s_caller_app.icon = args->caller_app->icon;
+#endif
+            if (g_chain_config != NULL) {
+                s_caller_app.type = CALLER_TYPE_CLONE;
+            } else {
+                s_caller_app.type = CALLER_TYPE_PLUGIN;
+            }
+            g_caller_app = &s_caller_app;
         }
     }
     if (g_chain_config == NULL) {
@@ -245,7 +258,7 @@ __attribute__((noreturn)) void library_main(eth_libargs_t *args) {
             }
             break;
         case GET_PRINTABLE_AMOUNT:
-            handle_get_printable_amount(args->get_printable_amount, args->chain_config);
+            handle_get_printable_amount(args->get_printable_amount);
             break;
         default:
             break;

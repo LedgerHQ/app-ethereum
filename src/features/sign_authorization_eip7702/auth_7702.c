@@ -1,3 +1,5 @@
+#ifdef HAVE_7702_SUPPORT
+
 #include "auth_7702.h"
 #include "utils.h"
 #include "tlv_utils.h"
@@ -91,3 +93,5 @@ bool verify_auth_7702_struct(const s_auth_7702_ctx *context) {
                                    TAG_CHAIN_ID,
                                    TAG_NONCE);
 }
+
+#endif  // HAVE_7702_SUPPORT

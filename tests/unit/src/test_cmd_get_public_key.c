@@ -171,12 +171,15 @@ void test_no_reset_when_idle_and_not_from_swap(void) {
     TEST_ASSERT_EQUAL(g_reset_calls, 0);
 }
 
-void test_skips_reset_when_called_from_swap(void) {
+void test_not_idle_rejected_even_from_swap(void) {
     G_called_from_swap = true;
+    appState = APP_STATE_SIGNING_TX;
     uint8_t apdu[64];
     size_t len = build_apdu(apdu, sizeof(apdu), false, 0);
     unsigned int tx = 0;
-    (void) handle_get_public_key(P1_NON_CONFIRM, P2_NO_CHAINCODE, apdu, (uint8_t) len, &tx);
+    uint16_t sw = handle_get_public_key(P1_NON_CONFIRM, P2_NO_CHAINCODE, apdu, (uint8_t) len, &tx);
+    TEST_ASSERT_EQUAL(sw, SWO_COMMAND_NOT_ALLOWED);
+    TEST_ASSERT_EQUAL(appState, APP_STATE_SIGNING_TX);
     TEST_ASSERT_EQUAL(g_reset_calls, 0);
 }
 
@@ -335,7 +338,7 @@ void tearDown(void) {
 int main(void) {
     UNITY_BEGIN();
     RUN_TEST(test_no_reset_when_idle_and_not_from_swap);
-    RUN_TEST(test_skips_reset_when_called_from_swap);
+    RUN_TEST(test_not_idle_rejected_even_from_swap);
     RUN_TEST(test_invalid_p1_rejected);
     RUN_TEST(test_invalid_p2_rejected);
     RUN_TEST(test_bad_bip32_rejected);

@@ -28,6 +28,12 @@
 #include "tlv_library.h"
 #include "common_utils.h"
 
+// Accepts any challenge; check_challenge itself is covered by test_cmd_get_challenge.
+bool check_challenge(uint32_t received_challenge) {
+    (void) received_challenge;
+    return true;
+}
+
 // =============================================================================
 // Helpers
 // =============================================================================
@@ -293,6 +299,83 @@ void test_get_uint8_range_above_max_rejected(void) {
 }
 
 // =============================================================================
+// tlv_get_int16 — the length gives the sign
+// =============================================================================
+
+void test_get_int16_one_byte_is_not_negative(void) {
+    const uint8_t zero[] = {0x00};
+    const uint8_t max_positive[] = {0x7F};
+    const uint8_t above[] = {0x80};
+    const uint8_t max[] = {0xFF};
+    tlv_data_t d;
+    int16_t v = -1;
+
+    d = make_tlv(zero, sizeof(zero));
+    TEST_ASSERT_TRUE(tlv_get_int16(&d, &v));
+    TEST_ASSERT_EQUAL(0, v);
+    d = make_tlv(max_positive, sizeof(max_positive));
+    TEST_ASSERT_TRUE(tlv_get_int16(&d, &v));
+    TEST_ASSERT_EQUAL(127, v);
+    d = make_tlv(above, sizeof(above));
+    TEST_ASSERT_TRUE(tlv_get_int16(&d, &v));
+    TEST_ASSERT_EQUAL(128, v);
+    d = make_tlv(max, sizeof(max));
+    TEST_ASSERT_TRUE(tlv_get_int16(&d, &v));
+    TEST_ASSERT_EQUAL(255, v);
+}
+
+void test_get_int16_two_bytes_are_twos_complement(void) {
+    const uint8_t zero[] = {0x00, 0x00};
+    const uint8_t as_one_byte_max[] = {0x00, 0xFF};
+    const uint8_t max_positive[] = {0x7F, 0xFF};
+    const uint8_t min_negative[] = {0x80, 0x00};
+    const uint8_t minus_one[] = {0xFF, 0xFF};
+    tlv_data_t d;
+    int16_t v = 1;
+
+    d = make_tlv(zero, sizeof(zero));
+    TEST_ASSERT_TRUE(tlv_get_int16(&d, &v));
+    TEST_ASSERT_EQUAL(0, v);
+    d = make_tlv(as_one_byte_max, sizeof(as_one_byte_max));
+    TEST_ASSERT_TRUE(tlv_get_int16(&d, &v));
+    TEST_ASSERT_EQUAL(255, v);
+    d = make_tlv(max_positive, sizeof(max_positive));
+    TEST_ASSERT_TRUE(tlv_get_int16(&d, &v));
+    TEST_ASSERT_EQUAL(32767, v);
+    d = make_tlv(min_negative, sizeof(min_negative));
+    TEST_ASSERT_TRUE(tlv_get_int16(&d, &v));
+    TEST_ASSERT_EQUAL(-32768, v);
+    d = make_tlv(minus_one, sizeof(minus_one));
+    TEST_ASSERT_TRUE(tlv_get_int16(&d, &v));
+    TEST_ASSERT_EQUAL(-1, v);
+}
+
+void test_get_int16_other_lengths_rejected(void) {
+    const uint8_t bytes[4] = {0x00, 0x00, 0x00, 0x02};
+    tlv_data_t d;
+    int16_t v = 7;
+
+    d = make_tlv(bytes, 0);
+    TEST_ASSERT_FALSE(tlv_get_int16(&d, &v));
+    d = make_tlv(bytes, 3);
+    TEST_ASSERT_FALSE(tlv_get_int16(&d, &v));
+    d = make_tlv(bytes, 4);
+    TEST_ASSERT_FALSE(tlv_get_int16(&d, &v));
+    TEST_ASSERT_EQUAL(7, v);
+}
+
+void test_get_int16_null_arguments_rejected(void) {
+    const uint8_t bytes[2] = {0x00, 0x01};
+    tlv_data_t d = make_tlv(bytes, sizeof(bytes));
+    tlv_data_t no_value = make_tlv(NULL, 2);
+    int16_t v = 0;
+
+    TEST_ASSERT_FALSE(tlv_get_int16(NULL, &v));
+    TEST_ASSERT_FALSE(tlv_get_int16(&d, NULL));
+    TEST_ASSERT_FALSE(tlv_get_int16(&no_value, &v));
+}
+
+// =============================================================================
 // Runner
 // =============================================================================
 
@@ -334,5 +417,9 @@ int main(void) {
     RUN_TEST(test_get_uint8_range_extraction_fails);
     RUN_TEST(test_get_uint8_range_below_min_rejected);
     RUN_TEST(test_get_uint8_range_above_max_rejected);
+    RUN_TEST(test_get_int16_one_byte_is_not_negative);
+    RUN_TEST(test_get_int16_two_bytes_are_twos_complement);
+    RUN_TEST(test_get_int16_other_lengths_rejected);
+    RUN_TEST(test_get_int16_null_arguments_rejected);
     return UNITY_END();
 }

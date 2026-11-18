@@ -1,6 +1,5 @@
 #include "nbgl_use_case.h"
 #include "app_mem_utils.h"
-#include "apdu_constants.h"
 #include "common_ui.h"
 #include "ui_utils.h"
 #include "mem_utils.h"
@@ -15,14 +14,6 @@ static bool s_error_screen_held;
 char *g_titleMsg = NULL;
 char *g_subTitleMsg = NULL;
 char *g_finishMsg = NULL;
-
-/**
- * Internal Cleanup to free allocated memory and send an error status
- */
-static void _cleanup(void) {
-    ui_all_cleanup();
-    io_seproxyhal_send_status(SWO_INSUFFICIENT_MEMORY, 0, true, true);
-}
 
 void ui_pairs_cleanup(void) {
     // Zero out the list header before freeing the backing array so that any
@@ -71,7 +62,7 @@ bool ui_pairs_init(size_t nbPairs) {
     g_pairsList->wrapping = true;
     return true;
 error:
-    _cleanup();
+    ui_all_cleanup();
     return false;
 }
 
@@ -106,7 +97,7 @@ bool ui_buffers_init(uint8_t title_len, uint8_t subtitle_len, uint8_t finish_len
 
     return true;
 error:
-    _cleanup();
+    ui_all_cleanup();
     return false;
 }
 

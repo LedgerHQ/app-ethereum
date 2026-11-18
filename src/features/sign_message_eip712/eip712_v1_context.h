@@ -1,5 +1,7 @@
 #pragma once
 
+#ifdef HAVE_EIP712_V1
+
 #include <stdbool.h>
 #include "common_utils.h"
 #include "lists.h"
@@ -15,3 +17,5 @@ extern s_eip712_v1_context *eip712_v1_context;
 bool eip712_v1_context_init(void);
 void eip712_v1_context_deinit(void);
 bool eip712_v1_sign_claim(void);
+
+#endif  // HAVE_EIP712_V1

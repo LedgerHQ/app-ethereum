@@ -1,3 +1,5 @@
+#ifdef HAVE_7702_SUPPORT
+
 #include "shared_context.h"
 #include "format.h"
 #include "app_mem_utils.h"
@@ -68,8 +70,6 @@ static bool handle_auth7702_tlv_internal(const buffer_t *buf) {
     uint8_t rlpTmp[40];
     uint8_t hashSize;
     uint16_t sw;
-    cx_ecfp_public_key_t publicKey;
-    const char *networkName;
     const char *delegateName;
 
     // Default internal error triggered by CX_CHECK
@@ -77,6 +77,14 @@ static bool handle_auth7702_tlv_internal(const buffer_t *buf) {
 
     parsing_ret = handle_auth_7702_tlv_payload(buf, &auth_7702_ctx);
     if (!parsing_ret || !verify_auth_7702_struct(&auth_7702_ctx)) {
+        g_7702_sw = SWO_INCORRECT_DATA;
+        return false;
+    }
+
+    // A clone only authorizes delegations on its own chain
+    if ((g_chain_config->chain_id != ETHEREUM_MAINNET_CHAINID) &&
+        (auth7702->chainId != g_chain_config->chain_id)) {
+        PRINTF("Invalid chainID %llu expected %llu\n", auth7702->chainId, g_chain_config->chain_id);
         g_7702_sw = SWO_INCORRECT_DATA;
         return false;
     }
@@ -135,13 +143,10 @@ static bool handle_auth7702_tlv_internal(const buffer_t *buf) {
     }
     // Prepare information to be displayed
     // * Address to be delegated
-    strings.common.fromAddress[0] = '0';
-    strings.common.fromAddress[1] = 'x';
-    if (get_public_key_string(&tmpCtx.authSigningContext7702.bip32,
-                              publicKey.W,
-                              strings.common.fromAddress + 2,
-                              NULL,
-                              auth7702->chainId) != CX_OK) {
+    if (!get_displayable_address(&tmpCtx.authSigningContext7702.bip32,
+                                 strings.common.fromAddress,
+                                 sizeof(strings.common.fromAddress),
+                                 auth7702->chainId)) {
         return false;
     }
     // * Delegate
@@ -161,21 +166,11 @@ static bool handle_auth7702_tlv_internal(const buffer_t *buf) {
     if (auth7702->chainId == CHAIN_ID_ALL) {
         // handle special wildcard case
         strlcpy(strings.common.network_name, "All", sizeof(strings.common.network_name));
-    } else {
-        networkName = get_network_name_from_chain_id(&auth7702->chainId);
-        if (networkName == NULL) {
-            // Display the numeric chainId if no name was found
-            if (!format_u64(strings.common.network_name,
-                            sizeof(strings.common.network_name),
-                            auth7702->chainId)) {
-                // return SWO_PARAMETER_ERROR_NO_INFO;
-                // Do not crash if the chain id is too long
-                strings.common.network_name[0] = '?';
-                strings.common.network_name[1] = '\0';
-            }
-        } else {
-            strlcpy(strings.common.network_name, networkName, sizeof(strings.common.network_name));
-        }
+    } else if (!get_network_as_string_from_chain_id(strings.common.network_name,
+                                                    sizeof(strings.common.network_name),
+                                                    auth7702->chainId)) {
+        // Network name, or the numeric chain ID when no name is known
+        return false;
     }
     // * Nonce
     if (!format_u64(strings.common.nonce, sizeof(strings.common.nonce), auth7702->nonce)) {
@@ -184,10 +179,12 @@ static bool handle_auth7702_tlv_internal(const buffer_t *buf) {
 
     if (is_zeroes_buffer(auth7702->delegate, sizeof(auth7702->delegate))) {
         if (!ui_sign_7702_revocation()) {
+            g_7702_sw = SWO_INSUFFICIENT_MEMORY;
             return false;
         }
     } else {
         if (!ui_sign_7702_auth()) {
+            g_7702_sw = SWO_INSUFFICIENT_MEMORY;
             return false;
         }
     }
@@ -232,16 +229,24 @@ uint16_t handle_sign_eip7702_authorization(uint8_t p1,
             return SWO_WRONG_P1_P2;
     }
 
-    if (!tlv_from_apdu(p1 == P1_FIRST_CHUNK, dataLength, dataBuffer, &handle_auth7702_tlv)) {
-        if (g_7702_sw == SWO_COMMAND_NOT_ALLOWED) {
-            // An error screen is already displayed and its own callback handles idle;
-            // only reset the state so subsequent APDUs are accepted.
-            ui_hold_error_screen();
-            appState = APP_STATE_IDLE;
-        } else {
-            reset_app_context();
-        }
-        return g_7702_sw;
+    switch (tlv_from_apdu(p1 == P1_FIRST_CHUNK, dataLength, dataBuffer, &handle_auth7702_tlv)) {
+        case TLV_APDU_SUCCESS:
+            return SWO_NO_RESPONSE;
+        case TLV_APDU_PENDING:
+            return SWO_SUCCESS;
+        case TLV_APDU_ERROR:
+        default:
+            break;
     }
-    return SWO_NO_RESPONSE;
+    if (g_7702_sw == SWO_COMMAND_NOT_ALLOWED) {
+        // An error screen is already displayed and its own callback handles idle;
+        // only reset the state so subsequent APDUs are accepted.
+        ui_hold_error_screen();
+        appState = APP_STATE_IDLE;
+    } else {
+        reset_app_context();
+    }
+    return g_7702_sw;
 }
+
+#endif  // HAVE_7702_SUPPORT

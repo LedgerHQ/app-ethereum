@@ -47,7 +47,7 @@ def common(
     # Send Network information (name, ticker, icon)
     name, ticker, icon = get_network_config(backend.device.type, tx_params["chainId"])
     if name and ticker:
-        app_client.provide_network_information(DynamicNetwork(name, ticker, tx_params["chainId"], icon))
+        app_client.provide_network_info(DynamicNetwork(name, ticker, tx_params["chainId"], icon))
 
     with app_client.sign(path, tx_params):
         if with_simu:
@@ -166,6 +166,32 @@ def test_sign_legacy_chainid(scenario_navigator: NavigateWithScenario, test_name
         "chainId": 112233445566,
     }
     common(scenario_navigator, tx_params, test_name, BIP32_PATH2)
+
+
+# Chain ID encoded on 7 bytes
+def test_sign_large_chainid(scenario_navigator: NavigateWithScenario):
+    tx_params: dict = {
+        "nonce": NONCE,
+        "gasPrice": Web3.to_wei(GAS_PRICE, "gwei"),
+        "gas": GAS_LIMIT,
+        "to": ADDR,
+        "value": Web3.to_wei(AMOUNT, "ether"),
+        "chainId": 0xF6A9B152443DC,
+    }
+    common(scenario_navigator, tx_params)
+
+
+def test_sign_1559_large_chainid(scenario_navigator: NavigateWithScenario):
+    tx_params: dict = {
+        "nonce": NONCE,
+        "maxFeePerGas": Web3.to_wei(145, "gwei"),
+        "maxPriorityFeePerGas": Web3.to_wei(1.5, "gwei"),
+        "gas": GAS_LIMIT,
+        "to": ADDR,
+        "value": Web3.to_wei(AMOUNT, "ether"),
+        "chainId": 0xF6A9B152443DC,
+    }
+    common(scenario_navigator, tx_params)
 
 
 def test_1559(scenario_navigator: NavigateWithScenario):

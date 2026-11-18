@@ -29,10 +29,10 @@ class InsType(IntEnum):
     GET_CHALLENGE = 0x20
     PROVIDE_TRUSTED_NAME = 0x22
     PROVIDE_ENUM_VALUE = 0x24
-    PROVIDE_TRANSACTION_INFO = 0x26
-    PROVIDE_TRANSACTION_FIELD_DESC = 0x28
+    PROVIDE_OPERATION_INFO = 0x26
+    PROVIDE_OPERATION_FIELD_DESC = 0x28
     PROVIDE_PROXY_INFO = 0x2A
-    PROVIDE_NETWORK_INFORMATION = 0x30
+    PROVIDE_NETWORK_INFO = 0x30
     PROVIDE_TX_SIMULATION = 0x32
     SIGN_EIP7702_AUTHORIZATION = 0x34
     PROVIDE_SAFE_ACCOUNT = 0x36
@@ -56,6 +56,7 @@ class P2Type(IntEnum):
     ARRAY = 0x0F
     EIP712_V0_IMPLEM = 0x00
     EIP712_V1_IMPLEM = 0x01
+    EIP712_V2_IMPLEM = 0x02
     EIP712_V1_FILTERING_ACTIVATE = 0x00
     EIP712_V1_FILTERING_DISCARDED_PATH = 0x01
     EIP712_V1_FILTERING_MESSAGE_INFO = 0x0F
@@ -85,6 +86,14 @@ class CommandBuilder:
         if i == 0:
             return b"\x00"
         return i.to_bytes(math.ceil(i.bit_length() / 8), "big")
+
+    @staticmethod
+    def _u8_prefixed_ascii(value: str) -> bytes:
+        # The device only displays ASCII: any other character raises UnicodeEncodeError
+        encoded = value.encode("ascii")
+        if len(encoded) > 0xFF:
+            raise ValueError("Field exceeds 255 bytes")
+        return bytes([len(encoded)]) + encoded
 
     def _serialize(
         self,
@@ -117,7 +126,7 @@ class CommandBuilder:
         self,
         field_type: EIP712FieldType,
         type_name: str,
-        type_size: int,
+        type_size: int | None,
         array_levels: list,
         key_name: str,
     ) -> bytes:
@@ -128,8 +137,7 @@ class CommandBuilder:
         typedesc |= field_type << EIP712TypeDescOffset.TYPE
         data.append(typedesc)
         if field_type == EIP712FieldType.CUSTOM:
-            data.append(len(type_name))
-            data += type_name.encode()
+            data += self._u8_prefixed_ascii(type_name)
         if type_size is not None:
             data.append(type_size)
         if len(array_levels) > 0:
@@ -138,8 +146,7 @@ class CommandBuilder:
                 data.append(0 if level is None else 1)
                 if level is not None:
                     data.append(level)
-        data.append(len(key_name))
-        data += key_name.encode()
+        data += self._u8_prefixed_ascii(key_name)
         return self._serialize(
             InsType.EIP712_SEND_STRUCT_DEF,
             P1Type.COMPLETE_SEND,
@@ -183,6 +190,38 @@ class CommandBuilder:
         data = pack_derivation_path(bip32_path)
         return self._serialize(InsType.EIP712_SIGN, P1Type.COMPLETE_SEND, P2Type.EIP712_V1_IMPLEM, data)
 
+    def eip712_v2_schema(self, tlv_payload: bytes) -> list[bytes]:
+        return self.common_tlv_serialize(
+            InsType.EIP712_SEND_STRUCT_DEF,
+            tlv_payload,
+            p2l=[P2Type.EIP712_V2_IMPLEM],
+        )
+
+    def eip712_v2_values(self, tlv_payload: bytes) -> list[bytes]:
+        return self.common_tlv_serialize(
+            InsType.EIP712_SEND_STRUCT_IMPL,
+            tlv_payload,
+            p2l=[P2Type.EIP712_V2_IMPLEM],
+        )
+
+    def eip712_v2_message_info(self, tlv_payload: bytes) -> list[bytes]:
+        return self.common_tlv_serialize(
+            InsType.PROVIDE_OPERATION_INFO,
+            tlv_payload,
+            p2l=[P2Type.EIP712_V2_IMPLEM],
+        )
+
+    def eip712_v2_field_desc(self, tlv_payload: bytes) -> list[bytes]:
+        return self.common_tlv_serialize(
+            InsType.PROVIDE_OPERATION_FIELD_DESC,
+            tlv_payload,
+            p2l=[P2Type.EIP712_V2_IMPLEM],
+        )
+
+    def eip712_v2_sign(self) -> bytes:
+        # the derivation path came with the values, so this only triggers the signature
+        return self._serialize(InsType.EIP712_SIGN, P1Type.COMPLETE_SEND, P2Type.EIP712_V2_IMPLEM)
+
     def eip712_sign_legacy(self, bip32_path: str, domain_hash: bytes, message_hash: bytes) -> bytes:
         data = pack_derivation_path(bip32_path)
         data += domain_hash
@@ -199,16 +238,14 @@ class CommandBuilder:
 
     def _eip712_filtering_send_name(self, name: str, sig: bytes) -> bytes:
         data = bytearray()
-        data.append(len(name))
-        data += name.encode()
+        data += self._u8_prefixed_ascii(name)
         data.append(len(sig))
         data += sig
         return bytes(data)
 
     def eip712_filtering_discarded_path(self, path: str) -> bytes:
         data = bytearray()
-        data.append(len(path))
-        data += path.encode()
+        data += self._u8_prefixed_ascii(path)
         return self._serialize(
             InsType.EIP712_SEND_FILTERING,
             P1Type.COMPLETE_SEND,
@@ -218,8 +255,7 @@ class CommandBuilder:
 
     def eip712_filtering_message_info(self, name: str, filters_count: int, sig: bytes) -> bytes:
         data = bytearray()
-        data.append(len(name))
-        data += name.encode()
+        data += self._u8_prefixed_ascii(name)
         data.append(filters_count)
         data.append(len(sig))
         data += sig
@@ -244,8 +280,7 @@ class CommandBuilder:
 
     def eip712_filtering_amount_join_value(self, token_idx: int, name: str, sig: bytes, discarded: bool) -> bytes:
         data = bytearray()
-        data.append(len(name))
-        data += name.encode()
+        data += self._u8_prefixed_ascii(name)
         data.append(token_idx)
         data.append(len(sig))
         data += sig
@@ -273,8 +308,7 @@ class CommandBuilder:
         discarded: bool,
     ) -> bytes:
         data = bytearray()
-        data.append(len(name))
-        data += name.encode()
+        data += self._u8_prefixed_ascii(name)
         data.append(len(name_types))
         for t in name_types:
             data.append(t)
@@ -400,8 +434,7 @@ class CommandBuilder:
 
     def set_external_plugin(self, plugin_name: str, contract_address: bytes, selector: bytes, sig: bytes) -> bytes:
         data = bytearray()
-        data.append(len(plugin_name))
-        data += plugin_name.encode()
+        data += self._u8_prefixed_ascii(plugin_name)
         data += contract_address
         data += selector
         data += sig
@@ -483,8 +516,7 @@ class CommandBuilder:
         payload = bytearray()
         payload.append(type_)
         payload.append(version)
-        payload.append(len(plugin_name))
-        payload += plugin_name.encode()
+        payload += self._u8_prefixed_ascii(plugin_name)
         payload += contract_addr
         payload += selector
         payload += struct.pack(">Q", chain_id)
@@ -508,8 +540,7 @@ class CommandBuilder:
         payload = bytearray()
         payload.append(type_)
         payload.append(version)
-        payload.append(len(collection_name))
-        payload += collection_name.encode()
+        payload += self._u8_prefixed_ascii(collection_name)
         payload += addr
         payload += struct.pack(">Q", chain_id)
         payload.append(key_id)
@@ -533,8 +564,7 @@ class CommandBuilder:
 
     def provide_erc20_token_information(self, ticker: str, addr: bytes, decimals: int, chain_id: int, sig: bytes) -> bytes:
         payload = bytearray()
-        payload.append(len(ticker))
-        payload += ticker.encode()
+        payload += self._u8_prefixed_ascii(ticker)
         payload += addr
         payload += struct.pack(">I", decimals)
         payload += struct.pack(">I", chain_id)
@@ -569,9 +599,9 @@ class CommandBuilder:
             p2 = p2l[-1]
         return chunks
 
-    def provide_network_information(self, tlv_payload: bytes, icon: bytes | None = None) -> list[bytes]:
+    def provide_network_info(self, tlv_payload: bytes, icon: bytes | None = None) -> list[bytes]:
         chunks = self.common_tlv_serialize(
-            InsType.PROVIDE_NETWORK_INFORMATION,
+            InsType.PROVIDE_NETWORK_INFO,
             tlv_payload,
             p2l=[P2Type.NETWORK_CONFIG],
         )
@@ -581,7 +611,7 @@ class CommandBuilder:
             while len(icon) > 0:
                 chunks.append(
                     self._serialize(
-                        InsType.PROVIDE_NETWORK_INFORMATION,
+                        InsType.PROVIDE_NETWORK_INFO,
                         p1,
                         P2Type.NETWORK_ICON,
                         icon[:0xFF],
@@ -604,11 +634,11 @@ class CommandBuilder:
     def provide_map_entry(self, tlv_payload: bytes) -> list[bytes]:
         return self.common_tlv_serialize(InsType.PROVIDE_MAP_ENTRY, tlv_payload)
 
-    def provide_transaction_info(self, tlv_payload: bytes) -> list[bytes]:
-        return self.common_tlv_serialize(InsType.PROVIDE_TRANSACTION_INFO, tlv_payload)
+    def provide_operation_info(self, tlv_payload: bytes) -> list[bytes]:
+        return self.common_tlv_serialize(InsType.PROVIDE_OPERATION_INFO, tlv_payload)
 
-    def provide_transaction_field_desc(self, tlv_payload: bytes) -> list[bytes]:
-        return self.common_tlv_serialize(InsType.PROVIDE_TRANSACTION_FIELD_DESC, tlv_payload)
+    def provide_operation_field_desc(self, tlv_payload: bytes) -> list[bytes]:
+        return self.common_tlv_serialize(InsType.PROVIDE_OPERATION_FIELD_DESC, tlv_payload)
 
     def opt_in_tx_simulation(self) -> bytes:
         # Serialize the payload

@@ -8,8 +8,8 @@
  * g_subTitleMsg / g_finishMsg). Each init helper:
  *   - frees any previously-allocated buffer (one-shot reset)
  *   - allocates fresh storage through APP_MEM_CALLOC
- *   - on alloc failure, _cleanup() releases everything and emits
- *     SWO_INSUFFICIENT_MEMORY to the host via io_seproxyhal_send_status
+ *   - on alloc failure, releases everything and leaves the reply to the
+ *     caller (no status word is sent from here)
  *
  * A regression that leaks (skips the cleanup-before-alloc) or that
  * silently returns true on alloc failure leaves the UI rendering from
@@ -44,11 +44,7 @@ extern char *g_finishMsg;
 
 static int g_alloc_force_failure_after = -1;  // -1 = always succeed
 static int g_alloc_calls = 0;
-bool mem_utils_calloc(void **ptr_storage,
-                      uint16_t size,
-                      bool permanent,
-                      const char *file,
-                      int line) {
+bool mem_utils_calloc(void **ptr_storage, size_t size, bool permanent, const char *file, int line) {
     (void) permanent;
     (void) file;
     (void) line;
@@ -125,14 +121,13 @@ void test_pairs_init_releases_previous_storage(void) {
     TEST_ASSERT_EQUAL(g_free_calls, 2);
 }
 
-void test_pairs_init_alloc_failure_returns_false_and_signals_status(void) {
+void test_pairs_init_alloc_failure_releases_without_reply(void) {
     // First alloc (g_pairsList) succeeds, second (g_pairs) fails.
     g_alloc_force_failure_after = 1;
     TEST_ASSERT_FALSE(ui_pairs_init(5));
-    // On failure the internal _cleanup() runs, which frees everything
-    // AND emits SWO_INSUFFICIENT_MEMORY.
-    TEST_ASSERT_EQUAL(g_send_status_calls, 1);
-    TEST_ASSERT_EQUAL(g_send_status_last_sw, SWO_INSUFFICIENT_MEMORY);
+    TEST_ASSERT_EQUAL(g_send_status_calls, 0);
+    TEST_ASSERT_NULL(g_pairsList);
+    TEST_ASSERT_NULL(g_pairs);
 }
 
 // =============================================================================
@@ -154,12 +149,11 @@ void test_buffers_init_allocates_all_three_when_all_nonzero(void) {
     TEST_ASSERT_NOT_NULL(g_finishMsg);
 }
 
-void test_buffers_init_failure_releases_and_signals(void) {
+void test_buffers_init_failure_releases_without_reply(void) {
     // Title alloc succeeds, subtitle fails.
     g_alloc_force_failure_after = 1;
     TEST_ASSERT_FALSE(ui_buffers_init(32, 16, 8));
-    TEST_ASSERT_EQUAL(g_send_status_calls, 1);
-    TEST_ASSERT_EQUAL(g_send_status_last_sw, SWO_INSUFFICIENT_MEMORY);
+    TEST_ASSERT_EQUAL(g_send_status_calls, 0);
     // After cleanup the globals MUST be NULL again (otherwise a later
     // ui_buffers_cleanup would double-free).
     TEST_ASSERT_NULL(g_titleMsg);
@@ -172,7 +166,7 @@ void test_buffers_init_finish_failure_cleans_up(void) {
     // Covers the last `goto error` branch.
     g_alloc_force_failure_after = 2;
     TEST_ASSERT_FALSE(ui_buffers_init(32, 16, 8));
-    TEST_ASSERT_EQUAL(g_send_status_last_sw, SWO_INSUFFICIENT_MEMORY);
+    TEST_ASSERT_EQUAL(g_send_status_calls, 0);
     TEST_ASSERT_NULL(g_titleMsg);
     TEST_ASSERT_NULL(g_subTitleMsg);
     TEST_ASSERT_NULL(g_finishMsg);
@@ -205,10 +199,10 @@ int main(void) {
     UNITY_BEGIN();
     RUN_TEST(test_pairs_init_allocates_list_and_pair_array);
     RUN_TEST(test_pairs_init_releases_previous_storage);
-    RUN_TEST(test_pairs_init_alloc_failure_returns_false_and_signals_status);
+    RUN_TEST(test_pairs_init_alloc_failure_releases_without_reply);
     RUN_TEST(test_buffers_init_allocates_only_requested_buffers);
     RUN_TEST(test_buffers_init_allocates_all_three_when_all_nonzero);
-    RUN_TEST(test_buffers_init_failure_releases_and_signals);
+    RUN_TEST(test_buffers_init_failure_releases_without_reply);
     RUN_TEST(test_buffers_init_finish_failure_cleans_up);
     RUN_TEST(test_all_cleanup_frees_pairs_and_buffers);
     return UNITY_END();

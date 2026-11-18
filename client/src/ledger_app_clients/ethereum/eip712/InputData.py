@@ -4,6 +4,7 @@ import hashlib
 import json
 import re
 import struct
+import threading
 from collections.abc import Callable
 from typing import Any
 
@@ -17,7 +18,11 @@ filtering_paths: dict = {}
 filtering_tokens: list[dict] = []
 filtering_calldatas: list[dict] = []
 current_path: list[str] = []
+# filters only apply to the message, never to the domain
+filters_apply: bool = False
 sig_ctx: dict[str, Any] = {}
+# Serializes the calls using the state above
+state_lock = threading.RLock()
 
 
 # From a string typename, extract the type and all the array depth
@@ -57,12 +62,19 @@ def get_typesize(typename):
     return (typename, typesize)
 
 
+# An EIP-712 integer is 8 to 256 bits wide, in steps of 8
+def integer_size(typesize):
+    if typesize is None or not 8 <= typesize <= 256 or typesize % 8 != 0:
+        raise ValueError(f"Invalid integer width: {typesize}")
+    return typesize // 8
+
+
 def parse_int(typesize):
-    return (EIP712FieldType.INT, int(typesize / 8))
+    return (EIP712FieldType.INT, integer_size(typesize))
 
 
 def parse_uint(typesize):
-    return (EIP712FieldType.UINT, int(typesize / 8))
+    return (EIP712FieldType.UINT, integer_size(typesize))
 
 
 def parse_address(typesize):
@@ -118,10 +130,15 @@ def send_struct_def_field(typename, keyname):
     return (typename, type_enum, typesize, array_lvls)
 
 
-def encode_integer(value: str | int, typesize: int) -> bytes:
+def encode_integer(value: str | int, typesize: int, signed: bool = False) -> bytes:
     # Some are already represented as integers in the JSON, but most as strings
     if isinstance(value, str):
         value = int(value, 0)
+
+    bits = typesize * 8
+    low, high = (-(1 << (bits - 1)), 1 << (bits - 1)) if signed else (0, 1 << bits)
+    if not low <= value < high:
+        raise ValueError(f"Value out of range for a {'' if signed else 'u'}int{bits}: {value}")
 
     if value == 0:
         data = b"\x00"
@@ -141,24 +158,28 @@ def encode_integer(value: str | int, typesize: int) -> bytes:
 
 
 def encode_int(value: str, typesize: int) -> bytes:
-    return encode_integer(value, typesize)
+    return encode_integer(value, typesize, signed=True)
 
 
 def encode_uint(value: str, typesize: int) -> bytes:
     return encode_integer(value, typesize)
 
 
-def encode_hex_string(value: str, size: int) -> bytes:
-    assert value.startswith("0x")
-    value = value[2:]
-    if len(value) < (size * 2):
-        value = value.rjust(size * 2, "0")
-    assert len(value) == (size * 2)
-    return bytes.fromhex(value)
+def decode_hex_string(value: str) -> bytes:
+    if not value.startswith("0x"):
+        raise ValueError(f"Missing 0x prefix: {value}")
+    digits = value[2:]
+    # An odd number of digits gets a leading zero, as eth_account does
+    if len(digits) % 2:
+        digits = "0" + digits
+    return bytes.fromhex(digits)
 
 
 def encode_address(value: str, typesize: int) -> bytes:
-    return encode_hex_string(value, 20)
+    data = decode_hex_string(value)
+    if len(data) != 20:
+        raise ValueError(f"Address is not 20 bytes long: {value}")
+    return data
 
 
 def encode_bool(value: str, typesize: int) -> bytes:
@@ -170,14 +191,15 @@ def encode_string(value: str, typesize: int) -> bytes:
 
 
 def encode_bytes_fix(value: str, typesize: int) -> bytes:
-    return encode_hex_string(value, typesize)
+    data = decode_hex_string(value)
+    if len(data) > typesize:
+        raise ValueError(f"Value longer than bytes{typesize}: {value}")
+    # A shorter value is left-aligned, as in the ABI encoding
+    return data.ljust(typesize, b"\x00")
 
 
 def encode_bytes_dyn(value: str, typesize: int) -> bytes:
-    # length of the value string
-    # - the length of 0x (2)
-    # / by the length of one byte in a hex string (2)
-    return encode_hex_string(value, int((len(value) - 2) / 2))
+    return decode_hex_string(value)
 
 
 # set functions for each type
@@ -275,7 +297,7 @@ def send_struct_impl_field(value, field) -> None:
 
     data = encoding_functions[field["enum"]](value, field["typesize"])
 
-    if filtering_paths:
+    if filtering_paths and filters_apply:
         path = ".".join(current_path)
         if path in filtering_paths.keys():
             callback = send_filter(path, False)
@@ -306,7 +328,7 @@ def evaluate_field(structs, data, field, lvls_left, new_level=True):
         assert response.status == StatusWord.SWO_SUCCESS, (
             f"Error sending array {field['name']} of type {field['type']}: {response.status}"
         )
-        if len(data) == 0:
+        if len(data) == 0 and filters_apply:
             for path in filtering_paths.keys():
                 dpath = ".".join(current_path) + ".[]"
                 if path.startswith(dpath):
@@ -575,10 +597,11 @@ def init_signature_context(sig_ctx, types, domain, filters):
         caddr = caddr[2:]
     sig_ctx["caddr"] = bytearray.fromhex(caddr)
     chainid = domain["chainId"]
-    sig_ctx["chainid"] = bytearray()
-    for i in range(8):
-        sig_ctx["chainid"].append(chainid & (0xFF << (i * 8)))
-    sig_ctx["chainid"].reverse()
+    if isinstance(chainid, str):
+        chainid = int(chainid, 0)
+    if not 0 <= chainid < 2**64:
+        raise ValueError(f"Chain ID out of range: {chainid}")
+    sig_ctx["chainid"] = bytearray(chainid.to_bytes(8, "big"))
 
     # Order type fields
     for type_name in types.keys():
@@ -591,8 +614,14 @@ def init_signature_context(sig_ctx, types, domain, filters):
 
 
 def process_data(aclient: EthAppClient, data_json: dict, filters: dict | None = None) -> None:
+    with state_lock:
+        process_data_locked(aclient, data_json, filters)
+
+
+def process_data_locked(aclient: EthAppClient, data_json: dict, filters: dict | None = None) -> None:
     global app_client
     global current_path
+    global filters_apply
     global filtering_paths
     global filtering_tokens
     global filtering_calldatas
@@ -605,13 +634,15 @@ def process_data(aclient: EthAppClient, data_json: dict, filters: dict | None = 
     # `filters` was omitted, leading to silent cross-test state leakage
     # (CWE-664).
     current_path = []
+    filters_apply = False
     filtering_paths = {}
     filtering_tokens = []
     filtering_calldatas = []
     sig_ctx = {}
 
-    # deepcopy because this function modifies the dict
+    # deepcopy because this function modifies the dicts
     data_json = copy.deepcopy(data_json)
+    filters = copy.deepcopy(filters)
     app_client = aclient
     domain_typename = "EIP712Domain"
     message_typename = data_json["primaryType"]
@@ -659,6 +690,7 @@ def process_data(aclient: EthAppClient, data_json: dict, filters: dict | None = 
             send_filtering_message_info(domain["name"], len(filtering_paths))
 
     # send message implementation
+    filters_apply = True
     with app_client.eip712_send_struct_impl_root_struct(message_typename):
         pass
     response = app_client.response()

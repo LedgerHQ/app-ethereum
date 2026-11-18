@@ -23,8 +23,9 @@
 #include "enum_value.h"
 #include "proxy_info.h"
 
-#define TAG_MAX_LEN   43
-#define VALUE_MAX_LEN 100
+#define TAG_MAX_LEN 43
+// Fits 64 bytes in hex: "0x" + 128 digits + NUL
+#define VALUE_MAX_LEN 131
 
 static nbgl_contentValueExt_t *extension = NULL;
 static nbgl_contentValueExt_t *from_extension = NULL;
@@ -39,10 +40,14 @@ static plugin_buffers_t *plugin_buffers = NULL;
 /**
  * Cleanup allocated memory
  */
-static void _cleanup(void) {
+void ui_approve_tx_cleanup(void) {
     APP_MEM_FREE_AND_NULL((void **) &plugin_buffers);
     APP_MEM_FREE_AND_NULL((void **) &extension);
     APP_MEM_FREE_AND_NULL((void **) &from_extension);
+}
+
+static void _cleanup(void) {
+    ui_approve_tx_cleanup();
     ui_all_cleanup();
     proxy_cleanup();
 #ifdef HAVE_TRANSACTION_CHECKS
@@ -141,9 +146,36 @@ static bool resolve_address_pair(nbgl_contentTagValue_t *pair,
         (*ext_out)->explanation = alias_expl;
         pair->extension = *ext_out;
         pair->aliasValue = true;
+#ifdef HAVE_ADDRESS_BOOK
+        if (alias_type == ADDRESS_BOOK_ALIAS) {
+            pair->nbMaxLinesForValue = ADDRESS_BOOK_ALIAS_MAX_LINES;
+        }
+#endif  // HAVE_ADDRESS_BOOK
     } else {
         pair->value = display_addr;
     }
+    return true;
+}
+
+/**
+ * Fill a pair with the hash of the transaction being signed.
+ *
+ * @param[out] pair pair to fill
+ * @return whether the hash could be formatted
+ */
+static bool set_tx_hash_pair(nbgl_contentTagValue_t *pair) {
+    if (bytes_to_lowercase_hex_0x(strings.common.tx_hash,
+                                  sizeof(strings.common.tx_hash),
+                                  (const uint8_t *) tmpCtx.transactionContext.hash,
+                                  INT256_LENGTH) < 0) {
+        return false;
+    }
+#ifdef SCREEN_SIZE_WALLET
+    pair->item = "Transaction hash";
+#else
+    pair->item = "Tx hash";
+#endif
+    pair->value = strings.common.tx_hash;
     return true;
 }
 
@@ -205,6 +237,12 @@ static bool setTagValuePairs(bool displayNetwork, bool fromPlugin) {
         g_pairs[nbPairs].item = "Max fees";
         g_pairs[nbPairs].value = strings.common.maxFee;
         nbPairs++;
+        if (N_storage.displayHash) {
+            if (!set_tx_hash_pair(&g_pairs[nbPairs])) {
+                return false;
+            }
+            nbPairs++;
+        }
     } else {
         // Display the From address
         // ------------------------
@@ -282,20 +320,10 @@ static bool setTagValuePairs(bool displayNetwork, bool fromPlugin) {
         // Display the Transaction hash
         // ----------------------------
         if ((N_storage.displayHash) || (tmpContent.txContent.dataPresent)) {
-            // Copy the "0x" prefix
-            strlcpy(strings.common.tx_hash, "0x", 3);
-            if (bytes_to_lowercase_hex(strings.common.tx_hash + 2,
-                                       sizeof(strings.common.tx_hash) - 2,
-                                       (const uint8_t *) tmpCtx.transactionContext.hash,
-                                       INT256_LENGTH) >= 0) {
-#ifdef SCREEN_SIZE_WALLET
-                g_pairs[nbPairs].item = "Transaction hash";
-#else
-                g_pairs[nbPairs].item = "Tx hash";
-#endif
-                g_pairs[nbPairs].value = strings.common.tx_hash;
-                nbPairs++;
+            if (!set_tx_hash_pair(&g_pairs[nbPairs])) {
+                return false;
             }
+            nbPairs++;
         }
     }
     return true;
@@ -330,6 +358,10 @@ static size_t getNbPairs(bool displayNetwork, bool fromPlugin) {
         }
         // Count the Max fees
         nbPairs++;
+        if (N_storage.displayHash) {
+            // Count the Transaction hash
+            nbPairs++;
+        }
     } else {
         if (strings.common.fromAddress[0] != 0) {
             // Count the From address
@@ -377,6 +409,9 @@ static bool ux_init(bool fromPlugin, uint8_t title_len, uint8_t finish_len) {
     size_t nbPairs = 0;
     bool displayNetwork = false;
 
+    // Release what a review aborted by the host left allocated
+    ui_approve_tx_cleanup();
+
     chain_id = get_tx_chain_id();
     if (g_chain_config->chain_id == ETHEREUM_MAINNET_CHAINID &&
         chain_id != g_chain_config->chain_id) {
@@ -411,7 +446,7 @@ static bool ux_init(bool fromPlugin, uint8_t title_len, uint8_t finish_len) {
     }
     return true;
 error:
-    io_seproxyhal_send_status(SWO_INSUFFICIENT_MEMORY, 0, true, true);
+    // The caller replies with the error
     _cleanup();
     return false;
 }

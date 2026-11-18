@@ -30,6 +30,7 @@
 #include "feature_sign_tx.h"
 #include "eth_ustream.h"
 #include "manage_asset_info.h"
+#include "eth_plugin_handler.h"
 
 // =============================================================================
 // Globals required by linked translation units
@@ -44,9 +45,9 @@
 // by max_transaction_fee_to_string but whose absence blocks the link.
 // =============================================================================
 
-const char *get_network_as_string(const uint64_t *chain_id) {
-    (void) chain_id;
-    return "ETH";
+bool get_network_as_string(char *out, size_t out_size) {
+    strlcpy(out, "Ethereum", out_size);
+    return true;
 }
 uint16_t ux_approve_tx(bool fromPlugin) {
     (void) fromPlugin;
@@ -79,31 +80,38 @@ cx_err_t cx_hash_no_throw(cx_hash_t *hash,
     (void) out_len;
     return CX_OK;
 }
-int eth_plugin_call(int method, void *params) {
+eth_plugin_result_t eth_plugin_call(int method, void *parameter) {
     (void) method;
-    (void) params;
-    return 0;
+    (void) parameter;
+    return ETH_PLUGIN_RESULT_ERROR;
 }
-bool eth_plugin_perform_init(uint8_t *contractAddress, void *msg) {
-    (void) contractAddress;
-    (void) msg;
-    return true;
+eth_plugin_result_t eth_plugin_perform_init(uint8_t *contract_address,
+                                            ethPluginInitContract_t *init) {
+    (void) contract_address;
+    (void) init;
+    return ETH_PLUGIN_RESULT_UNAVAILABLE;
 }
-void eth_plugin_prepare_finalize(void *msg) {
-    (void) msg;
+void eth_plugin_prepare_finalize(ethPluginFinalize_t *finalize) {
+    (void) finalize;
 }
-void eth_plugin_prepare_init(void *msg, const uint8_t *pluginName, uint8_t pluginNameLength) {
-    (void) msg;
-    (void) pluginName;
-    (void) pluginNameLength;
+void eth_plugin_prepare_init(ethPluginInitContract_t *init,
+                             const uint8_t *selector,
+                             uint32_t data_size) {
+    (void) init;
+    (void) selector;
+    (void) data_size;
 }
-void eth_plugin_prepare_provide_info(void *msg) {
-    (void) msg;
+void eth_plugin_prepare_provide_info(ethPluginProvideInfo_t *provide_token) {
+    (void) provide_token;
 }
-void eth_plugin_prepare_provide_parameter(void *msg, const uint8_t *param, uint32_t paramOffset) {
-    (void) msg;
-    (void) param;
-    (void) paramOffset;
+void eth_plugin_prepare_provide_parameter(ethPluginProvideParameter_t *provide_parameter,
+                                          uint8_t *parameter,
+                                          uint32_t parameter_offset,
+                                          uint8_t parameter_size) {
+    (void) provide_parameter;
+    (void) parameter;
+    (void) parameter_offset;
+    (void) parameter_size;
 }
 extraInfo_t *get_matching_asset_info(const uint64_t *chain_id, const uint8_t *address) {
     (void) chain_id;

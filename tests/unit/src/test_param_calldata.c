@@ -10,10 +10,10 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#include "gtp_param_calldata.h"
-#include "gtp_parsed_value.h"
-#include "gtp_value.h"
-#include "tx_ctx.h"
+#include "gcs_param_calldata.h"
+#include "gcs_parsed_value.h"
+#include "gcs_value.h"
+#include "operation_ctx.h"
 #include "calldata.h"
 #include "shared_context.h"
 #include "eth_ustream.h"
@@ -25,12 +25,14 @@
 // ===========================================================================
 
 static int g_vg_call = 0;
-static s_parsed_value_collection g_vg[2];
+// one collection for each value a calldata param can read
+static s_parsed_value_collection g_vg[6];
 
-static bool g_tx_ctx_init_ret = true;
+static bool g_operation_ctx_init_ret = true;
 
 bool value_get(const s_value *value, s_parsed_value_collection *collection) {
     (void) value;
+    TEST_ASSERT_LESS_THAN_INT((int) ARRAYLEN(g_vg), g_vg_call);
     *collection = g_vg[g_vg_call++];
     return true;
 }
@@ -73,25 +75,34 @@ bool calldata_append(s_calldata *calldata, const uint8_t *data, size_t length) {
 }
 
 void calldata_delete(s_calldata *calldata) {
-    (void) calldata;
+    free(calldata);
     g_calldata_delete_calls++;
 }
 
 // ===========================================================================
-// tx_ctx_init mock
+// operation_ctx_init mock
 // ===========================================================================
 
-bool tx_ctx_init(s_calldata *calldata,
-                 const uint8_t *from,
-                 const uint8_t *to,
-                 const uint8_t *amount,
-                 const uint64_t *chain_id) {
-    (void) calldata;
+bool operation_ctx_init(s_calldata *calldata,
+                        const uint8_t *from,
+                        const uint8_t *to,
+                        const uint8_t *amount,
+                        const uint64_t *chain_id) {
     (void) from;
     (void) to;
     (void) amount;
     (void) chain_id;
-    return (bool) g_tx_ctx_init_ret;
+    // On success, the tx context takes ownership of calldata.
+    if (g_operation_ctx_init_ret) {
+        free(calldata);
+    }
+    return (bool) g_operation_ctx_init_ret;
+}
+
+static uint8_t g_last_batch_size = 0;
+bool operation_ctx_set_last_batch_size(uint8_t batch_size) {
+    g_last_batch_size = batch_size;
+    return true;
 }
 
 // ===========================================================================
@@ -111,7 +122,7 @@ static uint8_t g_contract_addr[ADDRESS_LENGTH] = {
 /**
  * Broadcast: calldata collection has 2 elements (both empty, length=0),
  * contract_addr collection has 1 element — broadcast to both iterations.
- * Expected: format_param_calldata returns true and tx_ctx_init is called twice.
+ * Expected: format_param_calldata returns true and operation_ctx_init is called twice.
  */
 void test_calldata_broadcast_ok(void) {
     // Primary collection: two empty calldatas (length=0 skips calldata_init)
@@ -131,9 +142,9 @@ void test_calldata_broadcast_ok(void) {
     g_vg_call = 0;
     memset(&txContext, 0, sizeof(txContext));
 
-    // tx_ctx_init called once per calldata iteration (2 iterations)
-    g_tx_ctx_init_ret = true;
-    g_tx_ctx_init_ret = true;
+    // operation_ctx_init called once per calldata iteration (2 iterations)
+    g_operation_ctx_init_ret = true;
+    g_operation_ctx_init_ret = true;
 
     s_param_calldata param;
     memset(&param, 0, sizeof(param));
@@ -143,13 +154,43 @@ void test_calldata_broadcast_ok(void) {
 
     // batch_nb_tx incremented by calldatas.size (2) since size > 1
     TEST_ASSERT_EQUAL(txContext.batch_nb_tx, 2);
-    TEST_ASSERT_EQUAL(txContext.current_batch_size, 2);
+    TEST_ASSERT_EQUAL(g_last_batch_size, 2);
+}
+
+/**
+ * A batch that would wrap the total number of calls is refused before any call is queued.
+ */
+void test_calldata_batch_count_overflow_rejected(void) {
+    g_vg[0].size = 2;
+    g_vg[0].value[0] = (s_parsed_value) {.ptr = NULL, .size = 0, .offset = 0, .length = 0};
+    g_vg[0].value[1] = (s_parsed_value) {.ptr = NULL, .size = 0, .offset = 0, .length = 0};
+    g_vg[1].size = 1;
+    g_vg[1].value[0] = (s_parsed_value) {
+        .ptr = g_contract_addr,
+        .size = ADDRESS_LENGTH,
+        .offset = 0,
+        .length = ADDRESS_LENGTH,
+    };
+
+    g_vg_call = 0;
+    memset(&txContext, 0, sizeof(txContext));
+    txContext.batch_nb_tx = UINT8_MAX - 1;
+    g_operation_ctx_init_ret = true;
+    g_last_batch_size = 0;
+
+    s_param_calldata param;
+    memset(&param, 0, sizeof(param));
+    param.version = 1;
+
+    TEST_ASSERT_FALSE(format_param_calldata(&param, "Destination"));
+    TEST_ASSERT_EQUAL(txContext.batch_nb_tx, UINT8_MAX - 1);
+    TEST_ASSERT_EQUAL(g_last_batch_size, 0);
 }
 
 /**
  * Mismatch rejection: calldata collection has 2 elements,
  * contract_addr collection has 3 — neither equals 1 nor matches calldatas.size.
- * check_param must return false; tx_ctx_init must NOT be called.
+ * check_param must return false; operation_ctx_init must NOT be called.
  */
 void test_calldata_size_mismatch_rejected(void) {
     // Primary collection: 2 calldatas
@@ -165,7 +206,7 @@ void test_calldata_size_mismatch_rejected(void) {
     memset(&param, 0, sizeof(param));
     param.version = 1;
 
-    // format_param_calldata must return false; tx_ctx_init is NOT called
+    // format_param_calldata must return false; operation_ctx_init is NOT called
     TEST_ASSERT_FALSE(format_param_calldata(&param, "Destination"));
 }
 
@@ -182,6 +223,23 @@ void test_calldata_size_mismatch_rejected(void) {
 //
 // All tags are < 0x80 so short-form encoding is used.
 // ===========================================================================
+
+void test_handle_calldata_struct_version_other_than_one_refused(void) {
+    uint8_t buf_bytes[] = {0x00, 0x01, 0x01, 0x01, 0x00, 0x02, 0x00};
+    const uint8_t other_versions[] = {0x00, 0x02, 0xFF};
+    s_param_calldata param;
+    s_param_calldata_context ctx = {.param = &param};
+    buffer_t buf = {.ptr = buf_bytes, .size = sizeof(buf_bytes), .offset = 0};
+
+    memset(&param, 0, sizeof(param));
+    TEST_ASSERT_TRUE(handle_param_calldata_struct(&buf, &ctx));
+    for (size_t i = 0; i < sizeof(other_versions); i++) {
+        buf = (buffer_t) {.ptr = buf_bytes, .size = sizeof(buf_bytes), .offset = 0};
+        buf_bytes[2] = other_versions[i];
+        memset(&param, 0, sizeof(param));
+        TEST_ASSERT_FALSE(handle_param_calldata_struct(&buf, &ctx));
+    }
+}
 
 void test_handle_calldata_struct_all_tags_ok(void) {
     uint8_t buf_bytes[] = {
@@ -283,7 +341,7 @@ void test_nested_calldata_with_selector_happy_path(void) {
         .offset = 0,
         .length = ADDRESS_LENGTH,
     };
-    g_tx_ctx_init_ret = true;
+    g_operation_ctx_init_ret = true;
 
     s_param_calldata param = {0};
     param.version = 1;
@@ -422,7 +480,7 @@ void test_nested_calldata_with_all_optional_fields(void) {
         .offset = 0,
         .length = ADDRESS_LENGTH,
     };
-    g_tx_ctx_init_ret = true;
+    g_operation_ctx_init_ret = true;
 
     s_param_calldata param = {0};
     param.version = 1;
@@ -446,7 +504,9 @@ void tearDown(void) {
 int main(void) {
     UNITY_BEGIN();
     RUN_TEST(test_calldata_broadcast_ok);
+    RUN_TEST(test_calldata_batch_count_overflow_rejected);
     RUN_TEST(test_calldata_size_mismatch_rejected);
+    RUN_TEST(test_handle_calldata_struct_version_other_than_one_refused);
     RUN_TEST(test_handle_calldata_struct_all_tags_ok);
     RUN_TEST(test_handle_calldata_struct_version_only_rejected);
     RUN_TEST(test_nested_calldata_with_selector_happy_path);

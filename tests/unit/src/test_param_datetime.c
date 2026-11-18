@@ -1,7 +1,7 @@
 /**
  * @file test_param_datetime.c
  * @brief Unit tests for the DATETIME parameter in
- *        src/features/generic_tx_parser/gtp_param_datetime.c.
+ *        src/features/gcs/gcs_param_datetime.c.
  *
  * The parameter has two render modes, picked at TLV time via TAG_TYPE:
  *   - DT_UNIX (0):       interprets the value as a uint64 timestamp and
@@ -21,10 +21,10 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#include "gtp_param_datetime.h"
-#include "gtp_parsed_value.h"
-#include "gtp_value.h"
-#include "gtp_field.h"
+#include "gcs_param_datetime.h"
+#include "gcs_parsed_value.h"
+#include "gcs_value.h"
+#include "gcs_field.h"
 #include "shared_context.h"
 
 // =============================================================================
@@ -216,6 +216,18 @@ static bool run_tlv(const uint8_t *bytes, size_t size, s_param_datetime *param) 
     return handle_param_datetime_struct(&buf, &ctx);
 }
 
+void test_tlv_version_other_than_one_refused(void) {
+    uint8_t bytes[] = {0x00, 0x01, 0x01, 0x01, 0x00, 0x02, 0x01, DT_UNIX};
+    const uint8_t other_versions[] = {0x00, 0x02, 0xFF};
+    s_param_datetime param = {0};
+
+    TEST_ASSERT_TRUE(run_tlv(bytes, sizeof(bytes), &param));
+    for (size_t i = 0; i < sizeof(other_versions); i++) {
+        bytes[2] = other_versions[i];
+        TEST_ASSERT_FALSE(run_tlv(bytes, sizeof(bytes), &param));
+    }
+}
+
 void test_tlv_happy_path_unix(void) {
     // VERSION(0) len 1 [1], VALUE(1) len 0, TYPE(2) len 1 [DT_UNIX]
     const uint8_t bytes[] = {
@@ -306,6 +318,7 @@ int main(void) {
     RUN_TEST(test_format_multiple_blockheights_iterates);
     RUN_TEST(test_format_value_get_failure_returns_false);
     RUN_TEST(test_format_add_to_field_table_failure_propagates);
+    RUN_TEST(test_tlv_version_other_than_one_refused);
     RUN_TEST(test_tlv_happy_path_unix);
     RUN_TEST(test_tlv_happy_path_blockheight);
     RUN_TEST(test_tlv_invalid_type_rejected);

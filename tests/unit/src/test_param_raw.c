@@ -12,8 +12,8 @@
 #include "calldata.h"  // CALLDATA_CHUNK_SIZE
 
 // Includes
-#include "gtp_field.h"
-#include "gtp_value.h"
+#include "gcs_field.h"
+#include "gcs_value.h"
 #include "shared_context.h"
 #include "status_words.h"
 #include "uint256.h"
@@ -717,6 +717,80 @@ void test_raw_bool_if_not_in_no_match(void) {
     free(constraint);
 }
 
+/**
+ * @brief Format a 32-byte BOOL word, optionally hidden by IF_NOT_IN(false).
+ */
+static bool format_raw_bool_word(const uint8_t word[CALLDATA_CHUNK_SIZE], bool if_not_in_false) {
+    static uint8_t false_value = 0;
+    s_field_constraint constraint = {.size = 1, .value = &false_value};
+    s_param_raw param = {.version = 1,
+                         .value = {.type_family = TF_BOOL,
+                                   .source = SOURCE_CONSTANT,
+                                   .constant = {.size = CALLDATA_CHUNK_SIZE}}};
+    memcpy(param.value.constant.buf, word, CALLDATA_CHUNK_SIZE);
+
+    s_field field = {
+        .param_type = PARAM_TYPE_RAW,
+        .visibility = if_not_in_false ? PARAM_VISIBILITY_IF_NOT_IN : PARAM_VISIBILITY_ALWAYS,
+        .constraints = if_not_in_false ? &constraint : NULL,
+        .param_raw = param,
+        .name = "Flag"};
+    g_add_to_field_table_ret = true;
+    return format_param_raw(&field);
+}
+
+/**
+ * @brief Canonical 32-byte BOOL words are displayed as is.
+ */
+void test_raw_bool_canonical_word_accepted(void) {
+    uint8_t word[CALLDATA_CHUNK_SIZE] = {0};
+
+    TEST_ASSERT_TRUE(format_raw_bool_word(word, false));
+    TEST_ASSERT_EQUAL_STRING("false", g_last_field_value);
+    word[CALLDATA_CHUNK_SIZE - 1] = 1;
+    TEST_ASSERT_TRUE(format_raw_bool_word(word, false));
+    TEST_ASSERT_EQUAL_STRING("true", g_last_field_value);
+}
+
+/**
+ * @brief Non-canonical BOOL words are rejected, even when IF_NOT_IN(false) would hide them.
+ */
+void test_raw_bool_non_canonical_word_rejected(void) {
+    uint8_t word[CALLDATA_CHUNK_SIZE];
+
+    for (int i = 0; i < 2; ++i) {
+        bool if_not_in_false = (i == 1);
+
+        // ...0100: last byte is zero, a higher byte is not
+        memset(word, 0, sizeof(word));
+        word[CALLDATA_CHUNK_SIZE - 2] = 1;
+        TEST_ASSERT_FALSE(format_raw_bool_word(word, if_not_in_false));
+        // ...0101
+        word[CALLDATA_CHUNK_SIZE - 1] = 1;
+        TEST_ASSERT_FALSE(format_raw_bool_word(word, if_not_in_false));
+        // ...02
+        memset(word, 0, sizeof(word));
+        word[CALLDATA_CHUNK_SIZE - 1] = 2;
+        TEST_ASSERT_FALSE(format_raw_bool_word(word, if_not_in_false));
+    }
+}
+
+/**
+ * @brief An empty BOOL value is rejected instead of being displayed as false.
+ */
+void test_raw_bool_empty_rejected(void) {
+    s_param_raw param = {
+        .version = 1,
+        .value = {.type_family = TF_BOOL, .source = SOURCE_CONSTANT, .constant = {.size = 0}}};
+    s_field field = {.param_type = PARAM_TYPE_RAW,
+                     .visibility = PARAM_VISIBILITY_ALWAYS,
+                     .constraints = NULL,
+                     .param_raw = param,
+                     .name = "Flag"};
+
+    TEST_ASSERT_FALSE(format_param_raw(&field));
+}
+
 // =============================================================================
 // Test cases - TF_BYTES
 // =============================================================================
@@ -1067,6 +1141,61 @@ void test_raw_string_embedded_nul_rejected(void) {
     TEST_ASSERT_FALSE(format_param_raw(&field));
 }
 
+/**
+ * @brief Format a STRING made of the given raw bytes.
+ */
+static bool format_raw_string_bytes(const uint8_t *bytes, size_t size) {
+    s_param_raw param = {
+        .version = 1,
+        .value = {.type_family = TF_STRING, .source = SOURCE_CONSTANT, .constant = {.size = size}}};
+    memcpy(param.value.constant.buf, bytes, size);
+
+    s_field field = {.param_type = PARAM_TYPE_RAW,
+                     .visibility = PARAM_VISIBILITY_ALWAYS,
+                     .constraints = NULL,
+                     .param_raw = param,
+                     .name = "Message"};
+    g_add_to_field_table_ret = true;
+    return format_param_raw(&field);
+}
+
+/**
+ * @brief A STRING holding a C0 control other than line feed, or DEL, is rejected.
+ */
+void test_raw_string_control_char_rejected(void) {
+    static const uint8_t controls[] = {'\r', '\t', 0x1B, 0x01, 0x1F, 0x7F};
+
+    for (size_t i = 0; i < sizeof(controls); ++i) {
+        uint8_t str[] = {'a', controls[i], 'b'};
+        TEST_ASSERT_FALSE(format_raw_string_bytes(str, sizeof(str)));
+    }
+}
+
+/**
+ * @brief A STRING holding a UTF-8 encoded C1 control is rejected.
+ */
+void test_raw_string_c1_control_rejected(void) {
+    static const uint8_t first_c1[] = {'a', 0xC2, 0x80, 'b'};
+    static const uint8_t last_c1[] = {'a', 0xC2, 0x9F, 'b'};
+
+    TEST_ASSERT_FALSE(format_raw_string_bytes(first_c1, sizeof(first_c1)));
+    TEST_ASSERT_FALSE(format_raw_string_bytes(last_c1, sizeof(last_c1)));
+}
+
+/**
+ * @brief A STRING holding line feeds or non-ASCII UTF-8 is displayed as is.
+ */
+void test_raw_string_line_feed_and_utf8_accepted(void) {
+    static const uint8_t multi_line[] = {'l', 'i', 'n', 'e', '1', '\n', 'l', 'i', 'n', 'e', '2'};
+    // "café ©" in UTF-8: 0xC2 0xA9 is a printable code point, not a C1 control
+    static const uint8_t utf8[] = {'c', 'a', 'f', 0xC3, 0xA9, ' ', 0xC2, 0xA9};
+
+    TEST_ASSERT_TRUE(format_raw_string_bytes(multi_line, sizeof(multi_line)));
+    TEST_ASSERT_EQUAL_STRING("line1\nline2", g_last_field_value);
+    TEST_ASSERT_TRUE(format_raw_string_bytes(utf8, sizeof(utf8)));
+    TEST_ASSERT_EQUAL_MEMORY(utf8, g_last_field_value, sizeof(utf8));
+}
+
 // =============================================================================
 // Test cases - SOURCE_MAP_REF
 // =============================================================================
@@ -1205,20 +1334,59 @@ void test_raw_uint_separator_with_index(void) {
 // TLV dispatch + format_bytes oversize
 // =============================================================================
 
+void test_handle_param_raw_struct_version_other_than_one_refused(void) {
+    uint8_t buf_bytes[] = {
+        0x00,
+        0x01,
+        0x01,
+        0x01,
+        0x09,
+        0x00,
+        0x01,
+        0x01,
+        0x01,
+        0x01,
+        (uint8_t) TF_UINT,
+        0x04,
+        0x01,
+        (uint8_t) CP_FROM,
+    };
+    const uint8_t other_versions[] = {0x00, 0x02, 0xFF};
+    s_param_raw param = {0};
+    s_param_raw_context ctx = {.param = &param};
+    buffer_t buf = {.ptr = buf_bytes, .size = sizeof(buf_bytes), .offset = 0};
+
+    TEST_ASSERT_TRUE(handle_param_raw_struct(&buf, &ctx));
+    for (size_t i = 0; i < sizeof(other_versions); i++) {
+        buf = (buffer_t) {.ptr = buf_bytes, .size = sizeof(buf_bytes), .offset = 0};
+        buf_bytes[2] = other_versions[i];
+        TEST_ASSERT_FALSE(handle_param_raw_struct(&buf, &ctx));
+    }
+}
+
 void test_handle_param_raw_struct_version_and_value_ok(void) {
     uint8_t buf_bytes[] = {
         0x00,
         0x01,
-        0x05,  // VERSION = 5
+        0x01,  // VERSION = 1
         0x01,
-        0x00,  // VALUE (empty inner)
+        0x09,
+        0x00,
+        0x01,
+        0x01,  // VALUE: VERSION = 1
+        0x01,
+        0x01,
+        (uint8_t) TF_UINT,  // TYPE_FAMILY
+        0x04,
+        0x01,
+        (uint8_t) CP_FROM,  // CONTAINER_PATH
     };
     buffer_t buf = {.ptr = buf_bytes, .size = sizeof(buf_bytes), .offset = 0};
 
     s_param_raw param = {0};
     s_param_raw_context ctx = {.param = &param};
     TEST_ASSERT_TRUE(handle_param_raw_struct(&buf, &ctx));
-    TEST_ASSERT_EQUAL(param.version, 5);
+    TEST_ASSERT_EQUAL(param.version, 1);
 }
 
 // =============================================================================
@@ -1254,6 +1422,9 @@ int main(void) {
     RUN_TEST(test_raw_bool_must_be_invalid);
     RUN_TEST(test_raw_bool_if_not_in_match);
     RUN_TEST(test_raw_bool_if_not_in_no_match);
+    RUN_TEST(test_raw_bool_canonical_word_accepted);
+    RUN_TEST(test_raw_bool_non_canonical_word_rejected);
+    RUN_TEST(test_raw_bool_empty_rejected);
     RUN_TEST(test_raw_bytes_always);
     RUN_TEST(test_raw_bytes_must_be_valid);
     RUN_TEST(test_raw_bytes_must_be_invalid);
@@ -1268,11 +1439,15 @@ int main(void) {
     RUN_TEST(test_raw_string_if_not_in_no_match);
     RUN_TEST(test_raw_string_oversize_rejected);
     RUN_TEST(test_raw_string_embedded_nul_rejected);
+    RUN_TEST(test_raw_string_control_char_rejected);
+    RUN_TEST(test_raw_string_c1_control_rejected);
+    RUN_TEST(test_raw_string_line_feed_and_utf8_accepted);
     RUN_TEST(test_raw_map_ref_found);
     RUN_TEST(test_raw_map_ref_not_found);
     RUN_TEST(test_raw_map_ref_nested_rejected);
     RUN_TEST(test_raw_uint_separator_literal);
     RUN_TEST(test_raw_uint_separator_with_index);
+    RUN_TEST(test_handle_param_raw_struct_version_other_than_one_refused);
     RUN_TEST(test_handle_param_raw_struct_version_and_value_ok);
     return UNITY_END();
 }

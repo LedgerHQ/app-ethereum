@@ -37,8 +37,9 @@
 #include "gtp_data_path.h"
 #include "gtp_path_array.h"
 #include "gtp_path_slice.h"
-#include "gtp_parsed_value.h"
+#include "gcs_parsed_value.h"
 #include "calldata.h"
+#include "os.h"
 
 // =============================================================================
 // Wrapped collaborators — calldata_get_chunk / get_current_calldata
@@ -51,7 +52,7 @@ s_calldata *get_current_calldata(void) {
 
 // Test fixture: an array of CHUNK_SIZE chunks indexed by idx. Tests set
 // up the chunks they need before running.
-#define MAX_FIXTURE_CHUNKS 8
+#define MAX_FIXTURE_CHUNKS 32
 static uint8_t g_chunks[MAX_FIXTURE_CHUNKS][CALLDATA_CHUNK_SIZE];
 static bool g_chunk_present[MAX_FIXTURE_CHUNKS];
 
@@ -99,9 +100,12 @@ void test_tlv_happy_path_all_five_element_types(void) {
         0x02,
         0x00,
         0x20,  // TUPLE (value = 32)
-        // ARRAY (delegated to path_array parser — TLV-empty so has_start/end stay false)
+        // ARRAY with WEIGHT = 1 only, so has_start/end stay false
         0x02,
-        0x00,
+        0x03,
+        0x01,
+        0x01,
+        0x01,
         0x03,
         0x00,  // REF — must be empty
         0x04,
@@ -123,6 +127,18 @@ void test_tlv_happy_path_all_five_element_types(void) {
     TEST_ASSERT_EQUAL(path.elements[4].type, ELEMENT_TYPE_SLICE);
 }
 
+void test_tlv_version_other_than_one_refused(void) {
+    uint8_t bytes[] = {0x00, 0x01, 0x01, 0x04, 0x01, 0x03};
+    const uint8_t other_versions[] = {0x00, 0x02, 0xFF};
+    s_data_path path = {0};
+
+    TEST_ASSERT_TRUE(run_tlv(bytes, sizeof(bytes), &path));
+    for (size_t i = 0; i < sizeof(other_versions); i++) {
+        bytes[2] = other_versions[i];
+        TEST_ASSERT_FALSE(run_tlv(bytes, sizeof(bytes), &path));
+    }
+}
+
 void test_tlv_ref_with_payload_rejected(void) {
     // REF must have an empty payload; any byte is a hard reject.
     const uint8_t bytes[] = {0x03, 0x01, 0x00};
@@ -138,20 +154,99 @@ void test_tlv_leaf_invalid_type_rejected(void) {
 }
 
 void test_tlv_leaf_each_valid_type_accepted(void) {
-    const uint8_t types[] = {LEAF_TYPE_ARRAY, LEAF_TYPE_TUPLE, LEAF_TYPE_STATIC, LEAF_TYPE_DYNAMIC};
+    const uint8_t types[] = {LEAF_TYPE_STATIC, LEAF_TYPE_DYNAMIC};
     for (size_t i = 0; i < sizeof(types); ++i) {
         s_data_path path = {0};
-        const uint8_t bytes[] = {0x04, 0x01, types[i]};
+        const uint8_t bytes[] = {0x00, 0x01, 0x01, 0x04, 0x01, types[i]};
         TEST_ASSERT_TRUE(run_tlv(bytes, sizeof(bytes), &path));
         TEST_ASSERT_EQUAL(path.size, 1);
         TEST_ASSERT_EQUAL(path.elements[0].leaf.type, types[i]);
     }
 }
 
+// ARRAY and TUPLE leaves cannot be read from the calldata
+void test_tlv_leaf_unreadable_type_rejected(void) {
+    const uint8_t types[] = {LEAF_TYPE_ARRAY, LEAF_TYPE_TUPLE};
+    for (size_t i = 0; i < sizeof(types); ++i) {
+        s_data_path path = {0};
+        const uint8_t bytes[] = {0x00, 0x01, 0x01, 0x04, 0x01, types[i]};
+        TEST_ASSERT_FALSE(run_tlv(bytes, sizeof(bytes), &path));
+    }
+}
+
+#define VERSION    0x00, 0x01, 0x01
+#define TUPLE_0    0x01, 0x02, 0x00, 0x00
+#define LEAF_S     0x04, 0x01, LEAF_TYPE_STATIC
+#define SLICE_NONE 0x05, 0x00
+
+void test_tlv_path_ending_with_its_leaf_accepted(void) {
+    const uint8_t tuple_leaf[] = {VERSION, TUPLE_0, LEAF_S};
+    const uint8_t leaf_slice[] = {VERSION, TUPLE_0, LEAF_S, SLICE_NONE};
+    s_data_path path = {0};
+
+    TEST_ASSERT_TRUE(run_tlv(tuple_leaf, sizeof(tuple_leaf), &path));
+    memset(&path, 0, sizeof(path));
+    TEST_ASSERT_TRUE(run_tlv(leaf_slice, sizeof(leaf_slice), &path));
+}
+
+// A path must end with its only LEAF, optionally followed by one SLICE
+void test_tlv_path_of_invalid_shape_rejected(void) {
+    const uint8_t no_leaf[] = {VERSION, TUPLE_0};
+    const uint8_t slice_only[] = {VERSION, SLICE_NONE};
+    const uint8_t leaf_not_last[] = {VERSION, LEAF_S, TUPLE_0};
+    const uint8_t two_leaves[] = {VERSION, LEAF_S, LEAF_S};
+    const uint8_t slice_before_leaf[] = {VERSION, SLICE_NONE, LEAF_S};
+    const uint8_t two_slices[] = {VERSION, LEAF_S, SLICE_NONE, SLICE_NONE};
+    const struct {
+        const uint8_t *bytes;
+        size_t size;
+    } cases[] = {
+        {no_leaf, sizeof(no_leaf)},
+        {slice_only, sizeof(slice_only)},
+        {leaf_not_last, sizeof(leaf_not_last)},
+        {two_leaves, sizeof(two_leaves)},
+        {slice_before_leaf, sizeof(slice_before_leaf)},
+        {two_slices, sizeof(two_slices)},
+    };
+
+    for (size_t i = 0; i < ARRAYLEN(cases); ++i) {
+        s_data_path path = {0};
+        TEST_ASSERT_FALSE(run_tlv(cases[i].bytes, cases[i].size, &path));
+    }
+}
+
+void test_tlv_array_without_weight_rejected(void) {
+    const uint8_t bytes[] = {VERSION, 0x02, 0x00, LEAF_S};
+    s_data_path path = {0};
+
+    TEST_ASSERT_FALSE(run_tlv(bytes, sizeof(bytes), &path));
+}
+
+// A path with no element leads to no value, so its field would show nothing
+void test_tlv_path_without_element_rejected(void) {
+    const uint8_t bytes[] = {0x00, 0x01, 0x01};
+    s_data_path path = {0};
+
+    TEST_ASSERT_FALSE(run_tlv(bytes, sizeof(bytes), &path));
+}
+
+void test_tlv_path_without_version_rejected(void) {
+    const uint8_t bytes[] = {0x04, 0x01, LEAF_TYPE_STATIC};
+    s_data_path path = {0};
+
+    TEST_ASSERT_FALSE(run_tlv(bytes, sizeof(bytes), &path));
+}
+
+void test_tlv_empty_path_rejected(void) {
+    s_data_path path = {0};
+
+    TEST_ASSERT_FALSE(run_tlv(NULL, 0, &path));
+}
+
 void test_tlv_path_max_size_enforced(void) {
     // Build PATH_MAX_SIZE + 1 = 17 TUPLE entries — the common handler
     // must reject the last one.
-    uint8_t bytes[64];
+    uint8_t bytes[4 * (PATH_MAX_SIZE + 1)];
     size_t off = 0;
     for (int i = 0; i <= PATH_MAX_SIZE; ++i) {
         bytes[off++] = 0x01;
@@ -244,6 +339,7 @@ void test_data_path_get_slice_start_ge_end_rejected(void) {
 
     s_parsed_value_collection collec = {0};
     TEST_ASSERT_FALSE(data_path_get(&path, &collec));
+    data_path_cleanup(&collec);
 }
 
 void test_data_path_get_leaf_missing_chunk_returns_false(void) {
@@ -259,9 +355,8 @@ void test_data_path_get_leaf_missing_chunk_returns_false(void) {
 }
 
 void test_data_path_get_leaf_invalid_type_rejected_at_runtime(void) {
-    // LEAF_TYPE_TUPLE / LEAF_TYPE_ARRAY are accepted by the TLV layer
-    // but not yet implemented at runtime — they fall into the default
-    // case of path_leaf.
+    // LEAF_TYPE_TUPLE / LEAF_TYPE_ARRAY are refused by the TLV layer
+    // and fall into the default case of path_leaf.
     s_data_path path = {0};
     path.size = 1;
     path.elements[0].type = ELEMENT_TYPE_LEAF;
@@ -485,6 +580,40 @@ void test_path_tuple_advances_offset(void) {
 // path_array enforces passes <= UINT8_MAX (line 286 in gtp_data_path.c).
 // An array_size larger than 255 with no slice bounds must be rejected
 // before allocating a passes_remaining slot.
+void test_path_array_max_values_accepted(void) {
+    put_array_size_chunk(0, MAX_VALUE_COLLECTION_SIZE);
+    for (uint32_t i = 1; i <= MAX_VALUE_COLLECTION_SIZE; ++i) {
+        const uint8_t body[] = {(uint8_t) i};
+        set_chunk(i, body, sizeof(body));
+    }
+
+    s_data_path path = {0};
+    path.size = 2;
+    path.elements[0].type = ELEMENT_TYPE_ARRAY;
+    path.elements[0].array.weight = 1;
+    path.elements[1].type = ELEMENT_TYPE_LEAF;
+    path.elements[1].leaf.type = LEAF_TYPE_STATIC;
+
+    s_parsed_value_collection collec = {0};
+    TEST_ASSERT_TRUE(data_path_get(&path, &collec));
+    TEST_ASSERT_EQUAL(collec.size, MAX_VALUE_COLLECTION_SIZE);
+    data_path_cleanup(&collec);
+}
+
+// Without a LEAF nothing ends the walk early: the number of passes is bounded on its own
+void test_path_without_leaf_passes_bounded(void) {
+    put_array_size_chunk(0, UINT8_MAX);
+
+    s_data_path path = {0};
+    path.size = 1;
+    path.elements[0].type = ELEMENT_TYPE_ARRAY;
+    path.elements[0].array.weight = 1;
+
+    s_parsed_value_collection collec = {0};
+    TEST_ASSERT_FALSE(data_path_get(&path, &collec));
+    TEST_ASSERT_EQUAL(collec.size, 0);
+}
+
 void test_path_array_size_above_uint8_max_rejected(void) {
     put_array_size_chunk(0, 256);  // > UINT8_MAX
     s_data_path path = {0};
@@ -524,9 +653,17 @@ void tearDown(void) {
 int main(void) {
     UNITY_BEGIN();
     RUN_TEST(test_tlv_happy_path_all_five_element_types);
+    RUN_TEST(test_tlv_version_other_than_one_refused);
     RUN_TEST(test_tlv_ref_with_payload_rejected);
     RUN_TEST(test_tlv_leaf_invalid_type_rejected);
     RUN_TEST(test_tlv_leaf_each_valid_type_accepted);
+    RUN_TEST(test_tlv_leaf_unreadable_type_rejected);
+    RUN_TEST(test_tlv_path_ending_with_its_leaf_accepted);
+    RUN_TEST(test_tlv_path_of_invalid_shape_rejected);
+    RUN_TEST(test_tlv_array_without_weight_rejected);
+    RUN_TEST(test_tlv_path_without_element_rejected);
+    RUN_TEST(test_tlv_path_without_version_rejected);
+    RUN_TEST(test_tlv_empty_path_rejected);
     RUN_TEST(test_tlv_path_max_size_enforced);
     RUN_TEST(test_data_path_get_empty_path_returns_true);
     RUN_TEST(test_data_path_get_static_leaf_copies_chunk);
@@ -544,6 +681,8 @@ int main(void) {
     RUN_TEST(test_path_ref_dereferences_offset);
     RUN_TEST(test_path_ref_unaligned_offset_rejected);
     RUN_TEST(test_path_tuple_advances_offset);
+    RUN_TEST(test_path_array_max_values_accepted);
+    RUN_TEST(test_path_without_leaf_passes_bounded);
     RUN_TEST(test_path_array_size_above_uint8_max_rejected);
     RUN_TEST(test_data_path_get_unknown_element_type_rejected);
     return UNITY_END();

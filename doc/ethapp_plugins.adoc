@@ -275,8 +275,8 @@ typedef struct ethQueryContractUI_t {
 This message is sent when a plugin screen shall be displayed if a generic UI is used. The following specific fields are provided when the plugin is called :
 
 
-  * item1 : pointer to token / nft information
-  * item2 : pointer to token / nft information
+  * item1 : pointer to token information, or NULL if not found
+  * item2 : pointer to token information, or NULL if not found
   * network_ticker : string that holds the network ticker
   * screenIndex : index of the screen to display, starting from 0
   * title : pointer to the first line of the screen, to be filled by the plugin

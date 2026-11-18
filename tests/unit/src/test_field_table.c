@@ -1,11 +1,11 @@
 /**
  * @file test_field_table.c
  * @brief Unit tests for the GCS field table at
- *        src/features/generic_tx_parser/gtp_field_table.c.
+ *        src/features/gcs/gcs_field_table.c.
  *
  * The field table is the in-memory buffer of (type, key, value,
  * extra_data) entries the parser hands to the UI layer to render a
- * transaction. Every gtp_param_* formatter ends in a call to
+ * transaction. Every gcs_param_* formatter ends in a call to
  * add_to_field_table(), so this module sits squarely on the critical
  * path for what the user sees.
  *
@@ -22,8 +22,7 @@
  *   - EIP-712 short-circuit: when appState == APP_STATE_SIGNING_EIP712
  *     the call routes through ui_712_set_* helpers instead of growing
  *     the table,
- *   - set_intent_field rewrites the type based on
- *     txContext.current_batch_size,
+ *   - set_intent_field picks the type from the batch size it is given,
  *   - get_from_field_table returns entries in insertion order.
  */
 
@@ -32,10 +31,12 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#include "gtp_field_table.h"
-#include "gtp_field.h"
+#include "gcs_field_table.h"
+#include "handle_contacts.h"
+#include "token_info.h"
+#include "gcs_field.h"
 #include "shared_context.h"
-#include "tx_ctx.h"
+#include "operation_ctx.h"
 
 // =============================================================================
 // Globals the module reads
@@ -207,21 +208,19 @@ void test_add_in_eip712_routes_to_ui_helpers(void) {
     TEST_ASSERT_EQUAL(g_ui_712_value_calls, 1);
     TEST_ASSERT_EQUAL_STRING(g_ui_712_last_title, "From");
     TEST_ASSERT_EQUAL_STRING(g_ui_712_last_value, "0xabc");
-    // ui_712_set_intent only fires for INTENT + batch > 1
+    // ui_712_set_intent only fires for INTENT
     TEST_ASSERT_EQUAL(g_ui_712_intent_calls, 0);
 }
 
-void test_add_intent_in_eip712_with_batch_calls_set_intent(void) {
+void test_intent_field_in_eip712_with_batch_calls_set_intent(void) {
     appState = APP_STATE_SIGNING_EIP712;
-    txContext.current_batch_size = 2;
-    TEST_ASSERT_TRUE(add_to_field_table(PARAM_TYPE_INTENT, "TxKind", "Approve", NULL));
+    TEST_ASSERT_TRUE(set_intent_field("Approve", 2));
     TEST_ASSERT_EQUAL(g_ui_712_intent_calls, 1);
 }
 
-void test_add_intent_in_eip712_single_batch_skips_set_intent(void) {
+void test_intent_field_in_eip712_single_batch_skips_set_intent(void) {
     appState = APP_STATE_SIGNING_EIP712;
-    txContext.current_batch_size = 1;
-    TEST_ASSERT_TRUE(add_to_field_table(PARAM_TYPE_INTENT, "TxKind", "Approve", NULL));
+    TEST_ASSERT_TRUE(set_intent_field("Approve", 1));
     TEST_ASSERT_EQUAL(g_ui_712_intent_calls, 0);
 }
 
@@ -230,8 +229,7 @@ void test_add_intent_in_eip712_single_batch_skips_set_intent(void) {
 // =============================================================================
 
 void test_set_intent_field_single_batch_uses_raw_type(void) {
-    txContext.current_batch_size = 1;
-    TEST_ASSERT_TRUE(set_intent_field("approve()"));
+    TEST_ASSERT_TRUE(set_intent_field("approve()", 1));
     const s_field_table_entry *e = get_from_field_table(0);
     TEST_ASSERT_EQUAL_STRING(e->key, "Transaction type");
     TEST_ASSERT_EQUAL_STRING(e->value, "approve()");
@@ -241,9 +239,14 @@ void test_set_intent_field_single_batch_uses_raw_type(void) {
     TEST_ASSERT_EQUAL(e->type, PARAM_TYPE_RAW);
 }
 
+void test_set_intent_field_root_uses_raw_type(void) {
+    TEST_ASSERT_TRUE(set_intent_field("approve()", 0));
+    const s_field_table_entry *e = get_from_field_table(0);
+    TEST_ASSERT_FALSE(e->start_intent);
+}
+
 void test_set_intent_field_multi_batch_marks_intent(void) {
-    txContext.current_batch_size = 3;
-    TEST_ASSERT_TRUE(set_intent_field("approve()"));
+    TEST_ASSERT_TRUE(set_intent_field("approve()", 3));
     const s_field_table_entry *e = get_from_field_table(0);
     TEST_ASSERT_TRUE(e->start_intent);
     TEST_ASSERT_EQUAL(e->type, PARAM_TYPE_RAW);  // INTENT gets remapped to RAW
@@ -252,6 +255,42 @@ void test_set_intent_field_multi_batch_marks_intent(void) {
 // =============================================================================
 // Cleanup / get_from_field_table
 // =============================================================================
+
+// The displayed contact must be the one known when the field was parsed
+void test_add_address_book_keeps_own_copy_of_contact(void) {
+    s_ab_contact contact = {0};
+    strlcpy(contact.contact_name, "Alice", sizeof(contact.contact_name));
+    memset(contact.identifier, 0x11, ADDRESS_LENGTH);
+    contact.chain_id = 1;
+
+    TEST_ASSERT_TRUE(add_to_field_table(PARAM_TYPE_ADDRESS_BOOK, "To", "Alice", &contact));
+    // Cache edit after parsing
+    strlcpy(contact.contact_name, "Mallory", sizeof(contact.contact_name));
+    memset(contact.identifier, 0x22, ADDRESS_LENGTH);
+
+    const s_ab_contact *shown = get_from_field_table(0)->extra_data;
+    TEST_ASSERT_NOT_NULL(shown);
+    TEST_ASSERT_TRUE(shown != &contact);
+    TEST_ASSERT_EQUAL_STRING("Alice", shown->contact_name);
+    TEST_ASSERT_EACH_EQUAL_HEX8(0x11, shown->identifier, ADDRESS_LENGTH);
+}
+
+// Token details are kept by the table: the caller may pass a short-lived placeholder
+void test_add_token_keeps_own_copy_of_token(void) {
+    s_token_info token = {.chain_id = 1, .decimals = 0};
+    strlcpy(token.ticker, "???", sizeof(token.ticker));
+    memset(token.address, 0x33, ADDRESS_LENGTH);
+
+    TEST_ASSERT_TRUE(add_to_field_table(PARAM_TYPE_TOKEN_AMOUNT, "Amount", "1 ???", &token));
+    strlcpy(token.ticker, "USDT", sizeof(token.ticker));
+    token.decimals = 6;
+
+    const s_token_info *shown = get_from_field_table(0)->extra_data;
+    TEST_ASSERT_TRUE(shown != &token);
+    TEST_ASSERT_EQUAL_STRING("???", shown->ticker);
+    TEST_ASSERT_EQUAL(shown->decimals, 0);
+    TEST_ASSERT_EACH_EQUAL_HEX8(0x33, shown->address, ADDRESS_LENGTH);
+}
 
 void test_cleanup_empties_table(void) {
     add_to_field_table(PARAM_TYPE_RAW, "k", "v", NULL);
@@ -282,10 +321,13 @@ int main(void) {
     RUN_TEST(test_add_end_intent_set_from_validator);
     RUN_TEST(test_add_intent_raises_flag_and_rewrites_type);
     RUN_TEST(test_add_separator_raises_flag_and_rewrites_type);
+    RUN_TEST(test_add_address_book_keeps_own_copy_of_contact);
+    RUN_TEST(test_add_token_keeps_own_copy_of_token);
     RUN_TEST(test_add_in_eip712_routes_to_ui_helpers);
-    RUN_TEST(test_add_intent_in_eip712_with_batch_calls_set_intent);
-    RUN_TEST(test_add_intent_in_eip712_single_batch_skips_set_intent);
+    RUN_TEST(test_intent_field_in_eip712_with_batch_calls_set_intent);
+    RUN_TEST(test_intent_field_in_eip712_single_batch_skips_set_intent);
     RUN_TEST(test_set_intent_field_single_batch_uses_raw_type);
+    RUN_TEST(test_set_intent_field_root_uses_raw_type);
     RUN_TEST(test_set_intent_field_multi_batch_marks_intent);
     RUN_TEST(test_cleanup_empties_table);
     return UNITY_END();

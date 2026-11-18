@@ -1,5 +1,6 @@
 #pragma once
 
+#include "os_utils.h"
 #include "bip32_utils.h"
 #include "eth_ustream.h"
 #include "chain_config.h"
@@ -7,19 +8,20 @@
 #include "main_std_app.h"
 #include "eth_plugin_interface.h"
 #include "caller_app.h"
+#include "network.h"
 
 #define PLUGIN_ID_LENGTH 30
 
 // Maximum number of plugin-driven items that can be added to the transaction review.
-// The review builder counts pluginUiMaxItems plus up to 4 fixed pairs (From, Nonce,
-// Network, Max fees) into a uint8_t (g_pairsList->nbPairs and the cast at ui_pairs_init).
-// Bound the source so the sum never overflows the 8-bit pair counter.
-#define MAX_PLUGIN_UI_ITEMS (UINT8_MAX - 4)
+// The review builder counts pluginUiMaxItems plus up to 5 fixed pairs (From, Nonce,
+// Network, Max fees, Transaction hash) into a uint8_t (g_pairsList->nbPairs and the cast at
+// ui_pairs_init). Bound the source so the sum never overflows the 8-bit pair counter.
+#define MAX_PLUGIN_UI_ITEMS (UINT8_MAX - 5)
 
 // Address length
-#define ADDRESS_LENGTH_HEX     (ADDRESS_LENGTH * 2)      // 2 hex chars per byte
-#define ADDRESS_LENGTH_STR     (ADDRESS_LENGTH_HEX + 1)  // + '\0'
-#define ADDRESS_LENGTH_HEX_STR (ADDRESS_LENGTH_STR + 2)  // with '0x' prefix
+#define ADDRESS_LENGTH_HEX     HEX_STRING_LEN(ADDRESS_LENGTH)
+#define ADDRESS_LENGTH_STR     HEX_STRING_SIZE(ADDRESS_LENGTH)
+#define ADDRESS_LENGTH_HEX_STR HEX_0X_STRING_SIZE(ADDRESS_LENGTH)
 
 // Cryptographic key and signature sizes
 #define PRIVATE_KEY_LENGTH 64  // Private key material buffer size
@@ -46,7 +48,9 @@ typedef struct internalStorage_t {
     bool tx_check_opt_in;
 #endif
     uint8_t gating_counter;
+#ifdef HAVE_7702_SUPPORT
     bool eip7702_enable;
+#endif
     bool displayHash;
     bool initialized;
 } internalStorage_t;
@@ -123,17 +127,21 @@ typedef struct messageSigningContext712_t {
     uint8_t messageHash[INT256_LENGTH];
 } messageSigningContext712_t;
 
+#ifdef HAVE_7702_SUPPORT
 typedef struct authSigningContext7702_t {
     bip32_path_t bip32;
     uint8_t authHash[INT256_LENGTH];
 } authSigningContext7702_t;
+#endif  // HAVE_7702_SUPPORT
 
 typedef union {
     publicKeyContext_t publicKeyContext;
     transactionContext_t transactionContext;
     messageSigningContext_t messageSigningContext;
     messageSigningContext712_t messageSigningContext712;
+#ifdef HAVE_7702_SUPPORT
     authSigningContext7702_t authSigningContext7702;
+#endif
 } tmpCtx_t;
 
 typedef union {
@@ -152,7 +160,10 @@ typedef enum {
     APP_STATE_SIGNING_MESSAGE,
     APP_STATE_PREPARING_EIP712,  // STRUCT_DEF received, UI not yet started
     APP_STATE_SIGNING_EIP712,
+#ifdef HAVE_7702_SUPPORT
     APP_STATE_SIGNING_EIP7702,
+#endif
+    APP_STATE_VERIFYING_SAFE_ACCOUNT,
 } app_state_t;
 
 typedef enum {
@@ -164,9 +175,6 @@ typedef enum {
 // EIP-2681
 #define NONCE_STRING_MAX_SIZE 20
 
-// EIP-2294
-#define NETWORK_STRING_MAX_SIZE 19
-
 typedef struct txStringProperties_s {
     char fromAddress[ADDRESS_LENGTH_HEX_STR];
     uint8_t fromAddressRaw[ADDRESS_LENGTH];
@@ -174,7 +182,7 @@ typedef struct txStringProperties_s {
     char fullAmount[MAX_TICKER_LEN + 1 + 78 + 1];  // 2^256 is 78 digits long
     char maxFee[50];
     char nonce[NONCE_STRING_MAX_SIZE + 1];
-    char network_name[NETWORK_STRING_MAX_SIZE + 1];
+    char network_name[MAX_NETWORK_LEN];
     char tx_hash[2 + (INT256_LENGTH * 2) + 1];
 } txStringProperties_t;
 
@@ -189,6 +197,9 @@ typedef union {
     strDataTmp_t tmp;
 } strings_t;
 
+// Maximum caller-provided app name length we accept.
+#define MAX_CALLER_NAME_LEN 64
+
 extern const caller_app_t *g_caller_app;
 extern const chain_config_t *g_chain_config;
 
@@ -197,7 +208,12 @@ extern txContext_t txContext;
 extern tmpContent_t tmpContent;
 extern dataContext_t dataContext;
 extern strings_t strings;
+#ifdef FUZZING
+// Writable in the fuzz build so the fuzzer samples every user setting.
+extern internalStorage_t N_storage_real;
+#else
 extern const internalStorage_t N_storage_real;
+#endif
 
 typedef enum swap_mode_e {
     SWAP_MODE_STANDARD,
@@ -250,7 +266,7 @@ extern uint8_t appState;
 extern uint32_t eth2WithdrawalIndex;
 #endif
 
-void app_quit(void);
+NORETURN void app_quit(void);
 void reset_app_context(void);
 void reset_app_context_ex(bool scrub_strings);
 const uint8_t *parseBip32(const uint8_t *dataBuffer, uint8_t *dataLength, bip32_path_t *bip32);

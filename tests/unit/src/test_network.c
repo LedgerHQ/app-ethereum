@@ -9,7 +9,7 @@
  *     chain_id when no name is known,
  *   - get_displayable_ticker() picks between the dynamic / hardcoded /
  *     chain_config / "???" sources for the ticker badge,
- *   - app_compatible_with_chain_id() decides whether the running app may
+ *   - chain_id_is_signable() decides whether the running app may
  *     sign for a given chain at all.
  *
  * The tests stub the few globals the module reads (`g_chain_config`,
@@ -124,17 +124,22 @@ void test_get_name_dynamic_shadows_hardcoded(void) {
 // =============================================================================
 
 void test_get_as_string_known_copies_name(void) {
-    char out[NETWORK_STRING_MAX_SIZE + 1];
+    char out[MAX_NETWORK_LEN];
     memset(out, 0, sizeof(out));
     TEST_ASSERT_TRUE(get_network_as_string_from_chain_id(out, sizeof(out), 137));  // Polygon
     TEST_ASSERT_EQUAL_STRING(out, "Polygon");
 }
 
 void test_get_as_string_unknown_formats_decimal(void) {
-    char out[NETWORK_STRING_MAX_SIZE + 1];
+    char out[MAX_NETWORK_LEN];
     memset(out, 0, sizeof(out));
     TEST_ASSERT_TRUE(get_network_as_string_from_chain_id(out, sizeof(out), 4242));
     TEST_ASSERT_EQUAL_STRING(out, "4242");
+}
+
+void test_get_as_string_known_small_buffer_fails(void) {
+    char out[4];  // not enough to hold "Polygon" + NUL: no truncated name
+    TEST_ASSERT_FALSE(get_network_as_string_from_chain_id(out, sizeof(out), 137));
 }
 
 void test_get_as_string_unknown_small_buffer_fails(void) {
@@ -157,25 +162,46 @@ void test_chain_compatible_unknown_false(void) {
 }
 
 // =============================================================================
-// app_compatible_with_chain_id
+// chain_has_ethereum_staking
 // =============================================================================
 
-void test_app_compatible_same_chain_id(void) {
-    s_chain_cfg.chain_id = 1;
-    uint64_t cid = 1;
-    TEST_ASSERT_TRUE(app_compatible_with_chain_id(&cid));
+void test_staking_mainnet_and_hoodi(void) {
+    TEST_ASSERT_TRUE(chain_has_ethereum_staking(1));
+    TEST_ASSERT_TRUE(chain_has_ethereum_staking(560048));
 }
 
-void test_app_compatible_both_in_table(void) {
-    s_chain_cfg.chain_id = 1;  // Ethereum
-    uint64_t cid = 137;        // Polygon
-    TEST_ASSERT_TRUE(app_compatible_with_chain_id(&cid));
+void test_staking_other_chains_rejected(void) {
+    TEST_ASSERT_FALSE(chain_has_ethereum_staking(0));
+    TEST_ASSERT_FALSE(chain_has_ethereum_staking(137));       // Polygon
+    TEST_ASSERT_FALSE(chain_has_ethereum_staking(11155111));  // Sepolia
+    TEST_ASSERT_FALSE(chain_has_ethereum_staking(3151908));   // Kurtosis devnet
 }
 
-void test_app_compatible_target_unknown_rejected(void) {
-    s_chain_cfg.chain_id = 1;  // Ethereum
-    uint64_t cid = 0xDEADBEEF;
-    TEST_ASSERT_FALSE(app_compatible_with_chain_id(&cid));
+// =============================================================================
+// chain_id_is_signable
+// =============================================================================
+
+void test_signable_mainnet_own_chain(void) {
+    TEST_ASSERT_TRUE(chain_id_is_signable(1));
+}
+
+void test_signable_mainnet_known_chain(void) {
+    TEST_ASSERT_TRUE(chain_id_is_signable(137));  // Polygon
+}
+
+void test_signable_mainnet_unknown_chain_rejected(void) {
+    TEST_ASSERT_FALSE(chain_id_is_signable(0xDEADBEEF));
+}
+
+void test_signable_clone_own_chain(void) {
+    s_chain_cfg.chain_id = 56;
+    TEST_ASSERT_TRUE(chain_id_is_signable(56));
+}
+
+void test_signable_clone_known_chain_rejected(void) {
+    // A clone signs only its own chain, even for a known network.
+    s_chain_cfg.chain_id = 56;
+    TEST_ASSERT_FALSE(chain_id_is_signable(137));
 }
 
 // =============================================================================
@@ -318,12 +344,15 @@ int main(void) {
     RUN_TEST(test_get_name_dynamic_shadows_hardcoded);
     RUN_TEST(test_get_as_string_known_copies_name);
     RUN_TEST(test_get_as_string_unknown_formats_decimal);
+    RUN_TEST(test_get_as_string_known_small_buffer_fails);
     RUN_TEST(test_get_as_string_unknown_small_buffer_fails);
     RUN_TEST(test_chain_compatible_known_true);
     RUN_TEST(test_chain_compatible_unknown_false);
-    RUN_TEST(test_app_compatible_same_chain_id);
-    RUN_TEST(test_app_compatible_both_in_table);
-    RUN_TEST(test_app_compatible_target_unknown_rejected);
+    RUN_TEST(test_signable_mainnet_own_chain);
+    RUN_TEST(test_signable_mainnet_known_chain);
+    RUN_TEST(test_signable_mainnet_unknown_chain_rejected);
+    RUN_TEST(test_signable_clone_own_chain);
+    RUN_TEST(test_signable_clone_known_chain_rejected);
     RUN_TEST(test_get_tx_chain_id_legacy_reads_v);
     RUN_TEST(test_get_tx_chain_id_eip1559_reads_tmpcontent);
     RUN_TEST(test_get_tx_chain_id_eip2930_reads_tmpcontent);
@@ -337,5 +366,7 @@ int main(void) {
     RUN_TEST(test_clone_name_null_app_returns_null);
     RUN_TEST(test_clone_name_non_clone_returns_null);
     RUN_TEST(test_clone_name_clone_returns_name);
+    RUN_TEST(test_staking_mainnet_and_hoodi);
+    RUN_TEST(test_staking_other_chains_rejected);
     return UNITY_END();
 }

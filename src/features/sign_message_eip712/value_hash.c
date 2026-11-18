@@ -6,15 +6,33 @@
 #include "common_utils.h"    // CX_KECCAK_256_SIZE
 #include "shared_context.h"  // tmpCtx
 
+// A leaf hashed with other bytes than its own, the tree left as it is
+typedef struct {
+    const s_struct_712_value *leaf;
+    const uint8_t *data;
+    uint16_t length;
+} s_leaf_override;
+
 /**
  * Encode a VAL_ATOMIC leaf to 32 bytes.
  * Static types: encode+pad. Dynamic types (string/bytes): keccak256(data).
+ *
+ * @param[in] leaf the leaf
+ * @param[in] override other bytes for one leaf, or NULL
+ * @param[out] out the encoded leaf
  */
-static bool encode_atomic(const s_struct_712_value *leaf, uint8_t *out) {
+static bool encode_atomic(const s_struct_712_value *leaf,
+                          const s_leaf_override *override,
+                          uint8_t *out) {
     const s_struct_712_field *field = leaf->field;
     const uint8_t *data = leaf->data;
     uint16_t length = leaf->length;
     void *encoded;
+
+    if ((override != NULL) && (override->leaf == leaf)) {
+        data = override->data;
+        length = override->length;
+    }
 
     if (IS_DYN(field->type)) {
         cx_sha3_t sha3;
@@ -75,9 +93,10 @@ static void delete_child_digest(s_child_digest *digest) {
 // Leaves are encoded on the spot, containers were already hashed into @p cursor, in order.
 static bool child_digest(const s_struct_712_value *child,
                          const s_child_digest **cursor,
+                         const s_leaf_override *override,
                          uint8_t *out) {
     if (child->kind == VAL_ATOMIC) {
-        return encode_atomic(child, out);
+        return encode_atomic(child, override, out);
     }
     if (*cursor == NULL) {
         return false;
@@ -102,7 +121,7 @@ __attribute__((noinline)) static bool hash_array(const s_struct_712_value *arr,
     }
     for (const s_struct_712_value *elem = arr->children; elem != NULL;
          elem = (const s_struct_712_value *) ((const flist_node_t *) elem)->next) {
-        if (!child_digest(elem, &digests, elem_hash)) {
+        if (!child_digest(elem, &digests, NULL, elem_hash)) {
             return false;
         }
         if (cx_hash_update((cx_hash_t *) &sha3, elem_hash, sizeof(elem_hash)) != CX_OK) {
@@ -118,7 +137,8 @@ __attribute__((noinline)) static bool hash_array(const s_struct_712_value *arr,
  */
 __attribute__((noinline)) static bool hash_struct(const s_struct_712_value *node,
                                                   uint8_t *out,
-                                                  const s_child_digest *digests) {
+                                                  const s_child_digest *digests,
+                                                  const s_leaf_override *override) {
     cx_sha3_t sha3;
     uint8_t type_hash_buf[CX_KECCAK_256_SIZE];
     uint8_t child_hash[CX_KECCAK_256_SIZE];
@@ -140,7 +160,7 @@ __attribute__((noinline)) static bool hash_struct(const s_struct_712_value *node
 
     for (const s_struct_712_value *child = node->children; child != NULL;
          child = (const s_struct_712_value *) ((const flist_node_t *) child)->next) {
-        if (!child_digest(child, &digests, child_hash)) {
+        if (!child_digest(child, &digests, override, child_hash)) {
             return false;
         }
         if (cx_hash_update((cx_hash_t *) &sha3, child_hash, sizeof(child_hash)) != CX_OK) {
@@ -150,7 +170,18 @@ __attribute__((noinline)) static bool hash_struct(const s_struct_712_value *node
     return cx_hash_final((cx_hash_t *) &sha3, out) == CX_OK;
 }
 
-static bool hash_value(const s_struct_712_value *node, uint8_t *out, uint8_t depth) {
+/**
+ * Hash a struct or an array, its nested containers first
+ *
+ * @param[in] node the container
+ * @param[out] out its hash
+ * @param[in] depth its nesting level
+ * @param[in] override other bytes for one of its own leaves, or NULL
+ */
+static bool hash_value(const s_struct_712_value *node,
+                       uint8_t *out,
+                       uint8_t depth,
+                       const s_leaf_override *override) {
     s_child_digest *digests = NULL;
     bool ret = true;
 
@@ -171,16 +202,47 @@ static bool hash_value(const s_struct_712_value *node, uint8_t *out, uint8_t dep
                 break;
             }
             flist_push_back((flist_node_t **) &digests, (flist_node_t *) digest);
-            ret = hash_value(child, digest->hash, depth + 1);
+            ret = hash_value(child, digest->hash, depth + 1, NULL);
         }
     }
 
     if (ret) {
-        ret = (node->kind == VAL_STRUCT) ? hash_struct(node, out, digests)
+        ret = (node->kind == VAL_STRUCT) ? hash_struct(node, out, digests, override)
                                          : hash_array(node, out, digests);
     }
     flist_clear((flist_node_t **) &digests, (f_list_node_del) &delete_child_digest);
     return ret;
+}
+
+bool value_hash_domain(const s_eip712_impl *impl, uint8_t out[CX_KECCAK_256_SIZE]) {
+    if ((impl == NULL) || (impl->domain == NULL) || !hash_value(impl->domain, out, 0, NULL)) {
+        PRINTF("value_hash_domain: domain hash failed\n");
+        return false;
+    }
+    return true;
+}
+
+bool value_hash_domain_with_contract(const s_eip712_impl *impl,
+                                     const uint8_t contract[ADDRESS_LENGTH],
+                                     uint8_t out[CX_KECCAK_256_SIZE]) {
+    s_leaf_override override = {.data = contract, .length = ADDRESS_LENGTH};
+
+    if ((impl == NULL) || (impl->domain == NULL)) {
+        return false;
+    }
+    for (const s_struct_712_value *child = impl->domain->children; child != NULL;
+         child = (const s_struct_712_value *) ((const flist_node_t *) child)->next) {
+        if ((child->kind == VAL_ATOMIC) && (child->field->type == TYPE_SOL_ADDRESS) &&
+            (strcmp(child->field->key_name, "verifyingContract") == 0)) {
+            override.leaf = child;
+            break;
+        }
+    }
+    if ((override.leaf == NULL) || !hash_value(impl->domain, out, 0, &override)) {
+        PRINTF("value_hash_domain_with_contract: no address verifyingContract to replace\n");
+        return false;
+    }
+    return true;
 }
 
 /**
@@ -195,17 +257,12 @@ static bool hash_value(const s_struct_712_value *node, uint8_t *out, uint8_t dep
 bool value_hash_pass(const s_eip712_impl *impl) {
     uint8_t hash[CX_KECCAK_256_SIZE];
 
-    if (impl == NULL) {
-        return false;
-    }
-
-    if ((impl->domain == NULL) || !hash_value(impl->domain, hash, 0)) {
-        PRINTF("value_hash_pass: domain hash failed\n");
+    if (!value_hash_domain(impl, hash)) {
         return false;
     }
     memcpy(tmpCtx.messageSigningContext712.domainHash, hash, CX_KECCAK_256_SIZE);
 
-    if ((impl->message == NULL) || !hash_value(impl->message, hash, 0)) {
+    if ((impl->message == NULL) || !hash_value(impl->message, hash, 0, NULL)) {
         PRINTF("value_hash_pass: message hash failed\n");
         return false;
     }

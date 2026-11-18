@@ -22,7 +22,11 @@ uint32_t io_seproxyhal_touch_tx_ok(void) {
                                                   G_io_tx_buffer + 1 + INT256_LENGTH,
                                                   &info));
 
-    if (txContext.txType == EIP1559 || txContext.txType == EIP2930 || txContext.txType == EIP7702) {
+    if (txContext.txType == EIP1559 || txContext.txType == EIP2930
+#ifdef HAVE_7702_SUPPORT
+        || txContext.txType == EIP7702
+#endif
+    ) {
         if (info & CX_ECCINFO_PARITY_ODD) {
             G_io_tx_buffer[0] = 1;
         } else {
@@ -79,6 +83,9 @@ unsigned int io_seproxyhal_touch_data_ok(void) {
     uint16_t sw = handle_parsing_status(pstatus);
     if ((pstatus != USTREAM_SUSPENDED) && (pstatus != USTREAM_FINISHED)) {
         err = io_seproxyhal_send_status(sw, 0, sw != SWO_SUCCESS, true);
+    } else if ((pstatus == USTREAM_FINISHED) && (sw != SWO_SUCCESS) && (sw != SWO_NO_RESPONSE)) {
+        // Finalization failed without replying
+        err = io_seproxyhal_send_status(sw, 0, true, true);
     }
     return err;
 }

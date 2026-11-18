@@ -15,7 +15,7 @@
 #include "get_public_key.h"
 #include "app_mem_utils.h"
 #include "mem_utils.h"
-#include "tx_ctx.h"
+#include "operation_ctx.h"
 #include "eth_swap_utils.h"
 
 static uint32_t split_binary_parameter_part(char *result, size_t result_size, uint8_t *parameter) {
@@ -46,8 +46,10 @@ static bool is_rlp_data_field(const txContext_t *context) {
             return context->currentField == EIP2930_RLP_DATA;
         case EIP1559:
             return context->currentField == EIP1559_RLP_DATA;
+#ifdef HAVE_7702_SUPPORT
         case EIP7702:
             return context->currentField == EIP7702_RLP_DATA;
+#endif
         default:
             return false;
     }
@@ -74,6 +76,8 @@ customStatus_e custom_processor(txContext_t *context) {
                 PRINTF("Missing function selector\n");
                 return CUSTOM_FAULT;
             }
+            // Kept for the Gating check
+            memcpy(context->selector_bytes, context->workBuffer, CALLDATA_SELECTOR_SIZE);
             dataContext.tokenContext.pluginStatus = ETH_PLUGIN_RESULT_UNAVAILABLE;
             // If contract debugging mode is activated, do not go through the plugin activation
             // as they wouldn't be displayed if the plugin consumes all data but fallbacks
@@ -160,12 +164,15 @@ customStatus_e custom_processor(txContext_t *context) {
             // Can process or display
             if (dataContext.tokenContext.pluginStatus >= ETH_PLUGIN_RESULT_SUCCESSFUL) {
                 ethPluginProvideParameter_t pluginProvideParameter;
+                // The parameter starts where the parser stood before reading it
+                if (context->currentFieldPos < dataContext.tokenContext.fieldOffset) {
+                    return CUSTOM_FAULT;
+                }
                 eth_plugin_prepare_provide_parameter(
                     &pluginProvideParameter,
                     dataContext.tokenContext.data,
-                    dataContext.tokenContext.fieldIndex * CALLDATA_CHUNK_SIZE +
-                        CALLDATA_SELECTOR_SIZE,
-                    (uint8_t) copySize);
+                    context->currentFieldPos - dataContext.tokenContext.fieldOffset,
+                    (uint8_t) dataContext.tokenContext.fieldOffset);
                 if (!eth_plugin_call(ETH_PLUGIN_PROVIDE_PARAMETER,
                                      (void *) &pluginProvideParameter)) {
                     PRINTF("Plugin parameter call failed\n");
@@ -187,6 +194,9 @@ customStatus_e custom_processor(txContext_t *context) {
                            4,
                            strings.tmp.tmp,
                            sizeof(strings.tmp.tmp));
+                // A shorter next block must not show bytes of this one
+                explicit_bzero(dataContext.tokenContext.data,
+                               sizeof(dataContext.tokenContext.data));
                 ui_confirm_selector();
             } else {
                 uint32_t offset = 0;
@@ -199,6 +209,8 @@ customStatus_e custom_processor(txContext_t *context) {
                         strings.tmp.tmp[offset++] = ':';
                     }
                 }
+                explicit_bzero(dataContext.tokenContext.data,
+                               sizeof(dataContext.tokenContext.data));
                 ui_confirm_parameter();
             }
         } else {

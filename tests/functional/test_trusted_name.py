@@ -3,6 +3,7 @@ from pathlib import Path
 import client.response_parser as ResponseParser
 import pytest
 from client.client import EthAppClient
+from client.command_builder import CommandBuilder, InsType, P1Type
 from client.dynamic_networks import DynamicNetwork
 from client.status_word import StatusWord
 from client.trusted_name import TrustedName, TrustedNameSource, TrustedNameType
@@ -121,6 +122,31 @@ def test_trusted_name_v1_wrong_challenge(backend: BackendInterface):
     assert e.value.status == StatusWord.SWO_INCORRECT_DATA
 
 
+def test_trusted_name_interrupted_payload(backend: BackendInterface):
+    """An incomplete multi-chunk payload is dropped as soon as another command arrives."""
+    app_client = EthAppClient(backend)
+    announced_size = 64
+
+    response = backend.exchange(
+        CommandBuilder._CLA,
+        InsType.PROVIDE_TRUSTED_NAME,
+        P1Type.FIRST_CHUNK,
+        0x00,
+        announced_size.to_bytes(2, "big") + bytes(2),
+    )
+    assert response.status == StatusWord.SWO_SUCCESS
+
+    # Another command leaves nothing of the abandoned payload, so the next one is accepted at once
+    challenge = common(app_client)
+    trusted_name = TrustedName(1, ADDR, NAME, challenge=challenge, coin_type=CoinType.ETH)
+    app_client.provide_trusted_name(trusted_name)
+
+    # Its challenge is consumed: the replay is refused, and that error releases the stored name
+    with pytest.raises(ExceptionRAPDU) as e:
+        app_client.provide_trusted_name(trusted_name)
+    assert e.value.status == StatusWord.SWO_INCORRECT_DATA
+
+
 def test_trusted_name_v1_wrong_addr(scenario_navigator: NavigateWithScenario, test_name: str):
     backend = scenario_navigator.backend
     app_client = EthAppClient(backend)
@@ -168,8 +194,9 @@ def test_trusted_name_v1_non_mainnet(scenario_navigator: NavigateWithScenario, t
     for chain_id in chain_ids:
         name, ticker, icon = get_network_config(backend.device.type, chain_id)
         if name and ticker:
-            app_client.provide_network_information(DynamicNetwork(name, ticker, chain_id, icon))
+            app_client.provide_network_info(DynamicNetwork(name, ticker, chain_id, icon))
 
+    # A v1 name has no signed chain ID: it is ignored off mainnet and the address is displayed
     app_client.provide_trusted_name(TrustedName(1, ADDR, NAME, challenge=challenge, coin_type=CoinType.ETH))
 
     with app_client.sign(BIP32_PATH, tx_params):

@@ -37,13 +37,14 @@
 #include "utils.h"
 #include "feature_sign_tx.h"
 #include "proxy_info.h"
-#include "eip712_v1_context.h"
+#include "eip712_session.h"
 #include "typed_data.h"
+#include "type_hash.h"
+#include "eip712_v2_message_info.h"
+#ifdef HAVE_EIP712_V1
 #include "schema_hash.h"
+#endif  // HAVE_EIP712_V1
 #include "lcx_sha256.h"
-
-// Display the Dated Signing screen 1/X times
-#define GATED_SIGNING_MAX_COUNT 10
 
 #define TYPE_GATED_SIGNING 0x0D
 #define STRUCT_VERSION     0x01
@@ -60,12 +61,22 @@ typedef enum {
 } tx_type_t;
 
 typedef struct gating_s {
-    uint64_t chain_id;
-    uint8_t hash_selector[CX_SHA224_SIZE];  // function selector for SignTx or schemaHash for EIP712
-    char intro_msg[GATING_MSG_SIZE + 1];    // +1 for the null terminator
-    char tiny_url[GATING_URL_SIZE + 1];     // +1 for the null terminator
-    uint8_t address[ADDRESS_LENGTH];        // Contract address to check in the gating
+    union {
+        struct {  // a transaction or an EIP712 V1 message: a contract
+            uint64_t chain_id;
+            // function selector for SignTx or schemaHash for EIP712 V1
+            uint8_t hash_selector[CX_SHA224_SIZE];
+            uint8_t address[ADDRESS_LENGTH];  // Contract address to check in the gating
+        };
+        struct {  // an EIP712 V2 message: a primary type of a domain
+            uint8_t domain_separator[HASH_SIZE];
+            uint8_t primary_type_hash[HASH_SIZE];
+        };
+    };
+    char intro_msg[GATING_MSG_SIZE + 1];  // +1 for the null terminator
+    char tiny_url[GATING_URL_SIZE + 1];   // +1 for the null terminator
     tx_type_t type;
+    e_eip712_session session;  // the version of the typed message, for TX_TYPE_TYPED_DATA
 } gating_t;
 
 typedef struct {
@@ -123,7 +134,7 @@ static bool parse_struct_version(const tlv_data_t *data, s_gating_ctx *context) 
  *
  * @note This field can be either
  *  - function selector (4 bytes for SignTX)
- *  - schema hash (28 bytes for eip712)
+ *  - schema hash (28 bytes for an EIP712 V1 message)
  */
 static bool parse_hash_selector(const tlv_data_t *data, s_gating_ctx *context) {
     if (data->value.size > sizeof(context->gating->hash_selector)) {
@@ -131,6 +142,32 @@ static bool parse_hash_selector(const tlv_data_t *data, s_gating_ctx *context) {
         return false;
     }
     return tlv_get_hash(data, context->gating->hash_selector, data->value.size);
+}
+
+/**
+ * @brief Parse the DOMAIN_SEPARATOR value.
+ *
+ * @param[in] data the tlv data
+ * @param[in] context Gating context
+ * @return whether it was successful
+ */
+static bool parse_domain_separator(const tlv_data_t *data, s_gating_ctx *context) {
+    return tlv_get_hash(data,
+                        context->gating->domain_separator,
+                        sizeof(context->gating->domain_separator));
+}
+
+/**
+ * @brief Parse the PRIMARY_TYPE_HASH value.
+ *
+ * @param[in] data the tlv data
+ * @param[in] context Gating context
+ * @return whether it was successful
+ */
+static bool parse_primary_type_hash(const tlv_data_t *data, s_gating_ctx *context) {
+    return tlv_get_hash(data,
+                        context->gating->primary_type_hash,
+                        sizeof(context->gating->primary_type_hash));
 }
 
 /**
@@ -237,15 +274,17 @@ static bool parse_signature(const tlv_data_t *data, s_gating_ctx *context) {
 }
 
 // Define TLV tags for Gating
-#define GATING_TAGS(X)                                                       \
-    X(0x01, TAG_STRUCTURE_TYPE, parse_struct_type, ENFORCE_UNIQUE_TAG)       \
-    X(0x02, TAG_STRUCTURE_VERSION, parse_struct_version, ENFORCE_UNIQUE_TAG) \
-    X(0x22, TAG_ADDRESS, parse_address, ENFORCE_UNIQUE_TAG)                  \
-    X(0x23, TAG_CHAIN_ID, parse_chain_id, ENFORCE_UNIQUE_TAG)                \
-    X(0x40, TAG_HASH_SELECTOR, parse_hash_selector, ENFORCE_UNIQUE_TAG)      \
-    X(0x82, TAG_INTRO_MSG, parse_intro_msg, ENFORCE_UNIQUE_TAG)              \
-    X(0x83, TAG_TINY_URL, parse_tiny_url, ENFORCE_UNIQUE_TAG)                \
-    X(0x84, TAG_TX_TYPE, parse_type, ENFORCE_UNIQUE_TAG)                     \
+#define GATING_TAGS(X)                                                          \
+    X(0x01, TAG_STRUCTURE_TYPE, parse_struct_type, ENFORCE_UNIQUE_TAG)          \
+    X(0x02, TAG_STRUCTURE_VERSION, parse_struct_version, ENFORCE_UNIQUE_TAG)    \
+    X(0x22, TAG_ADDRESS, parse_address, ENFORCE_UNIQUE_TAG)                     \
+    X(0x23, TAG_CHAIN_ID, parse_chain_id, ENFORCE_UNIQUE_TAG)                   \
+    X(0x28, TAG_DOMAIN_SEPARATOR, parse_domain_separator, ENFORCE_UNIQUE_TAG)   \
+    X(0x2a, TAG_PRIMARY_TYPE_HASH, parse_primary_type_hash, ENFORCE_UNIQUE_TAG) \
+    X(0x40, TAG_HASH_SELECTOR, parse_hash_selector, ENFORCE_UNIQUE_TAG)         \
+    X(0x82, TAG_INTRO_MSG, parse_intro_msg, ENFORCE_UNIQUE_TAG)                 \
+    X(0x83, TAG_TINY_URL, parse_tiny_url, ENFORCE_UNIQUE_TAG)                   \
+    X(0x84, TAG_TX_TYPE, parse_type, ENFORCE_UNIQUE_TAG)                        \
     X(0x15, TAG_DER_SIGNATURE, parse_signature, ENFORCE_UNIQUE_TAG)
 
 // Forward declaration
@@ -305,36 +344,43 @@ static bool verify_signature(s_gating_ctx *context) {
  * @return whether it was successful
  */
 static bool verify_fields(s_gating_ctx *context) {
+    TLV_reception_t tags = context->received_tags;
+    bool of_contract = TLV_CHECK_RECEIVED_TAGS(tags, TAG_ADDRESS) ||
+                       TLV_CHECK_RECEIVED_TAGS(tags, TAG_CHAIN_ID) ||
+                       TLV_CHECK_RECEIVED_TAGS(tags, TAG_HASH_SELECTOR);
+    bool of_message = TLV_CHECK_RECEIVED_TAGS(tags, TAG_DOMAIN_SEPARATOR) ||
+                      TLV_CHECK_RECEIVED_TAGS(tags, TAG_PRIMARY_TYPE_HASH);
+
     // Common required tags for all types
-    if (!TLV_CHECK_RECEIVED_TAGS(context->received_tags,
+    if (!TLV_CHECK_RECEIVED_TAGS(tags,
                                  TAG_STRUCTURE_TYPE,
                                  TAG_STRUCTURE_VERSION,
                                  TAG_TX_TYPE,
-                                 TAG_ADDRESS,
                                  TAG_INTRO_MSG,
                                  TAG_TINY_URL,
                                  TAG_DER_SIGNATURE)) {
+        return false;
+    }
+    // the descriptor names a contract or a primary type of a domain, whole, never both
+    if (of_contract == of_message) {
         return false;
     }
 
     switch (context->gating->type) {
         case TX_TYPE_TRANSACTION:
             // For SignTx, we expect the chain ID
-            if (!TLV_CHECK_RECEIVED_TAGS(context->received_tags, TAG_CHAIN_ID)) {
-                return false;
-            }
-            break;
+            return of_contract && TLV_CHECK_RECEIVED_TAGS(tags, TAG_ADDRESS, TAG_CHAIN_ID);
         case TX_TYPE_TYPED_DATA:
-            // For EIP-712, we expect the schema hash
-            if (!TLV_CHECK_RECEIVED_TAGS(context->received_tags, TAG_HASH_SELECTOR)) {
-                return false;
+            if (of_message) {
+                context->gating->session = EIP712_SESSION_V2;
+                return TLV_CHECK_RECEIVED_TAGS(tags, TAG_DOMAIN_SEPARATOR, TAG_PRIMARY_TYPE_HASH);
             }
-            break;
+            // For EIP-712 V1, we expect the schema hash
+            context->gating->session = EIP712_SESSION_V1;
+            return TLV_CHECK_RECEIVED_TAGS(tags, TAG_ADDRESS, TAG_HASH_SELECTOR);
         default:
-            break;
+            return false;
     }
-
-    return true;
 }
 
 /**
@@ -347,14 +393,24 @@ static void print_gating_info(s_gating_ctx *context) {
     uint8_t len = 0;
     PRINTF("****************************************************************************\n");
     PRINTF("[GATING] - Retrieved Gating descriptor:\n");
-    PRINTF("[GATING] -    Address: %.*h\n", ADDRESS_LENGTH, context->gating->address);
-    if (context->gating->chain_id != 0) {
-        PRINTF("[GATING] -    ChainID: %llu\n", context->gating->chain_id);
-    }
-    len = (context->gating->type == TX_TYPE_TRANSACTION) ? SELECTOR_SIZE
-                                                         : sizeof(context->gating->hash_selector);
-    if (!is_zeroes_buffer((const void *) context->gating->hash_selector, len)) {
-        PRINTF("[GATING] -    Hash Selector: %.*h\n", len, context->gating->hash_selector);
+    if (context->gating->session == EIP712_SESSION_V2) {
+        PRINTF("[GATING] -    Domain separator: %.*h\n",
+               sizeof(context->gating->domain_separator),
+               context->gating->domain_separator);
+        PRINTF("[GATING] -    Primary type hash: %.*h\n",
+               sizeof(context->gating->primary_type_hash),
+               context->gating->primary_type_hash);
+    } else {
+        PRINTF("[GATING] -    Address: %.*h\n", ADDRESS_LENGTH, context->gating->address);
+        if (context->gating->chain_id != 0) {
+            PRINTF("[GATING] -    ChainID: %llu\n", context->gating->chain_id);
+        }
+        len = (context->gating->type == TX_TYPE_TRANSACTION)
+                  ? SELECTOR_SIZE
+                  : sizeof(context->gating->hash_selector);
+        if (!is_zeroes_buffer((const void *) context->gating->hash_selector, len)) {
+            PRINTF("[GATING] -    Hash Selector: %.*h\n", len, context->gating->hash_selector);
+        }
     }
     PRINTF("[GATING] -    Intro Msg: %s\n", context->gating->intro_msg);
     PRINTF("[GATING] -    Tiny URL: %s\n", context->gating->tiny_url);
@@ -465,6 +521,12 @@ static bool check_gating_type(void) {
                 PRINTF("[GATING] Type mismatch: %u != %u\n", GATING->type, TX_TYPE_TYPED_DATA);
                 return false;
             }
+            if (eip712_session_get() != GATING->session) {
+                PRINTF("[GATING] EIP712 version mismatch: %u != %u\n",
+                       GATING->session,
+                       eip712_session_get());
+                return false;
+            }
             break;
         default:
             PRINTF("[GATING] Invalid Type: %u\n", GATING->type);
@@ -506,6 +568,11 @@ static bool check_gating_address(void) {
 
     PRINTF("[GATING] Tx TO address: %.*h\n", ADDRESS_LENGTH, contract);
     PRINTF("[GATING] Gating address: %.*h\n", ADDRESS_LENGTH, GATING->address);
+
+    // Descriptor for the called contract itself, behind a proxy or not
+    if (memcmp(GATING->address, contract, ADDRESS_LENGTH) == 0) {
+        return true;
+    }
 
     // Get the implementation address for the received descriptor address
     address = get_implem_contract(&GATING->chain_id, contract, selector);
@@ -573,14 +640,37 @@ static bool check_gating_chain_id(void) {
     return true;
 }
 
+#ifdef HAVE_EIP712_V1
+/**
+ * @brief Check the HASH of the Gating payload against the schema hash of a V1 message.
+ *
+ * @return whether it matches
+ */
+static bool check_gating_schema_hash(void) {
+    uint8_t schema_hash[CX_SHA224_SIZE];
+
+    if (compute_schema_hash(schema_hash) == false) {
+        PRINTF("[GATING] Failed to compute schema hash\n");
+        return false;
+    }
+    if (memcmp(GATING->hash_selector, schema_hash, sizeof(GATING->hash_selector)) != 0) {
+        PRINTF("[GATING] schemaHash mismatch: %.*h != %.*h\n",
+               sizeof(GATING->hash_selector),
+               GATING->hash_selector,
+               sizeof(schema_hash),
+               schema_hash);
+        return false;
+    }
+    return true;
+}
+#endif  // HAVE_EIP712_V1
+
 /**
  * @brief Check the SELECTOR vs Gating payload.
  *
  * @return whether it was successful
  */
 static bool check_gating_selector(void) {
-    uint8_t schema_hash[CX_SHA224_SIZE];
-
     switch (GATING->type) {
         case TX_TYPE_TRANSACTION:
             // Check if the descriptor is set
@@ -597,19 +687,14 @@ static bool check_gating_selector(void) {
             }
             break;
         case TX_TYPE_TYPED_DATA:
-            if (compute_schema_hash(schema_hash) == false) {
-                PRINTF("[GATING] Failed to compute schema hash\n");
-                return false;
-            }
-            if (memcmp(GATING->hash_selector, schema_hash, sizeof(GATING->hash_selector)) != 0) {
-                PRINTF("[GATING] schemaHash mismatch: %.*h != %.*h\n",
-                       sizeof(GATING->hash_selector),
-                       GATING->hash_selector,
-                       sizeof(schema_hash),
-                       schema_hash);
+#ifdef HAVE_EIP712_V1
+            if (!check_gating_schema_hash()) {
                 return false;
             }
             break;
+#else
+            return false;
+#endif  // HAVE_EIP712_V1
         default:
             return false;
     }
@@ -617,13 +702,49 @@ static bool check_gating_selector(void) {
 }
 
 /**
- * @brief Check the TX vs Gating parameters (CHAIN_ID, ADDRESS, SELECTOR).
+ * @brief Check the DOMAIN_SEPARATOR and PRIMARY_TYPE_HASH vs the V2 message being signed.
+ *
+ * They identify the message as they do in its OPERATION_INFO, a proxy contract included.
+ *
+ * @return whether they match
+ */
+static bool check_gating_message(void) {
+    uint8_t hash[HASH_SIZE];
+    const char *primary_type;
+
+    if (!eip712_v2_is_domain_separator(GATING->domain_separator)) {
+        PRINTF("[GATING] Domain separator mismatch: %.*h\n",
+               sizeof(GATING->domain_separator),
+               GATING->domain_separator);
+        return false;
+    }
+    if (((primary_type = td_get_message_type_name()) == NULL) || !type_hash(primary_type, hash)) {
+        PRINTF("[GATING] Failed to compute the primary type hash\n");
+        return false;
+    }
+    if (memcmp(GATING->primary_type_hash, hash, sizeof(hash)) != 0) {
+        PRINTF("[GATING] Primary type hash mismatch: %.*h != %.*h\n",
+               sizeof(GATING->primary_type_hash),
+               GATING->primary_type_hash,
+               sizeof(hash),
+               hash);
+        return false;
+    }
+    return true;
+}
+
+/**
+ * @brief Check the TX vs Gating parameters (CHAIN_ID, ADDRESS, SELECTOR), or the typed message vs
+ * them (DOMAIN_SEPARATOR, PRIMARY_TYPE_HASH).
  *
  * @return whether it was successful
  */
 static bool check_tx_gating_params(void) {
     if (check_gating_type() == false) {
         return false;
+    }
+    if (GATING->session == EIP712_SESSION_V2) {
+        return check_gating_message();
     }
     if (check_gating_chain_id() == false) {
         return false;
@@ -687,19 +808,11 @@ bool set_gating_warning(void) {
         return false;
     }
 
-    // Bump the persistent counter. The uint8_t wraps every 256 signing
-    // operations; 256 is not a multiple of GATED_SIGNING_MAX_COUNT, so a
-    // naive `counter + 1` would shift the "display every Nth" cadence after
-    // each wrap and eventually skip a screen entirely. Detect the wrap and
-    // re-anchor to 1 so the next signing operation displays and the cycle
-    // resumes aligned.
-    counter = N_storage.gating_counter + 1;
-    if (counter == 0) {
-        counter = 1;
-    }
+    // Counter cycles 1..GATED_SIGNING_MAX_COUNT; the screen is displayed when it is 1
+    counter = (N_storage.gating_counter % GATED_SIGNING_MAX_COUNT) + 1;
     PRINTF("[GATING] Counter: %d/%d\n", counter, GATED_SIGNING_MAX_COUNT);
     nvm_write((void *) &N_storage.gating_counter, (void *) &counter, sizeof(counter));
-    if ((counter % GATED_SIGNING_MAX_COUNT) != 1) {
+    if (counter != 1) {
         PRINTF("[GATING] Skip gating screen\n");
         return true;
     }

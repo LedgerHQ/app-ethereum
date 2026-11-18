@@ -18,3 +18,13 @@
  * fuzz build supplies this one. Defined in mock/app_globals.c.
  */
 extern cx_sha3_t global_sha3;
+
+/** Aborts when a response length exceeds what G_io_tx_buffer holds before the status word. */
+void fuzz_check_response_length(uint32_t tx);
+
+/**
+ * Set when a response asks for reset_app_context(). The NBGL mocks run review
+ * callbacks inside the handler, so the harness applies it once the handler has
+ * returned, as production does after the asynchronous UI callback.
+ */
+extern bool fuzz_pending_reset;

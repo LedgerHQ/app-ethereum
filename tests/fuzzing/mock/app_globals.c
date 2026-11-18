@@ -25,26 +25,22 @@ pluginType_t pluginType;
 uint32_t eth2WithdrawalIndex;
 #endif
 
-/* The device defaults, so the fuzzer sees the settings a user runs with.
- * contractDetails matters most: with it set, custom_processor() takes the
- * raw-calldata display branch and never calls eth_plugin_perform_init(), which
- * puts the whole plugin tree out of reach from INS_SIGN. */
-const internalStorage_t N_storage_real = {
-    .dataAllowed = true,
-    .contractDetails = false,
-    .tx_check_enable = true,
-    .tx_check_opt_in = true,
-    .eip7702_enable = true,
-};
+/* Every user setting is sampled from the prefix (domain-overrides.txt), so policy
+ * branches run under restrictive and permissive configurations alike. */
+internalStorage_t N_storage_real;
 
 const caller_app_t *g_caller_app = NULL;
 const chain_config_t *g_chain_config = NULL;
 
 // Stable chain config every harness points g_chain_config at. Production sets it
 // at init, so the fuzzer must not leave it NULL (a random/zero pointer here
-// crashes readers like app_compatible_with_chain_id).
+// crashes readers like chain_id_is_signable).
+// FUZZ_CHAIN_ID builds a clone, the way a clone app is built with its own CHAINID.
+#ifndef FUZZ_CHAIN_ID
+#define FUZZ_CHAIN_ID ETHEREUM_MAINNET_CHAINID
+#endif
 const chain_config_t g_fuzz_chain_config = {
     .ticker = "FUZZ",
-    .chain_id = 1,
+    .chain_id = FUZZ_CHAIN_ID,
     .coin_type = 60,
 };

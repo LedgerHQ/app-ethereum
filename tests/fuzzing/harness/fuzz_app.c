@@ -14,7 +14,9 @@
 #include "shared_context.h"
 #include "apdu_constants.h"     // handleApdu()
 #include "eip712_v1_context.h"  // eip712_v1_context_deinit()
-#include "tx_ctx.h"             // gcs_cleanup()
+#include "eip712_session.h"     // eip712_session_close()
+#include "typed_data.h"         // td_deinit()
+#include "operation_ctx.h"      // gcs_cleanup()
 #include "trusted_name.h"       // trusted_name_cleanup()
 #include "enum_value.h"         // enum_value_cleanup()
 #include "proxy_info.h"         // proxy_cleanup()
@@ -67,6 +69,8 @@ static const tlv_tag_info_t TAGS_GATING[] = {
     {0x02, 1, 1},
     {0x22, 20, 20},
     {0x23, 1, 8},
+    {0x28, 32, 32},
+    {0x2a, 32, 32},
     {0x40, 0, 28},
     {0x82, 0, 100},
     {0x83, 0, 30},
@@ -124,7 +128,15 @@ static const tlv_tag_info_t TAGS_SAFE_DESCRIPTOR[] = {
     {0x15, 70, 72},
 };
 
-static const tlv_tag_info_t TAGS_GTP_TX_INFO[] = {
+static const tlv_tag_info_t TAGS_SIGNER_DESCRIPTOR[] = {
+    {0x01, 1, 1},
+    {0x02, 1, 1},
+    {0x12, 1, 4},
+    {0x22, 20, 20},
+    {0x15, 70, 72},
+};
+
+static const tlv_tag_info_t TAGS_GCS_OP_INFO[] = {
     {0x00, 1, 1},
     {0x01, 1, 8},
     {0x02, 20, 20},
@@ -139,13 +151,14 @@ static const tlv_tag_info_t TAGS_GTP_TX_INFO[] = {
     {0xff, 0, 72},
 };
 
-static const tlv_tag_info_t TAGS_GTP_FIELD[] = {
+static const tlv_tag_info_t TAGS_GCS_FIELD[] = {
     {0x00, 1, 1},
     {0x01, 1, 20},
     {0x02, 1, 1},
     {0x03, 1, 64},
     {0x04, 1, 1},
     {0x05, 1, 64},
+    {0x06, 1, 32},
 };
 
 static const tlv_tag_info_t TAGS_AUTH_7702[] = {
@@ -174,8 +187,8 @@ static const tlv_tag_info_t TAGS_MAP_ENTRY[] = {
 #define _TLV_INLINE_PROXY_INFO      TLV_CFG(TAGS_PROXY_INFO)
 #define _TLV_INLINE_NETWORK_INFO    TLV_CFG(TAGS_NETWORK_INFO)
 #define _TLV_INLINE_SAFE_DESCRIPTOR TLV_CFG(TAGS_SAFE_DESCRIPTOR)
-#define _TLV_INLINE_GTP_TX_INFO     TLV_CFG(TAGS_GTP_TX_INFO)
-#define _TLV_INLINE_GTP_FIELD       TLV_CFG(TAGS_GTP_FIELD)
+#define _TLV_INLINE_GCS_OP_INFO     TLV_CFG(TAGS_GCS_OP_INFO)
+#define _TLV_INLINE_GCS_FIELD       TLV_CFG(TAGS_GCS_FIELD)
 #define _TLV_INLINE_AUTH_7702       TLV_CFG(TAGS_AUTH_7702)
 #define _TLV_INLINE_MAP_ENTRY       TLV_CFG(TAGS_MAP_ENTRY)
 
@@ -188,7 +201,7 @@ static const tlv_tag_info_t TAGS_MAP_ENTRY[] = {
     X(INS_GET_APP_CONFIGURATION,           0,    0,    0,                 NONE)          \
     X(INS_SIGN_PERSONAL_MESSAGE,           0x80, 0,    FUZZ_CMD_HAS_DATA, NONE)          \
     X(INS_PROVIDE_ERC20_TOKEN_INFORMATION, 0,    0,    FUZZ_CMD_HAS_DATA, NONE)          \
-    X(INS_SIGN_EIP_712_MESSAGE,            1,    1,    FUZZ_CMD_HAS_DATA, NONE)          \
+    X(INS_SIGN_EIP_712_MESSAGE,            1,    2,    FUZZ_CMD_HAS_DATA, NONE)          \
     X(INS_GET_ETH2_PUBLIC_KEY,             1,    0,    FUZZ_CMD_HAS_DATA, NONE)          \
     X(INS_SET_ETH2_WITHDRAWAL_INDEX,       0,    0,    FUZZ_CMD_HAS_DATA, NONE)          \
     X(INS_SET_EXTERNAL_PLUGIN,             0,    0,    FUZZ_CMD_HAS_DATA, NONE)          \
@@ -201,10 +214,10 @@ static const tlv_tag_info_t TAGS_MAP_ENTRY[] = {
     X(INS_GET_CHALLENGE,                   0,    0,    0,                 NONE)          \
     X(INS_PROVIDE_TRUSTED_NAME,            1,    0,    FUZZ_CMD_HAS_DATA, TRUSTED_NAME)  \
     X(INS_PROVIDE_ENUM_VALUE,              1,    0,    FUZZ_CMD_HAS_DATA, ENUM_VALUE)    \
-    X(INS_GTP_TRANSACTION_INFO,            1,    0,    FUZZ_CMD_HAS_DATA, GTP_TX_INFO)   \
-    X(INS_GTP_FIELD,                       1,    0,    FUZZ_CMD_HAS_DATA, GTP_FIELD)     \
+    X(INS_PROVIDE_OPERATION_INFO,          1,    0,    FUZZ_CMD_HAS_DATA, GCS_OP_INFO)   \
+    X(INS_PROVIDE_OPERATION_FIELD_DESC,    1,    0,    FUZZ_CMD_HAS_DATA, GCS_FIELD)     \
     X(INS_PROVIDE_PROXY_INFO,              1,    0,    FUZZ_CMD_HAS_DATA, PROXY_INFO)    \
-    X(INS_PROVIDE_NETWORK_CONFIGURATION,   1,    0,    FUZZ_CMD_HAS_DATA, NETWORK_INFO)  \
+    X(INS_PROVIDE_NETWORK_INFO,            1,    0,    FUZZ_CMD_HAS_DATA, NETWORK_INFO)  \
     X(INS_PROVIDE_TX_SIMULATION,           1,    0,    FUZZ_CMD_HAS_DATA, TX_SIMULATION) \
     X(INS_SIGN_EIP7702_AUTHORIZATION,      1,    0,    FUZZ_CMD_HAS_DATA, AUTH_7702)     \
     X(INS_PROVIDE_SAFE_ACCOUNT,            1,    1,    FUZZ_CMD_HAS_DATA, SAFE_DESCRIPTOR)\
@@ -224,6 +237,53 @@ FUZZ_COMMAND_COUNT();
 static const tlv_fuzz_config_t k_command_tlv_configs[] = {ETH_FUZZ_COMMANDS(_CMD_TLV)};
 #undef _CMD_TLV
 
+static void map_params(bool structured, uint8_t ins, uint8_t *p1, uint8_t *p2);
+
+#define SAFE_P2_SIGNER_DESCRIPTOR 0x01
+
+static const tlv_fuzz_config_t k_signer_descriptor_tlv = TLV_CFG(TAGS_SIGNER_DESCRIPTOR);
+
+/* Grammar of a step that starts a TLV descriptor, NULL for continuation chunks and
+ * non-TLV sub-commands. *offset gets the bytes preceding the TLV length header. */
+static const tlv_fuzz_config_t *step_tlv_config(size_t cmd,
+                                                uint8_t p1,
+                                                uint8_t p2,
+                                                const uint8_t *payload,
+                                                size_t len,
+                                                size_t *offset) {
+    const tlv_fuzz_config_t *cfg = &k_command_tlv_configs[cmd];
+    bool first_chunk = (p1 == P1_FIRST_CHUNK);
+
+    *offset = 0;
+    switch (fuzz_commands[cmd].ins) {
+        case INS_PROVIDE_TX_SIMULATION:
+            first_chunk = (p1 == 0x00) && (p2 == P1_FIRST_CHUNK);
+            break;
+        case INS_PROVIDE_NETWORK_INFO:
+        case INS_PROVIDE_GATING:
+            first_chunk = first_chunk && (p2 == 0x00);
+            break;
+        case INS_PROVIDE_SAFE_ACCOUNT:
+            if (p2 == SAFE_P2_SIGNER_DESCRIPTOR) {
+                cfg = &k_signer_descriptor_tlv;
+            }
+            break;
+        case INS_SIGN_EIP7702_AUTHORIZATION:
+            /* The BIP32 path precedes the descriptor */
+            if ((len == 0) || (payload[0] > MAX_BIP32_PATH)) {
+                return NULL;
+            }
+            *offset = 1 + (size_t) payload[0] * sizeof(uint32_t);
+            break;
+        default:
+            break;
+    }
+    if (!first_chunk || (cfg->num_tags == 0)) {
+        return NULL;
+    }
+    return cfg;
+}
+
 /*
  * Grammar-aware mutation of the sequence's last step.
  *
@@ -240,39 +300,75 @@ static size_t eth_mutate_last_step(uint8_t *input,
                                    size_t size,
                                    size_t max_size,
                                    unsigned int seed) {
+    /* Too short to hold the control bytes and a first step */
+    if (size < (size_t) FUZZ_CTRL_LEN + 1) {
+        return LLVMFuzzerMutate(input, size, max_size);
+    }
+
     size_t step = FUZZ_CTRL_LEN; /* offset of the current step's length byte */
     size_t cmd = input[1] % fuzz_n_commands;
+    uint8_t p1 = input[2];
+    uint8_t p2 = input[3];
     size_t last_step = step, last_cmd = cmd;
+    uint8_t last_p1 = p1, last_p2 = p2;
 
     while (step < size) {
         size_t next = step + 1 + input[step];
         last_step = step;
         last_cmd = cmd;
+        last_p1 = p1;
+        last_p2 = p2;
         /* stop byte, then ins/p1/p2 for the following step */
         if ((next + 4) >= size || input[next] == 0) {
             break;
         }
         cmd = input[next + 1] % fuzz_n_commands;
+        p1 = input[next + 2];
+        p2 = input[next + 3];
         step = next + 4;
     }
 
-    const tlv_fuzz_config_t *cfg = &k_command_tlv_configs[last_cmd];
-    size_t body = last_step + 1 + 2; /* step length byte, then the TLV length header */
+    /* Same P1/P2 as fuzz_app_dispatch() will send */
+    const fuzz_command_spec_t *spec = &fuzz_commands[last_cmd];
+    p1 = fuzz_clamp_p(last_p1, spec->p1_max);
+    p2 = fuzz_clamp_p(last_p2, spec->p2_max);
+    map_params(input[0] > FUZZ_STRUCTURED_LANE_THRESHOLD, spec->ins, &p1, &p2);
 
-    if (cfg->num_tags == 0 || (body + 1) >= max_size) {
+    size_t available = size - (last_step + 1);
+    size_t step_len = input[last_step];
+    size_t offset = 0;
+    const tlv_fuzz_config_t *cfg = step_tlv_config(last_cmd,
+                                                   p1,
+                                                   p2,
+                                                   input + last_step + 1,
+                                                   (step_len < available) ? step_len : available,
+                                                   &offset);
+    /* step length byte, any bytes before the descriptor, then the TLV length header */
+    size_t body = last_step + 1 + offset + 2;
+
+    /* A step too short for its TLV length header gets the generic mutation */
+    if (cfg == NULL || step_len < offset + 2 || body > size || (body + 1) >= max_size) {
         return LLVMFuzzerMutate(input, size, max_size);
     }
 
     current_tlv_fuzz_config = *cfg;
     size_t room = max_size - body;
-    if (room > UINT8_MAX - 2) {
-        room = UINT8_MAX - 2; /* the step still has to fit one APDU payload */
+    if (room > UINT8_MAX - 2 - offset) {
+        room = UINT8_MAX - 2 - offset; /* the step still has to fit one APDU payload */
     }
-    size_t tlv = tlv_custom_mutate(input + body, (size > body) ? size - body : 0, room, seed);
+    /* Only the last step's own payload, as far as the input and the room allow */
+    size_t tlv_size = step_len - offset - 2;
+    if (tlv_size > size - body) {
+        tlv_size = size - body;
+    }
+    if (tlv_size > room) {
+        tlv_size = room;
+    }
+    size_t tlv = tlv_custom_mutate(input + body, tlv_size, room, seed);
 
-    input[last_step] = (uint8_t) (2 + tlv);
-    input[last_step + 1] = (uint8_t) (tlv >> 8);
-    input[last_step + 2] = (uint8_t) (tlv & 0xFF);
+    input[last_step] = (uint8_t) (offset + 2 + tlv);
+    input[body - 2] = (uint8_t) (tlv >> 8);
+    input[body - 1] = (uint8_t) (tlv & 0xFF);
     return body + tlv;
 }
 
@@ -291,6 +387,7 @@ void fuzz_app_reset(void) {
      * fuzzed value so the invariant stays the single source of protocol state. */
     uint8_t restored_app_state = appState;
 
+    fuzz_pending_reset = false;
     g_caller_app = NULL;
     // Absolution zeroes g_chain_config (zero-symbols); production keeps it set.
     g_chain_config = &g_fuzz_chain_config;
@@ -299,6 +396,8 @@ void fuzz_app_reset(void) {
      * makes tlv_from_apdu() free its accumulator via the public API). */
     (void) tlv_from_apdu(false, 0, NULL, NULL);
     eip712_v1_context_deinit();
+    td_deinit();
+    eip712_session_close();
     gcs_cleanup();
     trusted_name_cleanup();
     enum_value_cleanup();
@@ -320,6 +419,67 @@ void fuzz_app_reset(void) {
     txContext.content = &tmpContent.txContent;
 
     appState = restored_app_state;
+    /* A fuzzed PREPARING_EIP712 state has no command behind it, so enter it the way a V2 schema
+     * does, with the session its V2 commands require. */
+    if (appState == APP_STATE_PREPARING_EIP712) {
+        appState = APP_STATE_IDLE;
+        (void) eip712_session_open(EIP712_SESSION_V2);
+    }
+}
+
+/* P1/P2 values each handler accepts. The structured lane maps the drawn bytes onto
+ * them so most calls get past parameter validation; the raw lane keeps the bytes.
+ * Commands not listed take TLV chunking: P1 first/following chunk, P2 zero. */
+typedef struct {
+    uint8_t ins;
+    uint8_t n_p1;
+    uint8_t p1[3];
+    uint8_t n_p2;
+    uint8_t p2[15];
+} eth_param_set_t;
+
+// clang-format off
+static const eth_param_set_t k_param_sets[] = {
+    {INS_GET_PUBLIC_KEY,                  2, {0x00, 0x01}, 2, {0x00, 0x01}},
+    {INS_SIGN,                            2, {0x00, 0x80}, 3, {0x00, 0x01, 0x02}},
+    {INS_GET_APP_CONFIGURATION,           1, {0x00},       1, {0x00}},
+    {INS_SIGN_PERSONAL_MESSAGE,           2, {0x00, 0x80}, 1, {0x00}},
+    {INS_PROVIDE_ERC20_TOKEN_INFORMATION, 2, {0x00, 0x01}, 2, {0x00, 0x01}},
+    {INS_SIGN_EIP_712_MESSAGE,            1, {0x00},       3, {0x00, 0x01, 0x02}},
+    {INS_SET_ETH2_WITHDRAWAL_INDEX,       1, {0x00},       1, {0x00}},
+    {INS_SET_EXTERNAL_PLUGIN,             1, {0x00},       1, {0x00}},
+    {INS_PROVIDE_NFT_INFORMATION,         1, {0x00},       1, {0x00}},
+    {INS_SET_PLUGIN,                      1, {0x00},       1, {0x00}},
+    {INS_PERFORM_PRIVACY_OPERATION,       2, {0x00, 0x01}, 2, {0x00, 0x01}},
+    {INS_EIP712_STRUCT_DEF,               2, {0x00, 0x01}, 3, {0x00, 0xFF, 0x02}},
+    {INS_EIP712_STRUCT_IMPL,              3, {0x00, 0xFF, 0x01}, 4, {0x00, 0xFF, 0x0F, 0x02}},
+    {INS_EIP712_FILTERING,                2, {0x00, 0x01}, 15, {0x00, 0x01, 0x0F, 0xF4, 0xF5, 0xF6, 0xF7, 0xF8,
+                                                                0xF9, 0xFA, 0xFB, 0xFC, 0xFD, 0xFE, 0xFF}},
+    {INS_GET_CHALLENGE,                   1, {0x00},       1, {0x00}},
+    {INS_PROVIDE_NETWORK_INFO,            2, {0x00, 0x01}, 3, {0x00, 0x01, 0x02}},
+    {INS_PROVIDE_TX_SIMULATION,           2, {0x00, 0x01}, 2, {0x00, 0x01}},
+    {INS_PROVIDE_SAFE_ACCOUNT,            2, {0x00, 0x01}, 2, {0x00, 0x01}},
+    {INS_PROVIDE_OPERATION_INFO,          2, {0x01, 0x00}, 2, {0x00, 0x02}},
+    {INS_PROVIDE_OPERATION_FIELD_DESC,    2, {0x01, 0x00}, 2, {0x00, 0x02}},
+};
+// clang-format on
+
+static const eth_param_set_t k_tlv_chunk_params = {0, 2, {0x01, 0x00}, 1, {0x00}};
+
+static void map_params(bool structured, uint8_t ins, uint8_t *p1, uint8_t *p2) {
+    const eth_param_set_t *set = &k_tlv_chunk_params;
+
+    if (!structured) {
+        return;
+    }
+    for (size_t i = 0; i < ARRAYLEN(k_param_sets); i++) {
+        if (k_param_sets[i].ins == ins) {
+            set = &k_param_sets[i];
+            break;
+        }
+    }
+    *p1 = set->p1[*p1 % set->n_p1];
+    *p2 = set->p2[*p2 % set->n_p2];
 }
 
 /** Re-encodes one command as a real APDU and runs the parser production uses. */
@@ -346,7 +506,10 @@ static void dispatch_one(uint8_t cla,
         return;
     }
     uint16_t sw = handleApdu(&parsed, &tx);
-    if ((sw != SWO_NO_RESPONSE) && (sw != SWO_SUCCESS) && (sw != SWO_COMMAND_CODE_NOT_SUPPORTED)) {
+    fuzz_check_response_length(tx);
+    if (fuzz_pending_reset || ((sw != SWO_NO_RESPONSE) && (sw != SWO_SUCCESS) &&
+                               (sw != SWO_COMMAND_CODE_NOT_SUPPORTED))) {
+        fuzz_pending_reset = false;
         reset_app_context();
     }
 }
@@ -373,6 +536,7 @@ void fuzz_app_dispatch(void *cmd_v) {
     uint8_t cla = cmd->cla;
     uint8_t ins = cmd->ins;
 
+    map_params(fuzz_use_structured_lane(), ins, &p1, &p2);
     for (;;) {
         uint8_t lc;
         const uint8_t *payload = fuzz_take_slice(&cur, &lc);
@@ -388,5 +552,6 @@ void fuzz_app_dispatch(void *cmd_v) {
         ins = spec->ins;
         p1 = fuzz_clamp_p(fuzz_take_u8(&cur), spec->p1_max);
         p2 = fuzz_clamp_p(fuzz_take_u8(&cur), spec->p2_max);
+        map_params(fuzz_use_structured_lane(), ins, &p1, &p2);
     }
 }

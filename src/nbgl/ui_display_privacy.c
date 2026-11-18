@@ -18,6 +18,7 @@ static void buildFirstPage(const char *review_string, const char *confirm_string
     if (!ui_pairs_init(2)) {
         // No review will run; scrub the staged secret and release the state
         privacy_operation_cleanup();
+        io_seproxyhal_send_status(SWO_INSUFFICIENT_MEMORY, 0, true, true);
         return;
     }
 

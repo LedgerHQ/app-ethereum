@@ -1,14 +1,10 @@
 cmake_minimum_required(VERSION 3.10)
 project(unit_tests VERSION 0.1 DESCRIPTION "Unit tests for Ledger Ethereum application" LANGUAGES C)
 
-if(NOT DEFINED BOLOS_SDK)
-  set(BOLOS_SDK "/opt/ledger-secure-sdk")
-  message(STATUS "BOLOS_SDK not defined, using default: ${BOLOS_SDK}")
-else()
-  message(STATUS "Using BOLOS_SDK: ${BOLOS_SDK}")
+if(NOT DEFINED ENV{BOLOS_SDK})
+  message(FATAL_ERROR "BOLOS_SDK environment variable is not set. Please set it to the path of the Ledger Secure SDK.")
 endif()
-
-set(SDK_DIR ${BOLOS_SDK})
+set(SDK_DIR $ENV{BOLOS_SDK})
 include(${SDK_DIR}/cmake/LedgerUT.cmake)
 
 set(APP_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../src")
@@ -43,10 +39,11 @@ endif()
 set(COMMON_SOURCES
   ${MOCK_DIR}/sdk_stubs.c
   ${MOCK_DIR}/system_stubs.c
-  ${BOLOS_SDK}/lib_standard_app/format.c
-  ${BOLOS_SDK}/lib_standard_app/read.c
-  ${BOLOS_SDK}/lib_standard_app/write.c
-  ${BOLOS_SDK}/lib_tlv/tlv_library.c
+  ${LEDGER_UT_EXCEPTION_STUBS}
+  ${SDK_DIR}/lib_standard_app/format.c
+  ${SDK_DIR}/lib_standard_app/read.c
+  ${SDK_DIR}/lib_standard_app/write.c
+  ${SDK_DIR}/lib_tlv/tlv_library.c
 )
 
 # Sources for tests that need shared app globals (all non-NO_GLOBALS tests).
@@ -60,6 +57,7 @@ set(COMMON_INCLUDE_DIRS
   ${APP_DIR}
   ${PLUGIN_DIR}
   ${APP_DIR}/features/generic_tx_parser
+  ${APP_DIR}/features/gcs
   ${APP_DIR}/features/provide_erc20_token_information
   ${APP_DIR}/features/provide_nft_information
   ${APP_DIR}/features/provide_trusted_name
@@ -75,26 +73,30 @@ set(COMMON_INCLUDE_DIRS
   ${APP_DIR}/utils
   ${APP_DIR}/swap
   ${MOCK_DIR}
-  ${BOLOS_SDK}/io/include
-  ${BOLOS_SDK}/lib_cxng/include
-  ${BOLOS_SDK}/lib_nbgl/include
-  ${BOLOS_SDK}/lib_lists
-  ${BOLOS_SDK}/lib_standard_app
-  ${BOLOS_SDK}/lib_tlv
-  ${BOLOS_SDK}/lib_alloc
-  ${BOLOS_SDK}/lib_ux_nbgl
-  ${BOLOS_SDK}/lib_u2f/include
-  ${BOLOS_SDK}/include
+  ${SDK_DIR}/io/include
+  ${SDK_DIR}/lib_cxng/include
+  ${SDK_DIR}/lib_nbgl/include
+  ${SDK_DIR}/lib_lists
+  ${SDK_DIR}/lib_standard_app
+  ${SDK_DIR}/lib_tlv
+  ${SDK_DIR}/lib_alloc
+  ${SDK_DIR}/lib_ux_nbgl
+  ${SDK_DIR}/lib_u2f/include
+  ${SDK_DIR}/include
   ${LIBBSD_INCLUDE_DIRS}
 )
 
 # Compile definitions added to every test target.
 # UT_COMPILE_DEFS_SDK is provided by the SDK but not auto-applied by
 # ledger_unit_tests_add_test(); forward it here so all test targets
-# inherit the full SDK-standard set. HAVE_TRANSACTION_CHECKS is app-specific.
+# inherit the full SDK-standard set. HAVE_TRANSACTION_CHECKS, HAVE_7702_SUPPORT and
+# HAVE_EIP712_V1 are app-specific; HAVE_CRC matches the firmware build (Makefile.conf.cx).
 set(COMMON_COMPILE_DEFS
   ${UT_COMPILE_DEFS_SDK}
+  HAVE_CRC
   HAVE_TRANSACTION_CHECKS
+  HAVE_7702_SUPPORT
+  HAVE_EIP712_V1
 )
 
 # Link libbsd via link_libraries() so it appears AFTER object files in the link
@@ -107,6 +109,9 @@ endif()
 
 # COMMON_LINK_OPTIONS carries only any remaining raw linker flags (empty for now).
 set(COMMON_LINK_OPTIONS "")
+
+# Same char signedness and enum width as the firmware build (SDK Makefile.defines).
+add_compile_options(-funsigned-char -fshort-enums)
 
 # =============================================================================
 # Test targets (grouped by feature)

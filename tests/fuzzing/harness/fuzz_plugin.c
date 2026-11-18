@@ -157,6 +157,18 @@ static void query_ui(uint8_t num_screens, uint8_t additional_screens) {
     }
 }
 
+/** SHA-256 of selector || calldata, the digest the swap plugin compares to its promise. */
+static void calldata_digest(const uint8_t selector[SELECTOR_SIZE], uint8_t out[CX_SHA256_SIZE]) {
+    cx_sha256_t ctx;
+
+    cx_sha256_init_no_throw(&ctx);
+    if ((cx_sha256_update(&ctx, selector, SELECTOR_SIZE) != CX_OK) ||
+        (cx_sha256_update(&ctx, fuzz_tail_ptr, fuzz_tail_len) != CX_OK) ||
+        (cx_sha256_final(&ctx, out) != CX_OK)) {
+        memset(out, 0, CX_SHA256_SIZE);
+    }
+}
+
 /** Table entry @p index, or the header's raw bytes when the row has no table. */
 static void pick_or_draw(uint8_t *out,
                          uint8_t len,
@@ -181,6 +193,9 @@ void fuzz_app_dispatch(void *cmd_v) {
     uint8_t additional_screens = 0;
 
     fuzz_build_tx_content(&tmpContent.txContent, &g_hdr);
+    // get_tx_chain_id() reads the chain ID through these, as after an RLP parse.
+    txContext.txType = EIP1559;
+    txContext.content = &tmpContent.txContent;
 
     pick_or_draw(address,
                  sizeof(address),
@@ -211,6 +226,9 @@ void fuzz_app_dispatch(void *cmd_v) {
         case PLUGIN_TYPE_SWAP_WITH_CALLDATA:
             // Exchange owns this buffer on device and the invariant keeps the
             // pointer NULL, so the harness supplies the storage.
+            if (g_hdr.flags & ETH_PLUGIN_HDR_MATCH_HASH) {
+                calldata_digest(selector, g_hdr.crosschain_hash);
+            }
             G_swap_crosschain_hash = g_hdr.crosschain_hash;
             G_called_from_swap = true;
             G_swap_mode = (swap_mode_t) (g_hdr.swap_mode % (SWAP_MODE_ERROR + 1));

@@ -1,3 +1,5 @@
+#ifdef HAVE_7702_SUPPORT
+
 #include "shared_context.h"
 #include "common_ui.h"
 #include "apdu_constants.h"
@@ -31,3 +33,5 @@ unsigned int auth_7702_ok_cb(void) {
 unsigned int auth_7702_cancel_cb(void) {
     return io_seproxyhal_send_status(SWO_CONDITIONS_NOT_SATISFIED, 0, true, false);
 }
+
+#endif  // HAVE_7702_SUPPORT

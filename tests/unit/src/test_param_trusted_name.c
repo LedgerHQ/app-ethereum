@@ -10,8 +10,8 @@
 #include <stdlib.h>
 
 // Includes
-#include "gtp_field.h"
-#include "gtp_value.h"
+#include "gcs_field.h"
+#include "gcs_value.h"
 #include "shared_context.h"
 #include "status_words.h"
 
@@ -22,7 +22,7 @@
 #include "address_name_lookup.h"
 #include "utils.h"
 #include "get_public_key.h"
-#include "tx_ctx.h"
+#include "operation_ctx.h"
 #include "common_utils.h"
 #include "Mocknetwork.h"
 
@@ -58,9 +58,12 @@
 
 static bool g_add_to_field_table_ret = true;
 static int g_get_current_tx_chain_id_ret = 0;
+static bool g_operation_has_chain = true;
 static const char *g_get_network_as_string_from_chain_id_ret = NULL;
 static uint16_t g_get_public_key_ret = 0x9000;
 static const void *g_get_trusted_name_ret = NULL;
+static const uint8_t *g_operation_from = NULL;
+static uint8_t g_last_lookup_addr[ADDRESS_LENGTH];
 
 // =============================================================================
 // Mock functions
@@ -73,11 +76,22 @@ bool add_to_field_table(e_param_type param_type, const char *name, const char *v
     return (bool) g_add_to_field_table_ret;
 }
 
+bool add_address_to_field_table(e_param_type param_type,
+                                const char *name,
+                                const char *value,
+                                const void *extra_data,
+                                const uint8_t *addr) {
+    (void) extra_data;
+    (void) addr;
+    return add_to_field_table(param_type, name, value);
+}
+
 /**
- * @brief Mock implementation of get_current_tx_chain_id
+ * @brief Mock implementation of get_current_operation_chain_id
  */
-uint64_t get_current_tx_chain_id(void) {
-    return (uint64_t) g_get_current_tx_chain_id_ret;
+bool get_current_operation_chain_id(uint64_t *chain_id) {
+    *chain_id = (uint64_t) g_get_current_tx_chain_id_ret;
+    return g_operation_has_chain;
 }
 
 static const s_trusted_name *trusted_name_stub(uint8_t type_count,
@@ -113,6 +127,7 @@ bool get_address_display_name(const uint8_t *addr,
                               size_t buf_size,
                               e_addr_name_source *name_source_out,
                               const void **extra_data_out) {
+    memcpy(g_last_lookup_addr, addr, ADDRESS_LENGTH);
     const s_trusted_name *tname =
         get_trusted_name(type_count, types, source_count, sources, &chain_id, addr);
     if (tname != NULL) {
@@ -125,6 +140,10 @@ bool get_address_display_name(const uint8_t *addr,
         if (extra_data_out != NULL) *extra_data_out = NULL;
     }
     return true;
+}
+
+const uint8_t *get_current_operation_from(void) {
+    return g_operation_from;
 }
 
 /**
@@ -388,7 +407,7 @@ void test_trusted_name_if_not_in_no_match(void) {
 }
 
 /**
- * @brief Test with sender_addr replacement (wallet address)
+ * @brief Test with sender_addr replacement (sender of the current operation)
  */
 void test_trusted_name_sender_addr_replacement(void) {
     // clang-format off
@@ -415,20 +434,52 @@ void test_trusted_name_sender_addr_replacement(void) {
     // Mock
     g_get_current_tx_chain_id_ret = 1;
 
-    // Should replace with wallet address
-    g_get_public_key_ret = SWO_SUCCESS;
+    // The sender of the operation, not the signer's account
+    static const uint8_t operation_from[ADDRESS_LENGTH] = {0xF1, 0xF2, 0xF3};
+    g_operation_from = operation_from;
 
     // Mock trusted name lookup with replaced address
     g_get_trusted_name_ret = NULL;
     g_add_to_field_table_ret = true;
 
     TEST_ASSERT_TRUE(format_param_trusted_name(&field));
+    TEST_ASSERT_EQUAL_MEMORY(operation_from, g_last_lookup_addr, ADDRESS_LENGTH);
 }
 
 /**
- * @brief Test with chain_id = 0 (should fail)
+ * @brief Test with a sender address and no current operation (should fail)
  */
-void test_trusted_name_chain_id_zero(void) {
+void test_trusted_name_sender_addr_without_operation(void) {
+    // clang-format off
+    uint8_t sender_wallet[ADDRESS_LENGTH] = {0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF, 0x11,
+                                             0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88,
+                                             0x99, 0x00, 0x11, 0x22, 0x33, 0x44};
+
+    CREATE_ADDRESS_PARAM(param,
+        0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF, 0x11, 0x22, 0x33, 0x44,
+        0x55, 0x66, 0x77, 0x88, 0x99, 0x00, 0x11, 0x22, 0x33, 0x44
+    );
+    // clang-format on
+
+    param.sender_addr_count = 1;
+    memcpy(param.sender_addr[0], sender_wallet, ADDRESS_LENGTH);
+
+    s_field field = {.param_type = PARAM_TYPE_TRUSTED_NAME,
+                     .visibility = PARAM_VISIBILITY_ALWAYS,
+                     .constraints = NULL,
+                     .param_trusted_name = param,
+                     .name = "From"};
+
+    g_get_current_tx_chain_id_ret = 1;
+    g_operation_from = NULL;
+
+    TEST_ASSERT_FALSE(format_param_trusted_name(&field));
+}
+
+/**
+ * @brief Test with an operation on no chain, a typed message that pins none (should fail)
+ */
+void test_trusted_name_without_a_chain(void) {
     // clang-format off
     CREATE_ADDRESS_PARAM(param,
         0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0x00,
@@ -442,8 +493,7 @@ void test_trusted_name_chain_id_zero(void) {
                      .param_trusted_name = param,
                      .name = "To"};
 
-    // Mock: chain_id = 0 is invalid
-    g_get_current_tx_chain_id_ret = 0;
+    g_operation_has_chain = false;
 
     TEST_ASSERT_FALSE(format_param_trusted_name(&field));
 }
@@ -465,7 +515,7 @@ void test_trusted_name_interoperable_named(void) {
                      .param_trusted_name = param,
                      .name = "To"};
 
-    // No get_current_tx_chain_id call — chain_id comes from EIP-7930 bytes
+    // No chain lookup — chain_id comes from EIP-7930 bytes
     static s_trusted_name trusted = {.name = "Vitalik.eth"};
     g_get_trusted_name_ret = &trusted;
     g_get_network_as_string_from_chain_id_ret = "Ethereum";
@@ -549,20 +599,50 @@ void test_trusted_name_interoperable_network_failure_rejected(void) {
 // TLV tag-handler tests for handle_param_trusted_name_struct.
 //
 // Each handle_X tag dispatch is exercised by feeding a hand-crafted TLV
-// buffer through the public entry point. VALUE (0x01) passes an empty
-// inner TLV — the value sub-parser is real but accepts empty input as a
-// no-op.
+// buffer through the public entry point. VALUE (0x01) passes a complete inner TLV
+// (VERSION, TYPE_FAMILY and one source); the value sub-parser is real.
 //
 // Tags here are all < 0x80 so short-form encoding is used (no DER long
 // form).
 // =============================================================================
 
-#include "gtp_param_trusted_name.h"
+#include "gcs_param_trusted_name.h"
+
+void test_handle_tn_struct_version_other_than_one_refused(void) {
+    uint8_t buf_bytes[] = {
+        0x00, 0x01, 0x01,  // VERSION
+        0x01, 0x09,        // VALUE: VERSION = 1, TYPE_FAMILY = UINT, CONTAINER_PATH = FROM
+        0x00, 0x01, 0x01,
+        0x01, 0x01, (uint8_t) TF_UINT,
+        0x04, 0x01, (uint8_t) CP_FROM,
+        0x02, 0x01, TN_TYPE_ACCOUNT,  // TYPES = [ACCOUNT]
+        0x03, 0x01, TN_SOURCE_CAL,    // SOURCES = [CAL]
+        0x04, 0x04, 0xDE,
+        0xAD, 0xBE, 0xEF,                // SENDER_ADDR
+        0x05, 0x01, TNVT_INTEROPERABLE,  // VALUE_TYPE
+    };
+    const uint8_t other_versions[] = {0x00, 0x02, 0xFF};
+    s_param_trusted_name param;
+    s_param_trusted_name_context ctx = {.param = &param};
+    buffer_t buf = {.ptr = buf_bytes, .size = sizeof(buf_bytes), .offset = 0};
+
+    memset(&param, 0, sizeof(param));
+    TEST_ASSERT_TRUE(handle_param_trusted_name_struct(&buf, &ctx));
+    for (size_t i = 0; i < sizeof(other_versions); i++) {
+        buf = (buffer_t) {.ptr = buf_bytes, .size = sizeof(buf_bytes), .offset = 0};
+        buf_bytes[2] = other_versions[i];
+        memset(&param, 0, sizeof(param));
+        TEST_ASSERT_FALSE(handle_param_trusted_name_struct(&buf, &ctx));
+    }
+}
 
 void test_handle_tn_struct_all_tags_ok(void) {
     uint8_t buf_bytes[] = {
-        0x00, 0x01, 0x01,             // VERSION = 1
-        0x01, 0x00,                   // VALUE = empty (inner parser sees 0 tags)
+        0x00, 0x01, 0x01,  // VERSION = 1
+        0x01, 0x09,        // VALUE: VERSION = 1, TYPE_FAMILY = UINT, CONTAINER_PATH = FROM
+        0x00, 0x01, 0x01,
+        0x01, 0x01, (uint8_t) TF_UINT,
+        0x04, 0x01, (uint8_t) CP_FROM,
         0x02, 0x01, TN_TYPE_ACCOUNT,  // TYPES = [ACCOUNT]
         0x03, 0x01, TN_SOURCE_CAL,    // SOURCES = [CAL]
         0x04, 0x04, 0xDE,
@@ -686,6 +766,8 @@ void setUp(void) {
     Mocknetwork_Init();
     g_get_trusted_name_ret = NULL;
     g_get_network_as_string_from_chain_id_ret = NULL;
+    g_operation_has_chain = true;
+    g_operation_from = NULL;
     get_trusted_name_StubWithCallback(trusted_name_stub);
     get_network_as_string_from_chain_id_StubWithCallback(network_from_chain_id_stub);
 }
@@ -705,11 +787,13 @@ int main(void) {
     RUN_TEST(test_trusted_name_if_not_in_match);
     RUN_TEST(test_trusted_name_if_not_in_no_match);
     RUN_TEST(test_trusted_name_sender_addr_replacement);
-    RUN_TEST(test_trusted_name_chain_id_zero);
+    RUN_TEST(test_trusted_name_sender_addr_without_operation);
+    RUN_TEST(test_trusted_name_without_a_chain);
     RUN_TEST(test_trusted_name_interoperable_named);
     RUN_TEST(test_trusted_name_interoperable_raw);
     RUN_TEST(test_trusted_name_interoperable_unknown_network);
     RUN_TEST(test_trusted_name_interoperable_network_failure_rejected);
+    RUN_TEST(test_handle_tn_struct_version_other_than_one_refused);
     RUN_TEST(test_handle_tn_struct_all_tags_ok);
     RUN_TEST(test_handle_tn_struct_types_oversize_rejected);
     RUN_TEST(test_handle_tn_struct_sources_oversize_rejected);

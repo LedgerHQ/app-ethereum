@@ -10,8 +10,8 @@
 # `coverage_exclude_paths` input), which keeps these paths out of the coverage
 # artifact, the Cobertura report and the job summary as well.
 ignore:
-  - "tests"               # unit-test sources
-  - "ethereum-plugin-sdk" # vendored submodule
+  - "tests"                # unit-test sources
+  - "ethereum-plugin-sdk"  # vendored submodule
 
 # Coverage is uploaded under two flags:
 #   * unittests       -- native gcov from tests/unit (line + branch)

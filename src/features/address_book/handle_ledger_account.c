@@ -76,7 +76,6 @@ void finalize_ui_ledger_account(void) {
  * @return true if the account is valid, false to reject
  */
 bool handle_check_register_ledger_account(ledger_account_t *params) {
-    cx_ecfp_public_key_t publicKey = {0};
     PRINTF("Inside handle_check_register_ledger_account\n");
     if (params == NULL) {
         PRINTF("params is NULL\n");
@@ -96,18 +95,17 @@ bool handle_check_register_ledger_account(ledger_account_t *params) {
         return false;
     }
 
+    // A new review may replace the previous status screen before its finalizer runs
+    address_book_review_cleanup();
     if (APP_MEM_PERMANENT((void **) &g_ctx.register_account.address_display,
                           ADDRESS_LENGTH_HEX_STR) == false) {
         PRINTF("Failed to allocate address display buffer\n");
         return false;
     }
-    g_ctx.register_account.address_display[0] = '0';
-    g_ctx.register_account.address_display[1] = 'x';
-    if (get_public_key_string((bip32_path_t *) &params->bip32_path,
-                              publicKey.W,
-                              g_ctx.register_account.address_display + 2,
-                              NULL,
-                              params->chain_id) != CX_OK) {
+    if (!get_displayable_address((const bip32_path_t *) &params->bip32_path,
+                                 g_ctx.register_account.address_display,
+                                 ADDRESS_LENGTH_HEX_STR,
+                                 params->chain_id)) {
         PRINTF("Failed to get public key\n");
         APP_MEM_FREE_AND_NULL((void **) &g_ctx.register_account.address_display);
         return false;
@@ -300,12 +298,10 @@ bool handle_provide_ledger_account(const ledger_account_t *account) {
     getEthAddressFromRawKey(raw_pubkey, address);
     explicit_bzero(raw_pubkey, sizeof(raw_pubkey));
 
-    {
-        const s_ab_contact *existing = get_address_book_contact(account->chain_id, address);
-        if (existing != NULL && existing->type == AB_CONTACT_LEDGER_ACCOUNT) {
-            PRINTF("Contact already stored, ignoring\n");
-            return true;
-        }
+    // Any contact already cached for this address wins, whatever its type
+    if (get_address_book_contact(account->chain_id, address) != NULL) {
+        PRINTF("Contact already stored, ignoring\n");
+        return true;
     }
 
     if (APP_MEM_PERMANENT((void **) &node, sizeof(*node)) == false) {

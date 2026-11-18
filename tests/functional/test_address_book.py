@@ -4,6 +4,7 @@ from pathlib import Path
 
 import client.response_parser as ResponseParser
 from client.client import EthAppClient, SignMode
+from client.dynamic_networks import DynamicNetwork
 from client.gcs import (
     ContainerPath,
     DataPath,
@@ -19,6 +20,7 @@ from client.status_word import StatusWord
 from client.trusted_name import TrustedName, TrustedNameSource, TrustedNameType
 from client.utils import CoinType, get_selector_from_data
 from constants import ABIS_FOLDER
+from dynamic_networks_cfg import get_network_config
 from fields_utils import get_all_paths, get_all_tuple_array_paths
 from ragger.address_book import (
     GROUP_HANDLE_LENGTH,
@@ -77,6 +79,7 @@ SECONDARY_SCOPE = "Eth Address 2"
 # Max-length values (CONTACT_NAME_MAX_LENGTH == SCOPE_MAX_LENGTH == 32) used to
 # validate long-name display (truncation / wrapping) on the device screens.
 LONG_CONTACT_NAME = "Alice Very Long Contact Name 123"  # 32 chars
+ABSURD_LONG_CONTACT_NAME = "MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM"  # 32 chars
 LONG_SCOPE = "Ethereum Address Number One Long"  # 32 chars
 
 
@@ -824,6 +827,59 @@ def test_address_book_simple_tx_long_name(scenario_navigator: NavigateWithScenar
         scenario_navigator.review_approve()
 
 
+def test_address_book_simple_tx_absurd_long_name(scenario_navigator: NavigateWithScenario) -> None:
+    """Test Provide Contact: a max-length (32-char) contact name too wide for the TX "To" field.
+
+    Same flow as test_address_book_simple_tx_long_name but with a name of wide chars,
+    which doesn't fit in the max number of lines of the "To" field (2 lines on touch
+    devices, 3 lines on Nano): it must be cut with "...".
+
+    Flow:
+      1. Register Identity with ABSURD_LONG_CONTACT_NAME / LONG_SCOPE (no comparison)
+      2. Provide Contact (synchronous, no UI)
+      3. Sign a TX to the same address → "To" shows the long contact name
+    """
+    backend = scenario_navigator.backend
+    app_client = EthAppClient(backend)
+
+    # Step 1: Register Identity with the long name / scope
+    group_handle, hmac_name, hmac_rest = _common_register_identity(
+        scenario_navigator,
+        app_client,
+        contact_name=ABSURD_LONG_CONTACT_NAME,
+        scope=LONG_SCOPE,
+        do_compare=False,
+    )
+
+    # Step 2: Provide Contact (synchronous, no UI)
+    apdu = ProvideContact(
+        identifier=DEFAULT_ADDRESS,
+        group_handle=group_handle,
+        hmac_name=hmac_name,
+        hmac_rest=hmac_rest,
+        contact_name=ABSURD_LONG_CONTACT_NAME,
+        scope=LONG_SCOPE,
+        blockchain_family=FAMILY,
+        chain_id=DEFAULT_CHAIN_ID,
+    )
+
+    response = app_client.provide_address_book(apdu, False)
+    assert_sw(response.status, StatusWord.SWO_SUCCESS)
+    assert len(response.data) == 0, f"Provide Contact must return no data, got {response.data.hex()}"
+
+    # Step 3: Sign TX to the same address — "To" shows the long contact name
+    tx_params: dict = {
+        "nonce": NONCE,
+        "gasPrice": Web3.to_wei(GAS_PRICE, "gwei"),
+        "gas": GAS_LIMIT,
+        "to": DEFAULT_ADDRESS,
+        "value": Web3.to_wei(AMOUNT, "ether"),
+        "chainId": DEFAULT_CHAIN_ID,
+    }
+    with app_client.sign(DEFAULT_BIP32_PATH, tx_params):
+        scenario_navigator.review_approve()
+
+
 def test_address_book_simple_tx_reject(scenario_navigator: NavigateWithScenario) -> None:
     """Test Provide Contact: user rejects the TX after the contact name is shown.
 
@@ -919,6 +975,8 @@ def test_address_book_simple_tx_chain_id_mismatch(scenario_navigator: NavigateWi
     assert len(response.data) == 0
 
     # Step 3: Sign TX on chain_id=137 — stored contact has chain_id=1, so no match → raw
+    name, ticker, icon = get_network_config(backend.device.type, wrong_chain_id)
+    app_client.provide_network_info(DynamicNetwork(name, ticker, wrong_chain_id, icon))
     tx_params: dict = {
         "nonce": NONCE,
         "gasPrice": Web3.to_wei(GAS_PRICE, "gwei"),
@@ -1346,18 +1404,125 @@ def test_address_book_gcs_empty_tx(scenario_navigator: NavigateWithScenario) -> 
         creator_name="Ledger Multisig",
         creator_legal_name="Ledger",
     )
-    app_client.provide_transaction_info(tx_info.serialize())
+    app_client.provide_operation_info(tx_info.serialize())
     for field in fields:
-        app_client.provide_transaction_field_desc(field.serialize())
+        app_client.provide_operation_field_desc(field.serialize())
 
     with app_client.sign(mode=SignMode.START_FLOW):
         scenario_navigator.review_approve()
 
 
-def test_address_book_gcs_trusted_name_field(
+def test_address_book_gcs_edit_scope_before_review(scenario_navigator: NavigateWithScenario) -> None:
+    """A contact edit between the GCS field parsing and the review must not change the review.
+
+    Flow:
+      1. Register Identity and Provide Contact for recipient_addr ("Alice", DEFAULT_SCOPE)
+      2. Store a GCS ERC-20 transfer whose recipient is a trusted_name field, provide TX_INFO and FIELDs
+      3. Edit Scope of the contact (DEFAULT_SCOPE → "Edited scope")
+      4. Start the review → the recipient still shows "Alice" with DEFAULT_SCOPE
+    """
+    backend = scenario_navigator.backend
+    app_client = EthAppClient(backend)
+
+    recipient_addr = bytes.fromhex("1111111111111111111111111111111111111111")
+    token_addr = bytes.fromhex("dac17f958d2ee523a2206206994597c13d831ec7")  # USDT
+
+    group_handle, hmac_name, hmac_rest = _common_register_identity(
+        scenario_navigator,
+        app_client,
+        address=recipient_addr,
+        do_compare=False,
+    )
+    apdu: AddressBookCommand = ProvideContact(
+        identifier=recipient_addr,
+        group_handle=group_handle,
+        hmac_name=hmac_name,
+        hmac_rest=hmac_rest,
+        contact_name=DEFAULT_CONTACT_NAME,
+        scope=DEFAULT_SCOPE,
+        blockchain_family=FAMILY,
+        chain_id=DEFAULT_CHAIN_ID,
+    )
+    response = app_client.provide_address_book(apdu, False)
+    assert_sw(response.status, StatusWord.SWO_SUCCESS)
+
+    with Path(f"{ABIS_FOLDER}/erc20.json").open(encoding="utf-8") as f:
+        contract = Web3().eth.contract(abi=json.load(f), address=token_addr)  # type: ignore[call-overload]  # web3 stubs reject raw-bytes addresses reused as contract_addr
+
+    data = contract.encode_abi("transfer", [recipient_addr, int(1.1 * pow(10, 6))])
+    tx_params = {
+        "nonce": 235,
+        "maxFeePerGas": Web3.to_wei(100, "gwei"),
+        "maxPriorityFeePerGas": Web3.to_wei(10, "gwei"),
+        "gas": 44001,
+        "to": token_addr,
+        "data": data,
+        "chainId": DEFAULT_CHAIN_ID,
+    }
+    with app_client.sign("m/44'/60'/0'/0/0", tx_params, mode=SignMode.STORE):
+        pass
+
+    param_paths = get_all_paths(f"{ABIS_FOLDER}/erc20.json", "transfer")
+    fields = [
+        Field(
+            1,
+            "To",
+            ParamTrustedName(
+                1,
+                Value(1, TypeFamily.ADDRESS, data_path=DataPath(1, param_paths["_to"])),
+                [TrustedNameType.ACCOUNT],
+                [TrustedNameSource.ENS],
+            ),
+        ),
+        Field(
+            1,
+            "Amount",
+            ParamTokenAmount(
+                1,
+                Value(1, TypeFamily.UINT, 32, DataPath(1, param_paths["_value"])),
+                Value(1, TypeFamily.ADDRESS, container_path=ContainerPath.TO),
+            ),
+        ),
+    ]
+    tx_info = TxInfo(
+        1,
+        DEFAULT_CHAIN_ID,
+        token_addr,
+        get_selector_from_data(data),
+        compute_inst_hash(fields),
+        "Transfer USDT",
+        creator_name="Tether",
+    )
+    app_client.provide_operation_info(tx_info.serialize())
+    for field in fields:
+        app_client.provide_operation_field_desc(field.serialize())
+
+    apdu = EditScope(
+        old_scope=DEFAULT_SCOPE,
+        new_scope="Edited scope",
+        identifier=recipient_addr,
+        contact_name=DEFAULT_CONTACT_NAME,
+        hmac_proof=hmac_name,
+        hmac_rest=hmac_rest,
+        group_handle=group_handle,
+        blockchain_family=FAMILY,
+        chain_id=DEFAULT_CHAIN_ID,
+    )
+    with app_client.provide_address_book(apdu):
+        scenario_navigator.address_review_approve(do_comparison=False, custom_screen_text="Confirm")
+    check_edit_scope_response(app_client)
+
+    with app_client.sign(mode=SignMode.START_FLOW):
+        scenario_navigator.review_approve()
+
+
+def _common_gcs_trusted_name_field(
     scenario_navigator: NavigateWithScenario,
+    contact_name: str = DEFAULT_CONTACT_NAME,
+    scope: str = DEFAULT_SCOPE,
 ) -> None:
-    """Test Provide Contact: contact name replaces raw address in a GCS ParamTrustedName field.
+    """Register a contact, then sign a GCS ERC-20 transfer to it with the recipient
+    typed as trusted_name, so that the "To" field shows the contact name.
 
     Flow:
       1. Register Identity (no screenshot comparison)
@@ -1376,6 +1541,8 @@ def test_address_book_gcs_trusted_name_field(
         scenario_navigator,
         app_client,
         address=recipient_addr,
+        contact_name=contact_name,
+        scope=scope,
         do_compare=False,
     )
 
@@ -1385,8 +1552,8 @@ def test_address_book_gcs_trusted_name_field(
         group_handle=group_handle,
         hmac_name=hmac_name,
         hmac_rest=hmac_rest,
-        contact_name=DEFAULT_CONTACT_NAME,
-        scope=DEFAULT_SCOPE,
+        contact_name=contact_name,
+        scope=scope,
         blockchain_family=FAMILY,
         chain_id=DEFAULT_CHAIN_ID,
     )
@@ -1445,12 +1612,33 @@ def test_address_book_gcs_trusted_name_field(
         "Transfer USDT",
         creator_name="Tether",
     )
-    app_client.provide_transaction_info(tx_info.serialize())
+    app_client.provide_operation_info(tx_info.serialize())
     for field in fields:
-        app_client.provide_transaction_field_desc(field.serialize())
+        app_client.provide_operation_field_desc(field.serialize())
 
     with app_client.sign(mode=SignMode.START_FLOW):
         scenario_navigator.review_approve()
+
+
+def test_address_book_gcs_trusted_name_field(scenario_navigator: NavigateWithScenario) -> None:
+    """Test Provide Contact: contact name replaces raw address in a GCS ParamTrustedName field."""
+    _common_gcs_trusted_name_field(scenario_navigator)
+
+
+def test_address_book_gcs_trusted_name_field_absurd_long_name(
+    scenario_navigator: NavigateWithScenario,
+) -> None:
+    """Test Provide Contact: a contact name too wide to fit in a GCS ParamTrustedName field.
+
+    The GCS review sets the contact name max number of lines on its own, apart from the
+    simple TX review: the name must be cut with "..." the same way (2 lines on touch
+    devices, 3 lines on Nano).
+    """
+    _common_gcs_trusted_name_field(
+        scenario_navigator,
+        contact_name=ABSURD_LONG_CONTACT_NAME,
+        scope=LONG_SCOPE,
+    )
 
 
 def test_address_book_gcs_combined_ab_and_tn(scenario_navigator: NavigateWithScenario) -> None:
@@ -1548,9 +1736,9 @@ def test_address_book_gcs_combined_ab_and_tn(scenario_navigator: NavigateWithSce
         "Transfer USDT",
         creator_name="Tether",
     )
-    app_client.provide_transaction_info(tx_info.serialize())
+    app_client.provide_operation_info(tx_info.serialize())
     for field in fields:
-        app_client.provide_transaction_field_desc(field.serialize())
+        app_client.provide_operation_field_desc(field.serialize())
 
     with app_client.sign(mode=SignMode.START_FLOW):
         scenario_navigator.review_approve()
@@ -1824,6 +2012,172 @@ def test_address_book_cache_invalidation_after_edit_contact_name(scenario_naviga
         "gasPrice": Web3.to_wei(GAS_PRICE, "gwei"),
         "gas": GAS_LIMIT,
         "to": DEFAULT_ADDRESS,
+        "value": Web3.to_wei(AMOUNT, "ether"),
+        "chainId": DEFAULT_CHAIN_ID,
+    }
+    with app_client.sign(DEFAULT_BIP32_PATH, tx_params):
+        scenario_navigator.review_approve()
+
+
+def _provide_default_contact_of_another_group(
+    scenario_navigator: NavigateWithScenario, app_client: EthAppClient
+) -> tuple[bytes, bytes, bytes]:
+    """Cache group A's DEFAULT_ADDRESS contact, then register group B on the same address.
+
+    Returns group B's (group_handle, hmac_name, hmac_rest). Group B is never provided.
+    """
+    group_handle_a, hmac_name_a, hmac_rest_a = _common_register_identity(
+        scenario_navigator,
+        app_client,
+        do_compare=False,
+    )
+    apdu: AddressBookCommand = ProvideContact(
+        identifier=DEFAULT_ADDRESS,
+        group_handle=group_handle_a,
+        hmac_name=hmac_name_a,
+        hmac_rest=hmac_rest_a,
+        contact_name=DEFAULT_CONTACT_NAME,
+        scope=DEFAULT_SCOPE,
+        blockchain_family=FAMILY,
+        chain_id=DEFAULT_CHAIN_ID,
+    )
+    response = app_client.provide_address_book(apdu, False)
+    assert_sw(response.status, StatusWord.SWO_SUCCESS)
+
+    return _common_register_identity(
+        scenario_navigator,
+        app_client,
+        do_compare=False,
+    )
+
+
+def _sign_tx_to_default_address(scenario_navigator: NavigateWithScenario, app_client: EthAppClient) -> None:
+    tx_params: dict = {
+        "nonce": NONCE,
+        "gasPrice": Web3.to_wei(GAS_PRICE, "gwei"),
+        "gas": GAS_LIMIT,
+        "to": DEFAULT_ADDRESS,
+        "value": Web3.to_wei(AMOUNT, "ether"),
+        "chainId": DEFAULT_CHAIN_ID,
+    }
+    with app_client.sign(DEFAULT_BIP32_PATH, tx_params):
+        scenario_navigator.review_approve()
+
+
+def test_address_book_edit_identifier_of_another_group(scenario_navigator: NavigateWithScenario) -> None:
+    """An Edit Identifier of group B must not move group A's cached contact.
+
+    Flow:
+      1. Cache group A's "Alice" on DEFAULT_ADDRESS, register group B on the same address
+      2. Edit Identifier of group B (DEFAULT_ADDRESS → new_address)
+      3. Sign TX to DEFAULT_ADDRESS → "To" still shows "Alice"
+    """
+    backend = scenario_navigator.backend
+    app_client = EthAppClient(backend)
+
+    new_address = bytes.fromhex("a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48")
+    group_handle_b, hmac_name_b, hmac_rest_b = _provide_default_contact_of_another_group(scenario_navigator, app_client)
+
+    apdu: AddressBookCommand = EditIdentifier(
+        old_identifier=DEFAULT_ADDRESS,
+        new_identifier=new_address,
+        contact_name=DEFAULT_CONTACT_NAME,
+        scope=DEFAULT_SCOPE,
+        hmac_proof=hmac_name_b,
+        hmac_rest=hmac_rest_b,
+        group_handle=group_handle_b,
+        blockchain_family=FAMILY,
+        chain_id=DEFAULT_CHAIN_ID,
+    )
+    with app_client.provide_address_book(apdu):
+        scenario_navigator.address_review_approve(do_comparison=False, custom_screen_text="Confirm")
+    check_edit_identifier_response(app_client)
+
+    _sign_tx_to_default_address(scenario_navigator, app_client)
+
+
+def test_address_book_edit_contact_name_of_another_group(scenario_navigator: NavigateWithScenario) -> None:
+    """An Edit Contact Name of group B must not rename group A's cached contact.
+
+    Flow:
+      1. Cache group A's "Alice" on DEFAULT_ADDRESS, register group B ("Alice") on the same address
+      2. Edit Contact Name of group B ("Alice" → "Mallory")
+      3. Sign TX to DEFAULT_ADDRESS → "To" still shows "Alice"
+    """
+    backend = scenario_navigator.backend
+    app_client = EthAppClient(backend)
+
+    group_handle_b, hmac_name_b, _ = _provide_default_contact_of_another_group(scenario_navigator, app_client)
+
+    apdu: AddressBookCommand = EditContactName(
+        old_contact_name=DEFAULT_CONTACT_NAME,
+        new_contact_name="Mallory",
+        hmac_proof=hmac_name_b,
+        group_handle=group_handle_b,
+    )
+    with app_client.provide_address_book(apdu):
+        scenario_navigator.address_review_approve(do_comparison=False, custom_screen_text="Confirm")
+    check_edit_contact_name_response(app_client)
+
+    _sign_tx_to_default_address(scenario_navigator, app_client)
+
+
+def test_address_book_edit_identifier_onto_cached_address(scenario_navigator: NavigateWithScenario) -> None:
+    """An Edit Identifier onto an address that already has a cached contact must not relabel it.
+
+    Flow:
+      1. Cache "Alice" on DEFAULT_ADDRESS and "Bob" on bob_address (two groups)
+      2. Edit Identifier of Alice (DEFAULT_ADDRESS → bob_address)
+      3. Sign TX to bob_address → "To" still shows "Bob"
+    """
+    backend = scenario_navigator.backend
+    app_client = EthAppClient(backend)
+
+    bob_address = bytes.fromhex("a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48")
+    handles = {}
+    for name, address in (("Alice", DEFAULT_ADDRESS), ("Bob", bob_address)):
+        group_handle, hmac_name, hmac_rest = _common_register_identity(
+            scenario_navigator,
+            app_client,
+            contact_name=name,
+            address=address,
+            do_compare=False,
+        )
+        handles[name] = (group_handle, hmac_name, hmac_rest)
+        apdu: AddressBookCommand = ProvideContact(
+            identifier=address,
+            group_handle=group_handle,
+            hmac_name=hmac_name,
+            hmac_rest=hmac_rest,
+            contact_name=name,
+            scope=DEFAULT_SCOPE,
+            blockchain_family=FAMILY,
+            chain_id=DEFAULT_CHAIN_ID,
+        )
+        response = app_client.provide_address_book(apdu, False)
+        assert_sw(response.status, StatusWord.SWO_SUCCESS)
+
+    group_handle, hmac_name, hmac_rest = handles["Alice"]
+    apdu = EditIdentifier(
+        old_identifier=DEFAULT_ADDRESS,
+        new_identifier=bob_address,
+        contact_name="Alice",
+        scope=DEFAULT_SCOPE,
+        hmac_proof=hmac_name,
+        hmac_rest=hmac_rest,
+        group_handle=group_handle,
+        blockchain_family=FAMILY,
+        chain_id=DEFAULT_CHAIN_ID,
+    )
+    with app_client.provide_address_book(apdu):
+        scenario_navigator.address_review_approve(do_comparison=False, custom_screen_text="Confirm")
+    check_edit_identifier_response(app_client)
+
+    tx_params: dict = {
+        "nonce": NONCE,
+        "gasPrice": Web3.to_wei(GAS_PRICE, "gwei"),
+        "gas": GAS_LIMIT,
+        "to": bob_address,
         "value": Web3.to_wei(AMOUNT, "ether"),
         "chainId": DEFAULT_CHAIN_ID,
     }

@@ -287,7 +287,7 @@ void test_divmod256_basic(void) {
     clear256(&r_val);
     LOWER(LOWER(l)) = 100;
     LOWER(LOWER(r_val)) = 7;
-    divmod256(&l, &r_val, &q, &rem);
+    TEST_ASSERT_TRUE(divmod256(&l, &r_val, &q, &rem));
     TEST_ASSERT_EQUAL(LOWER(LOWER(q)), 14);
     TEST_ASSERT_TRUE(zero128(&UPPER(q)));
     TEST_ASSERT_EQUAL(LOWER(LOWER(rem)), 2);
@@ -299,14 +299,25 @@ void test_divmod256_basic(void) {
     uint256_t small;
     clear256(&small);
     LOWER(LOWER(small)) = 5;
-    divmod256(&small, &big, &q, &rem);
+    TEST_ASSERT_TRUE(divmod256(&small, &big, &q, &rem));
     TEST_ASSERT_TRUE(zero256(&q));
     TEST_ASSERT_TRUE(equal256(&rem, &small));
 
     // l == r → q = 1, rem = 0
-    divmod256(&l, &l, &q, &rem);
+    TEST_ASSERT_TRUE(divmod256(&l, &l, &q, &rem));
     TEST_ASSERT_EQUAL(LOWER(LOWER(q)), 1);
     TEST_ASSERT_TRUE(zero256(&rem));
+}
+
+void test_divmod256_zero_divisor_rejected(void) {
+    uint256_t l;
+    uint256_t zero;
+    uint256_t q;
+    uint256_t rem;
+    clear256(&l);
+    clear256(&zero);
+    LOWER(LOWER(l)) = 100;
+    TEST_ASSERT_FALSE(divmod256(&l, &zero, &q, &rem));
 }
 
 // =============================================================================
@@ -529,6 +540,7 @@ int main(void) {
     RUN_TEST(test_sub256_borrows_across_128_boundary);
     RUN_TEST(test_or256);
     RUN_TEST(test_divmod256_basic);
+    RUN_TEST(test_divmod256_zero_divisor_rejected);
     RUN_TEST(test_tostring256_base10);
     RUN_TEST(test_tostring256_zero);
     RUN_TEST(test_tostring256_base16_max);

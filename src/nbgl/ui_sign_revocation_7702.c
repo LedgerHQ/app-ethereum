@@ -1,3 +1,5 @@
+#ifdef HAVE_7702_SUPPORT
+
 #include "shared_context.h"
 #include "ui_nbgl.h"
 #include "ui_icons.h"
@@ -49,3 +51,5 @@ bool ui_sign_7702_revocation(void) {
                        review7702Choice);
     return true;
 }
+
+#endif  // HAVE_7702_SUPPORT

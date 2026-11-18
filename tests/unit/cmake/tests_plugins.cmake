@@ -142,7 +142,7 @@ ledger_unit_tests_add_test(NAME test_swap_with_calldata_plugin
     ${COMMON_INCLUDE_DIRS}
     ${APP_DIR}/plugins
     ${APP_DIR}/plugins/swap_with_calldata
-    ${BOLOS_SDK}
+    ${SDK_DIR}
   COMPILE_DEFS
     ${COMMON_COMPILE_DEFS}
   LINK_OPTIONS
@@ -170,6 +170,7 @@ ledger_unit_tests_add_test(NAME test_eth_plugin_handler
     ${APP_DIR}/features/set_plugin
   COMPILE_DEFS
     ${COMMON_COMPILE_DEFS}
+    HAVE_ETH2
   LINK_OPTIONS
     ${COMMON_LINK_OPTIONS}
 )

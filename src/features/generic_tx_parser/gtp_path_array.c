@@ -1,10 +1,10 @@
 #include <stdint.h>
 #include <string.h>
 #include "gtp_path_array.h"
-#include "read.h"
 #include "os_print.h"
 #include "utils.h"
 #include "tlv_library.h"
+#include "tlv_utils.h"
 
 // Define TLV tags for Path Array
 #define ARRAY_TAGS(X)                                      \
@@ -13,31 +13,28 @@
     X(0x03, TAG_END, handle_end, ENFORCE_UNIQUE_TAG)
 
 static bool handle_weight(const tlv_data_t *data, s_path_array_context *context) {
-    if (data->value.size < sizeof(context->args->weight)) {
-        return false;
-    }
+    uint8_t weight;
+
     // a zero weight would resolve every element to the first one
-    if (data->value.ptr[0] == 0) {
+    if (!get_uint8_t_from_tlv_data(data, &weight) || (weight == 0)) {
         return false;
     }
-    context->args->weight = data->value.ptr[0];
+    context->args->weight = weight;
     return true;
 }
 
 static bool handle_start(const tlv_data_t *data, s_path_array_context *context) {
-    if (data->value.size < sizeof(context->args->start)) {
+    if (!tlv_get_int16(data, &context->args->start)) {
         return false;
     }
-    context->args->start = read_u16_be(data->value.ptr, 0);
     context->args->has_start = true;
     return true;
 }
 
 static bool handle_end(const tlv_data_t *data, s_path_array_context *context) {
-    if (data->value.size < sizeof(context->args->end)) {
+    if (!tlv_get_int16(data, &context->args->end)) {
         return false;
     }
-    context->args->end = read_u16_be(data->value.ptr, 0);
     context->args->has_end = true;
     return true;
 }
@@ -47,5 +44,13 @@ DEFINE_TLV_PARSER(ARRAY_TAGS, NULL, array_tlv_parser)
 
 bool handle_array_struct(const buffer_t *buf, s_path_array_context *context) {
     TLV_reception_t received_tags;
-    return array_tlv_parser(buf, context, &received_tags);
+
+    if (!array_tlv_parser(buf, context, &received_tags)) {
+        return false;
+    }
+    if (!TLV_CHECK_RECEIVED_TAGS(received_tags, TAG_WEIGHT)) {
+        PRINTF("PATH_ARRAY: missing weight\n");
+        return false;
+    }
+    return true;
 }

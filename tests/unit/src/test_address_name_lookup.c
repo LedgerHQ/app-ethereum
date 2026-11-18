@@ -25,6 +25,7 @@ const chain_config_t *g_chain_config = &chainConfig_storage;
 // Test helpers
 // =============================================================================
 
+// The shared Keccak stub returns a zero digest, so its checksummed form is all lowercase.
 // clang-format off
 static const uint8_t TEST_ADDR[ADDRESS_LENGTH] = {
     0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0x00,
@@ -150,7 +151,7 @@ void test_ab_empty_name_falls_back_to_raw(void) {
                                               &extra_data));
 
     TEST_ASSERT_EQUAL(ADDR_NAME_FROM_RAW, name_source);
-    TEST_ASSERT_EQUAL_STRING("0x11223344556677889900aabbccddeEfF11223344", buf);
+    TEST_ASSERT_EQUAL_STRING("0x11223344556677889900aabbccddeeff11223344", buf);
     TEST_ASSERT_NULL(extra_data);
 }
 
@@ -178,7 +179,7 @@ void test_ab_blank_name_falls_back_to_raw(void) {
                                               NULL));
 
     TEST_ASSERT_EQUAL(ADDR_NAME_FROM_RAW, name_source);
-    TEST_ASSERT_EQUAL_STRING("0x11223344556677889900aabbccddeEfF11223344", buf);
+    TEST_ASSERT_EQUAL_STRING("0x11223344556677889900aabbccddeeff11223344", buf);
 }
 
 /**
@@ -231,7 +232,7 @@ void test_tn_empty_name_falls_back_to_raw(void) {
                                               NULL));
 
     TEST_ASSERT_EQUAL(ADDR_NAME_FROM_RAW, name_source);
-    TEST_ASSERT_EQUAL_STRING("0x11223344556677889900aabbccddeEfF11223344", buf);
+    TEST_ASSERT_EQUAL_STRING("0x11223344556677889900aabbccddeeff11223344", buf);
 }
 
 /**
@@ -257,7 +258,7 @@ void test_ab_unprintable_name_falls_back_to_raw(void) {
                                               NULL));
 
     TEST_ASSERT_EQUAL(ADDR_NAME_FROM_RAW, name_source);
-    TEST_ASSERT_EQUAL_STRING("0x11223344556677889900aabbccddeEfF11223344", buf);
+    TEST_ASSERT_EQUAL_STRING("0x11223344556677889900aabbccddeeff11223344", buf);
 }
 
 /**
@@ -282,7 +283,7 @@ void test_raw_fallback(void) {
                                               NULL));
 
     TEST_ASSERT_EQUAL(name_source, ADDR_NAME_FROM_RAW);
-    TEST_ASSERT_EQUAL_STRING(buf, "0x11223344556677889900aabbccddeEfF11223344");
+    TEST_ASSERT_EQUAL_STRING(buf, "0x11223344556677889900aabbccddeeff11223344");
 }
 
 /**
@@ -340,7 +341,7 @@ void test_wrong_chain_id(void) {
                                               NULL));
 
     TEST_ASSERT_EQUAL(name_source, ADDR_NAME_FROM_RAW);
-    TEST_ASSERT_EQUAL_STRING(buf, "0x11223344556677889900aabbccddeEfF11223344");
+    TEST_ASSERT_EQUAL_STRING(buf, "0x11223344556677889900aabbccddeeff11223344");
 }
 
 /**
@@ -369,7 +370,7 @@ void test_non_ethereum_chain(void) {
                                               NULL));
 
     TEST_ASSERT_EQUAL(name_source, ADDR_NAME_FROM_RAW);
-    TEST_ASSERT_EQUAL_STRING(buf, "0x11223344556677889900aabbccddeEfF11223344");
+    TEST_ASSERT_EQUAL_STRING(buf, "0x11223344556677889900aabbccddeeff11223344");
 }
 
 // =============================================================================

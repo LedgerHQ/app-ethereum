@@ -3,15 +3,17 @@
 #include "common_ui.h"
 #include "utils.h"
 #include "ui_utils.h"
-#include "eip712_v1_ui_logic.h"
+#include "common_712.h"
 #include "ui_nbgl.h"
 #include "cmd_get_tx_simulation.h"
 #include "app_mem_utils.h"
+#include "get_public_key.h"
 
 static const uint8_t EIP_712_MAGIC[] = {0x19, 0x01};
 
 static char *s_domain_hash_str = NULL;
 static char *s_message_hash_str = NULL;
+static char *s_from_str = NULL;
 
 void ui_712_approve_cb(void) {
     if (appState != APP_STATE_SIGNING_EIP712) {
@@ -72,48 +74,91 @@ void ui_712_reject_cb(void) {
 void eip712_hash_strs_cleanup(void) {
     APP_MEM_FREE_AND_NULL((void **) &s_domain_hash_str);
     APP_MEM_FREE_AND_NULL((void **) &s_message_hash_str);
+    APP_MEM_FREE_AND_NULL((void **) &s_from_str);
 }
 
-void eip712_format_hash(uint8_t index) {
-    if ((g_pairs == NULL) || (g_pairsList == NULL) || (index + 1 >= g_pairsList->nbPairs)) {
-        return;
+bool eip712_format_from(const bip32_path_t *bip32) {
+    if ((s_from_str == NULL) && !APP_MEM_CALLOC((void **) &s_from_str, ADDRESS_LENGTH_HEX_STR)) {
+        return false;
     }
-    const size_t hash_str_size = 2 * CX_KECCAK_256_SIZE + 3;
-    if ((s_domain_hash_str == NULL) &&
-        !APP_MEM_CALLOC((void **) &s_domain_hash_str, hash_str_size)) {
-        return;
+    if (!get_displayable_address(bip32,
+                                 s_from_str,
+                                 ADDRESS_LENGTH_HEX_STR,
+                                 g_chain_config->chain_id)) {
+        s_from_str[0] = '\0';
+        return false;
     }
-    if ((s_message_hash_str == NULL) &&
-        !APP_MEM_CALLOC((void **) &s_message_hash_str, hash_str_size)) {
-        return;
+    return true;
+}
+
+bool eip712_set_from_pair(nbgl_contentTagValue_t *pair) {
+    if ((s_from_str == NULL) || (s_from_str[0] == '\0')) {
+        return false;
     }
+    pair->item = "From";
+    pair->value = s_from_str;
+    return true;
+}
+
+void eip712_format_hash_strs(char *domain_str, char *message_str) {
     messageSigningContext712_t *ctx = &tmpCtx.messageSigningContext712;
-    array_bytes_string(s_domain_hash_str, hash_str_size, ctx->domainHash, CX_KECCAK_256_SIZE);
-    array_bytes_string(s_message_hash_str, hash_str_size, ctx->messageHash, CX_KECCAK_256_SIZE);
-    g_pairs[index].item = "Domain hash";
-    g_pairs[index].value = s_domain_hash_str;
-    index++;
-    g_pairs[index].item = "Message hash";
-    g_pairs[index].value = s_message_hash_str;
+
+    array_bytes_string(domain_str, EIP712_HASH_STR_SIZE, ctx->domainHash, CX_KECCAK_256_SIZE);
+    array_bytes_string(message_str, EIP712_HASH_STR_SIZE, ctx->messageHash, CX_KECCAK_256_SIZE);
+}
+
+void eip712_set_hash_pairs(nbgl_contentTagValue_t *pairs, char *domain_str, char *message_str) {
+    eip712_format_hash_strs(domain_str, message_str);
+    pairs[0].item = EIP712_DOMAIN_HASH_LABEL;
+    pairs[0].value = domain_str;
+    pairs[1].item = EIP712_MESSAGE_HASH_LABEL;
+    pairs[1].value = message_str;
+}
+
+bool eip712_format_hash(uint8_t index) {
+    if ((g_pairs == NULL) || (g_pairsList == NULL) ||
+        (index + EIP712_HASH_ROWS > g_pairsList->nbPairs)) {
+        return false;
+    }
+    if (((s_domain_hash_str == NULL) &&
+         !APP_MEM_CALLOC((void **) &s_domain_hash_str, EIP712_HASH_STR_SIZE)) ||
+        ((s_message_hash_str == NULL) &&
+         !APP_MEM_CALLOC((void **) &s_message_hash_str, EIP712_HASH_STR_SIZE))) {
+        eip712_hash_strs_cleanup();
+        return false;
+    }
+    eip712_set_hash_pairs(&g_pairs[index], s_domain_hash_str, s_message_hash_str);
+    return true;
 }
 
 /**
- * Initialize EIP712 flow
+ * Prepare the review of a typed message: enter the signing state, with no warning
  *
- * @param filtering the filtering mode to use for the EIP712 flow
- * @return boolean indicating success or failure
+ * Every flow gets here from its own start (idle) or from its preparation. The review is refused in
+ * any other state, which is another flow's: its data is not reset from here.
+ *
+ * @return whether the review can go on
  */
-bool ui_712_start(e_eip712_filtering_mode filtering) {
+bool ui_712_prepare_review(void) {
     if (appState != APP_STATE_IDLE && appState != APP_STATE_PREPARING_EIP712) {
-        reset_app_context();
+        return false;
     }
     appState = APP_STATE_SIGNING_EIP712;
     memset(&strings, 0, sizeof(strings));
     memset(&warning, 0, sizeof(nbgl_warning_t));
-    if (filtering == EIP712_FILTERING_BASIC) {
-        // If the user has requested a filtered view, we will not show the warning
-        warning.predefinedSet |= SET_BIT(BLIND_SIGNING_WARN);
-        warning.predefinedSet |= SET_BIT(GATED_SIGNING_WARN);
+    return true;
+}
+
+/**
+ * Prepare the review of a typed message shown raw, which is blind signing
+ *
+ * @return whether the review can go on
+ */
+bool ui_712_prepare_blind_review(void) {
+    if (!ui_712_prepare_review()) {
+        return false;
     }
+    warning.predefinedSet |= SET_BIT(BLIND_SIGNING_WARN);
+    warning.predefinedSet |= SET_BIT(GATED_SIGNING_WARN);
     return true;
 }

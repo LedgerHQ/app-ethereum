@@ -11,8 +11,8 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#include "gtp_field.h"
-#include "gtp_param_group.h"
+#include "gcs_field.h"
+#include "gcs_param_group.h"
 
 static bool g_format_field_ret = true;
 static bool g_handle_field_struct_ret = true;
@@ -26,7 +26,7 @@ bool format_field(s_field *field, uint8_t depth) {
     return (bool) g_format_field_ret;
 }
 
-// Stubs for gtp_field.c symbols. The TLV-driven tests below use
+// Stubs for gcs_field.c symbols. The TLV-driven tests below use
 // will_return() to flip each stub's outcome; the format-only tests
 // at the top of the file never reach them.
 static bool g_use_mock_handle_field = false;
@@ -158,9 +158,9 @@ void test_group_depth_cap_rejects(void) {
     MAKE_NODE(node, &sub, NULL);
     s_field outer = make_group_field(GROUP_ITER_SEQUENTIAL, &node);
 
-    // 8 = MAX_PARAM_GROUP_DEPTH. No expect/will_return: format_field is
+    // 4 = MAX_PARAM_GROUP_DEPTH. No expect/will_return: format_field is
     // unreachable when the cap fires.
-    TEST_ASSERT_FALSE(format_param_group(&outer, 8));
+    TEST_ASSERT_FALSE(format_param_group(&outer, 4));
 }
 
 // =============================================================================
@@ -169,14 +169,31 @@ void test_group_depth_cap_rejects(void) {
 // are wrapped so the FIELD sub-parser is observable.
 // =============================================================================
 
+void test_handle_pg_struct_version_other_than_one_refused(void) {
+    uint8_t buf_bytes[] = {0x00, 0x01, 0x01, 0x01, 0x01, GROUP_ITER_SEQUENTIAL};
+    const uint8_t other_versions[] = {0x00, 0x02, 0xFF};
+    s_param_group param;
+
+    for (size_t i = 0; i < sizeof(other_versions); i++) {
+        buffer_t buf = {.ptr = buf_bytes, .size = sizeof(buf_bytes), .offset = 0};
+        s_param_group_context ctx = {.param = &param};
+
+        buf_bytes[2] = other_versions[i];
+        memset(&param, 0, sizeof(param));
+        TEST_ASSERT_FALSE(handle_param_group_struct(&buf, &ctx));
+    }
+}
+
 void test_handle_pg_struct_version_and_iteration_ok(void) {
     uint8_t buf_bytes[] = {
         0x00,
         0x01,
-        0x02,  // VERSION = 2
+        0x01,  // VERSION = 1
         0x01,
         0x01,
         GROUP_ITER_SEQUENTIAL,  // ITERATION_TYPE
+        0x02,
+        0x00,  // FIELD, parsed by the stubs
     };
     buffer_t buf = {.ptr = buf_bytes, .size = sizeof(buf_bytes), .offset = 0};
 
@@ -184,8 +201,34 @@ void test_handle_pg_struct_version_and_iteration_ok(void) {
     memset(&param, 0, sizeof(param));
     s_param_group_context ctx = {.param = &param};
     TEST_ASSERT_TRUE(handle_param_group_struct(&buf, &ctx));
-    TEST_ASSERT_EQUAL(param.version, 2);
+    TEST_ASSERT_EQUAL(param.version, 1);
     TEST_ASSERT_EQUAL(param.iteration_type, GROUP_ITER_SEQUENTIAL);
+    cleanup_param_group(&param);
+}
+
+// A group with no field, or with no version, shows nothing and is refused
+static bool parse_group(const uint8_t *bytes, size_t size) {
+    buffer_t buf = {.ptr = (uint8_t *) bytes, .size = size, .offset = 0};
+    s_param_group param;
+    bool ret;
+
+    memset(&param, 0, sizeof(param));
+    s_param_group_context ctx = {.param = &param};
+    ret = handle_param_group_struct(&buf, &ctx);
+    cleanup_param_group(&param);
+    return ret;
+}
+
+void test_handle_pg_struct_without_field_rejected(void) {
+    const uint8_t bytes[] = {0x00, 0x01, 0x01, 0x01, 0x01, GROUP_ITER_SEQUENTIAL};
+
+    TEST_ASSERT_FALSE(parse_group(bytes, sizeof(bytes)));
+}
+
+void test_handle_pg_struct_without_version_rejected(void) {
+    const uint8_t bytes[] = {0x01, 0x01, GROUP_ITER_SEQUENTIAL, 0x02, 0x00};
+
+    TEST_ASSERT_FALSE(parse_group(bytes, sizeof(bytes)));
 }
 
 void test_handle_pg_struct_iteration_out_of_range_rejected(void) {
@@ -295,7 +338,10 @@ int main(void) {
     RUN_TEST(test_group_bundled_rejected);
     RUN_TEST(test_group_subfield_failure_propagates);
     RUN_TEST(test_group_depth_cap_rejects);
+    RUN_TEST(test_handle_pg_struct_version_other_than_one_refused);
     RUN_TEST(test_handle_pg_struct_version_and_iteration_ok);
+    RUN_TEST(test_handle_pg_struct_without_field_rejected);
+    RUN_TEST(test_handle_pg_struct_without_version_rejected);
     RUN_TEST(test_handle_pg_struct_iteration_out_of_range_rejected);
     RUN_TEST(test_handle_pg_struct_field_appends_to_list);
     RUN_TEST(test_handle_pg_struct_field_subparse_failure_rejected);

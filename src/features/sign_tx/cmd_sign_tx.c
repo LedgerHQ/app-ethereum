@@ -7,7 +7,7 @@
 #include "common_ui.h"
 #include "app_mem_utils.h"
 #include "mem_utils.h"
-#include "tx_ctx.h"
+#include "operation_ctx.h"
 #include "eth_swap_utils.h"
 
 typedef enum {
@@ -59,7 +59,9 @@ static uint16_t handle_first_sign_chunk(const uint8_t *payload,
         switch (tx_type) {
             case EIP1559:
             case EIP2930:
+#ifdef HAVE_7702_SUPPORT
             case EIP7702:
+#endif
                 break;
             default:
                 PRINTF("Transaction type %d not supported\n", tx_type);
@@ -100,7 +102,7 @@ uint16_t handle_parsing_status(parserStatus_e status) {
                 send_swap_error_simple(APDU_RESPONSE_MODE_CHECK_FAILED,
                                        SWAP_EC_ERROR_GENERIC,
                                        APP_CODE_CALLDATA_ISSUE);
-                // unreachable — app_exit is __attribute__((noreturn))
+                // unreachable
                 app_exit();
             }
             sw = SWO_INCORRECT_DATA;
@@ -115,6 +117,16 @@ uint16_t handle_parsing_status(parserStatus_e status) {
 uint16_t handle_sign(uint8_t p1, uint8_t p2, const uint8_t *payload, uint8_t length) {
     uint16_t sw = SWO_NO_RESPONSE;
     uint8_t offset = 0;
+
+    if (G_called_from_swap && (p2 != SIGN_MODE_BASIC)) {
+        // A swap transaction is only ever signed in basic mode
+        G_swap_response_ready = true;
+        send_swap_error_simple(APDU_RESPONSE_MODE_CHECK_FAILED,
+                               SWAP_EC_ERROR_WRONG_METHOD,
+                               APP_CODE_DEFAULT);
+        // unreachable
+        app_exit();
+    }
 
     switch (p2) {
         case SIGN_MODE_BASIC:
@@ -145,6 +157,10 @@ uint16_t handle_sign(uint8_t p1, uint8_t p2, const uint8_t *payload, uint8_t len
                 PRINTF("Signature not initialized\n");
                 return SWO_COMMAND_NOT_ALLOWED;
             }
+            if ((e_sign_mode) tmpCtx.transactionContext.sign_mode != SIGN_MODE_STORE) {
+                PRINTF("No stored transaction to review\n");
+                return SWO_COMMAND_NOT_ALLOWED;
+            }
             if (length != 0) {
                 return SWO_INCORRECT_DATA;
             }
@@ -154,14 +170,16 @@ uint16_t handle_sign(uint8_t p1, uint8_t p2, const uint8_t *payload, uint8_t len
             }
 
             // This should do nothing unless we only had TX context of empty transactions
-            if (!process_empty_txs_after()) {
+            if (!process_empty_calls_after()) {
                 return SWO_INCORRECT_DATA;
             }
 
-            if (get_tx_ctx_count() != 1) {
+            if (get_operation_ctx_count() != 1) {
                 PRINTF("Error: remnant unprocessed TX context!\n");
                 return SWO_COMMAND_NOT_ALLOWED;
             }
+            // The review can only be started once per stored transaction.
+            tmpCtx.transactionContext.sign_mode = SIGN_MODE_START_FLOW;
             if (!ui_gcs()) {
                 ui_gcs_cleanup();
                 return SWO_NOT_SUPPORTED_ERROR_NO_INFO;

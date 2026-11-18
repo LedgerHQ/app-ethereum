@@ -144,6 +144,9 @@ static void delete_calldata_chunk(s_calldata_chunk *node) {
 }
 
 void calldata_delete(s_calldata *node) {
+    if (node == NULL) {
+        return;
+    }
     flist_clear((flist_node_t **) &node->chunks, (f_list_node_del) &delete_calldata_chunk);
     APP_MEM_FREE(node);
 }

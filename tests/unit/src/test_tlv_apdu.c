@@ -29,6 +29,7 @@
 #include <stdbool.h>
 
 #include "tlv_apdu.h"
+#include "app_mem_utils.h"
 
 // =============================================================================
 // Handler fixture
@@ -150,6 +151,90 @@ void test_handler_failure_propagates_as_error(void) {
 }
 
 // =============================================================================
+// tlv_apdu_reset
+// =============================================================================
+
+void test_reset_drops_incomplete_payload(void) {
+    uint8_t first[] = {0x00, 0x0A, 0x11};  // size=10, 1 byte of data
+    TEST_ASSERT_EQUAL(tlv_from_apdu(true, sizeof(first), first, &fake_handler), TLV_APDU_PENDING);
+
+    tlv_apdu_reset();
+
+    // The abandoned payload can no longer be continued...
+    uint8_t followup[] = {0x22, 0x33};
+    TEST_ASSERT_EQUAL(tlv_from_apdu(false, sizeof(followup), followup, &fake_handler),
+                      TLV_APDU_ERROR);
+    // ...and a new one is accepted at the first attempt
+    tlv_apdu_reset();
+    uint8_t bytes[] = {0x00, 0x03, 0xAA, 0xBB, 0xCC};
+    TEST_ASSERT_EQUAL(tlv_from_apdu(true, sizeof(bytes), bytes, &fake_handler), TLV_APDU_SUCCESS);
+    TEST_ASSERT_EQUAL(1, g_handler_calls);
+}
+
+// Resets the TLV state from within the handler, then reuses the heap as a
+// failing UI path would, before reading the payload
+static bool resetting_handler(const buffer_t *buf) {
+    uint8_t *scratch = NULL;
+
+    tlv_apdu_reset();
+    if ((scratch = APP_MEM_ALLOC(buf->size)) != NULL) {
+        memset(scratch, 0xFF, buf->size);
+    }
+    fake_handler(buf);
+    APP_MEM_FREE(scratch);
+    return true;
+}
+
+void test_reset_from_handler_keeps_payload_alive(void) {
+    uint8_t first[] = {0x00, 0x05, 0xAA, 0xBB};
+    TEST_ASSERT_EQUAL(tlv_from_apdu(true, sizeof(first), first, &resetting_handler),
+                      TLV_APDU_PENDING);
+    uint8_t second[] = {0xCC, 0xDD, 0xEE};
+    TEST_ASSERT_EQUAL(tlv_from_apdu(false, sizeof(second), second, &resetting_handler),
+                      TLV_APDU_SUCCESS);
+
+    static const uint8_t expected[] = {0xAA, 0xBB, 0xCC, 0xDD, 0xEE};
+    TEST_ASSERT_EQUAL(5, g_handler_seen_size);
+    TEST_ASSERT_EQUAL_MEMORY(expected, g_handler_seen_bytes, sizeof(expected));
+}
+
+// =============================================================================
+// tlv_apdu_new_command
+// =============================================================================
+
+#define INS_STREAM 0x22
+#define INS_OTHER  0x20
+
+void test_new_command_with_same_ins_keeps_payload(void) {
+    tlv_apdu_new_command(INS_STREAM);
+    uint8_t first[] = {0x00, 0x05, 0xAA, 0xBB};
+    TEST_ASSERT_EQUAL(tlv_from_apdu(true, sizeof(first), first, &fake_handler), TLV_APDU_PENDING);
+
+    tlv_apdu_new_command(INS_STREAM);
+    uint8_t second[] = {0xCC, 0xDD, 0xEE};
+    TEST_ASSERT_EQUAL(tlv_from_apdu(false, sizeof(second), second, &fake_handler),
+                      TLV_APDU_SUCCESS);
+    TEST_ASSERT_EQUAL(1, g_handler_calls);
+}
+
+void test_new_command_with_other_ins_drops_payload(void) {
+    tlv_apdu_new_command(INS_STREAM);
+    uint8_t first[] = {0x00, 0x05, 0xAA, 0xBB};
+    TEST_ASSERT_EQUAL(tlv_from_apdu(true, sizeof(first), first, &fake_handler), TLV_APDU_PENDING);
+
+    // Another command in between frees the incomplete payload...
+    tlv_apdu_new_command(INS_OTHER);
+    tlv_apdu_new_command(INS_STREAM);
+    uint8_t second[] = {0xCC, 0xDD, 0xEE};
+    TEST_ASSERT_EQUAL(tlv_from_apdu(false, sizeof(second), second, &fake_handler), TLV_APDU_ERROR);
+    TEST_ASSERT_EQUAL(0, g_handler_calls);
+    // ...and a new payload is accepted at the first attempt
+    uint8_t bytes[] = {0x00, 0x03, 0xAA, 0xBB, 0xCC};
+    TEST_ASSERT_EQUAL(tlv_from_apdu(true, sizeof(bytes), bytes, &fake_handler), TLV_APDU_SUCCESS);
+    TEST_ASSERT_EQUAL(1, g_handler_calls);
+}
+
+// =============================================================================
 // Runner
 // =============================================================================
 
@@ -171,5 +256,9 @@ int main(void) {
     RUN_TEST(test_single_chunk_invokes_handler_with_apdu_buffer);
     RUN_TEST(test_multi_chunk_reassembles_and_invokes_handler);
     RUN_TEST(test_handler_failure_propagates_as_error);
+    RUN_TEST(test_reset_drops_incomplete_payload);
+    RUN_TEST(test_reset_from_handler_keeps_payload_alive);
+    RUN_TEST(test_new_command_with_same_ins_keeps_payload);
+    RUN_TEST(test_new_command_with_other_ins_drops_payload);
     return UNITY_END();
 }

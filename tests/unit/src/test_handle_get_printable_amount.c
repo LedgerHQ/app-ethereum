@@ -46,12 +46,10 @@ bool parse_swap_config(const uint8_t *config, uint8_t config_size, swap_context_
 
 void get_asset_info_on_network(bool is_fee,
                                swap_context_t *context,
-                               chain_config_t *chain_config,
                                char **ticker,
                                uint8_t *decimals) {
     (void) is_fee;
     (void) context;
-    (void) chain_config;
     if (ticker != NULL) {
         // Static literal: the unit under test only passes the pointer
         // through to amountToString (also wrapped) so storage lifetime
@@ -87,7 +85,6 @@ static bool amountToString_stub(const uint8_t *amount,
 // Fixture
 // =============================================================================
 
-static chain_config_t s_chain = {.ticker = "ETH", .chain_id = 1, .coin_type = 60};
 static uint8_t s_amount[32];
 static uint8_t s_coin_cfg[16];
 
@@ -115,7 +112,7 @@ void test_amount_length_over_32_zeros_buffer(void) {
     memset(p.printable_amount, 0xCC, sizeof(p.printable_amount));  // pre-poison
     p.amount_length = 33;
     // parse_swap_config / amountToString MUST NOT be reached.
-    handle_get_printable_amount(&p, &s_chain);
+    handle_get_printable_amount(&p);
     static const char zero[MAX_PRINTABLE_AMOUNT_SIZE] = {0};
     TEST_ASSERT_EQUAL_MEMORY(p.printable_amount, zero, sizeof(p.printable_amount));
 }
@@ -124,7 +121,7 @@ void test_parse_swap_config_failure_zeros_buffer(void) {
     get_printable_amount_parameters_t p = make_params();
     memset(p.printable_amount, 0xCC, sizeof(p.printable_amount));
     g_parse_swap_config_ret = false;
-    handle_get_printable_amount(&p, &s_chain);
+    handle_get_printable_amount(&p);
     static const char zero[MAX_PRINTABLE_AMOUNT_SIZE] = {0};
     TEST_ASSERT_EQUAL_MEMORY(p.printable_amount, zero, sizeof(p.printable_amount));
 }
@@ -134,7 +131,7 @@ void test_amount_to_string_failure_zeros_buffer(void) {
     memset(p.printable_amount, 0xCC, sizeof(p.printable_amount));
     g_parse_swap_config_ret = true;
     g_amountToString_ret = false;
-    handle_get_printable_amount(&p, &s_chain);
+    handle_get_printable_amount(&p);
     // The dispatcher re-zeros the buffer on amountToString failure --
     // a partial write would expose stale bytes.
     static const char zero[MAX_PRINTABLE_AMOUNT_SIZE] = {0};
@@ -149,7 +146,7 @@ void test_success_writes_formatted_amount(void) {
     get_printable_amount_parameters_t p = make_params();
     g_parse_swap_config_ret = true;
     g_amountToString_ret = true;
-    handle_get_printable_amount(&p, &s_chain);
+    handle_get_printable_amount(&p);
     TEST_ASSERT_EQUAL_STRING(p.printable_amount, "1 ETH");
 }
 

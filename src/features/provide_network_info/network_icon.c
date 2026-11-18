@@ -33,6 +33,7 @@ static bool check_icon_header(const uint8_t *data, uint16_t length, uint16_t *bu
     uint16_t width = 0;
     uint16_t height = 0;
     uint16_t expected_px = 0;
+    uint8_t bpp = 0;
     uint32_t payload_size = 0;
     uint32_t total_size = 0;
 
@@ -60,8 +61,37 @@ static bool check_icon_header(const uint8_t *data, uint16_t length, uint16_t *bu
         PRINTF("NETWORK_ICON size mismatch (%dx%d)!\n", width, height);
         return false;
     }
+    switch (data[4] >> 4) {
+        case NBGL_BPP_1:
+            bpp = 1;
+            break;
+        case NBGL_BPP_2:
+            bpp = 2;
+            break;
+        case NBGL_BPP_4:
+            bpp = 4;
+            break;
+        default:
+            PRINTF("NETWORK_ICON unknown BPP format (0x%02x)!\n", data[4]);
+            return false;
+    }
+    switch (data[4] & 0x0F) {
+        case NBGL_NO_COMPRESSION:
+        case NBGL_GZLIB_COMPRESSION:
+        case NBGL_RLE_COMPRESSION:
+            break;
+        default:
+            PRINTF("NETWORK_ICON unknown compression (0x%02x)!\n", data[4]);
+            return false;
+    }
     payload_size =
         ((uint32_t) data[5]) | (((uint32_t) data[6]) << 8) | (((uint32_t) data[7]) << 16);
+    // A compressed bitmap is only produced when smaller than the raw one
+    if ((payload_size == 0) ||
+        (payload_size > ((((uint32_t) expected_px * expected_px * bpp) + 7) / 8))) {
+        PRINTF("NETWORK_ICON payload size out of range (%lu)!\n", (unsigned long) payload_size);
+        return false;
+    }
     total_size = NETWORK_ICON_HEADER_SIZE + payload_size;
     // The icon pipeline tracks buffer sizes as uint16_t, so reject non-representable headers.
     if (total_size > UINT16_MAX) {
@@ -162,6 +192,9 @@ static uint16_t handle_first_icon_chunk(const buffer_t *buf) {
         return SWO_INCORRECT_DATA;
     }
 
+    // A new first chunk restarts the reception: drop any partially received icon
+    APP_MEM_FREE_AND_NULL((void **) &g_icon_bitmap);
+
     // Do not track the allocation in logs, because this buffer is expected to stay allocated
     if (APP_MEM_PERMANENT((void **) &g_icon_bitmap, img_len) == false) {
         PRINTF("Error: Not enough memory for icon bitmap!\n");
@@ -244,10 +277,19 @@ uint16_t handle_network_icon_chunks(uint8_t p1, const buffer_t *buf) {
 }
 
 /**
+ * @brief Abort an icon reception in progress, keeping the expected hash.
+ *
+ */
+void abort_icon_reception(void) {
+    APP_MEM_FREE_AND_NULL((void **) &g_icon_bitmap);
+    explicit_bzero(&g_icon_payload, sizeof(g_icon_payload));
+}
+
+/**
  * @brief Clear the Icon memory.
  *
  */
 void clear_icon(void) {
-    APP_MEM_FREE_AND_NULL((void **) &g_icon_bitmap);
+    abort_icon_reception();
     APP_MEM_FREE_AND_NULL((void **) &g_network_icon_hash);
 }

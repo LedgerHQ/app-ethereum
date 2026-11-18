@@ -1,8 +1,7 @@
 #include <ctype.h>
 #include "buffer.h"
 #include "trusted_name.h"
-#include "network.h"  // chain_is_ethereum_compatible
-#include "utils.h"    // SET_BIT
+#include "utils.h"  // SET_BIT
 #include "challenge.h"
 #include "hash_bytes.h"
 #include "public_keys.h"
@@ -64,7 +63,8 @@ static bool matching_trusted_name(const s_trusted_name *trusted_name,
             if (!matching_source(TN_SOURCE_ENS, source_count, sources)) {
                 return false;
             }
-            if (!chain_is_ethereum_compatible(chain_id)) {
+            // A v1 name carries no signed chain ID: it is an ENS name resolved on mainnet
+            if (*chain_id != ETHEREUM_MAINNET_CHAINID) {
                 return false;
             }
             break;

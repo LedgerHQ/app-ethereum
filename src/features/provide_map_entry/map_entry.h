@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include "lists.h"
 #include "common_utils.h"
+#include "operation_key.h"
 #include "plugin_utils.h"
 #include "tlv_library.h"
 #include "cx.h"
@@ -13,9 +14,7 @@
 
 typedef struct {
     flist_node_t _list;
-    uint64_t chain_id;
-    uint8_t contract_addr[ADDRESS_LENGTH];
-    uint8_t selector[SELECTOR_SIZE];
+    s_operation_key operation_key;
     uint8_t id;
     uint8_t key[MAP_ENTRY_MAX_KEY_SIZE];
     uint8_t key_size;

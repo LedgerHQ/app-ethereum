@@ -55,6 +55,7 @@ class Memory:
     size: int
     test_name: str
     free_errors: list[str]
+    alloc_errors: list[str]
 
     def __init__(self, addr: int, size: int, test_name: str) -> None:
         self.allocs = {}
@@ -67,8 +68,13 @@ class Memory:
         self.size = size
         self.test_name = test_name
         self.free_errors = []
+        self.alloc_errors = []
 
     def alloc(self, ptr: int, size: int, code_loc: str, persist: bool) -> None:
+        # Keep the record of the live allocation, it is the one to diagnose
+        if ptr in self.allocs or ptr in self.persists:
+            self.alloc_errors.append(f"[0x{ptr:08x}] {code_loc}")
+            return
         if persist:
             self.persists[ptr] = Allocation(size, code_loc)
         else:
@@ -103,6 +109,21 @@ class Memory:
                 print(f"- {code_loc}")
             print(f"{COLORS['all_reset']}", end="")
 
+        if len(self.alloc_errors) > 0:
+            print(f"{COLORS['fg_red']}Allocation of an already allocated pointer:")
+            for loc in self.alloc_errors:
+                print(f"- {loc}")
+            print(f"{COLORS['all_reset']}", end="")
+
+        tracked = sum(info.size for info in self.allocs.values())
+        tracked += sum(info.size for info in self.persists.values())
+        balanced = tracked == self.allocd_current
+        if not balanced:
+            print(
+                f"{COLORS['fg_red']}Allocated size mismatch: {self.allocd_current} bytes counted, "
+                f"{tracked} bytes tracked{COLORS['all_reset']}"
+            )
+
         if len(self.allocs) == 0:
             if not quiet:
                 print(f"{COLORS['fg_green']}No memory leak detected, congrats!{COLORS['all_reset']}")
@@ -130,7 +151,7 @@ class Memory:
                     del self.persists[addr]
                 print(f"{COLORS['all_reset']}", end="")
 
-        return len(self.allocs) + len(self.free_errors) == 0
+        return balanced and len(self.allocs) + len(self.free_errors) + len(self.alloc_errors) == 0
 
 
 # ===============================================================================
@@ -258,10 +279,10 @@ def main() -> None:
 
     if mem is None:
         print(f"{COLORS['fg_red']}No memory profiling was found.{COLORS['all_reset']}")
-    else:
-        if mem.summary(args.quiet) is False:
-            ret_code = 1
-        global_summary.summary()
+        sys.exit(1)
+    if mem.summary(args.quiet) is False:
+        ret_code = 1
+    global_summary.summary()
     sys.exit(ret_code)
 
 

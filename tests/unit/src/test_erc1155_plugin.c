@@ -99,6 +99,7 @@ static void feed_param(erc1155_context_t *ctx, uint8_t *param, uint32_t offset) 
     msg.pluginContext = (uint8_t *) ctx;
     msg.parameter = param;
     msg.parameterOffset = offset;
+    msg.parameter_size = PARAMETER_LENGTH;
     erc1155_plugin_call(ETH_PLUGIN_PROVIDE_PARAMETER, &msg);
 }
 
@@ -374,9 +375,59 @@ void test_batch_offset_mismatch_rejected(void) {
     ethPluginProvideParameter_t msg = {0};
     msg.pluginContext = (uint8_t *) &ctx;
     msg.parameter = param;
+    msg.parameter_size = PARAMETER_LENGTH;
     msg.parameterOffset = 999;  // far past ids_offset
     erc1155_plugin_call(ETH_PLUGIN_PROVIDE_PARAMETER, &msg);
     TEST_ASSERT_EQUAL(msg.result, ETH_PLUGIN_RESULT_ERROR);
+}
+
+// Feed one word and return the plugin result.
+static int feed_param_result(erc1155_context_t *ctx, uint8_t *param, uint32_t offset) {
+    ethPluginProvideParameter_t msg = {0};
+    msg.pluginContext = (uint8_t *) ctx;
+    msg.parameter = param;
+    msg.parameter_size = PARAMETER_LENGTH;
+    msg.parameterOffset = offset;
+    erc1155_plugin_call(ETH_PLUGIN_PROVIDE_PARAMETER, &msg);
+    return msg.result;
+}
+
+void test_batch_ids_offset_gap_rejected(void) {
+    erc1155_context_t ctx = {0};
+    uint8_t param[PARAMETER_LENGTH];
+
+    run_init(&ctx, SEL_SAFE_BATCH);
+    // ids[] declared one word past the end of the head
+    run_batch_head(&ctx, 192, 288, 384);
+    make_abi_u32(param, 0);
+    TEST_ASSERT_EQUAL(ETH_PLUGIN_RESULT_ERROR, feed_param_result(&ctx, param, 164));
+}
+
+void test_batch_values_offset_gap_rejected(void) {
+    erc1155_context_t ctx = {0};
+    uint8_t param[PARAMETER_LENGTH];
+
+    run_init(&ctx, SEL_SAFE_BATCH);
+    // values[] declared one word past the end of an empty ids[]
+    run_batch_head(&ctx, 160, 224, 256);
+    make_abi_u32(param, 0);
+    TEST_ASSERT_NOT_EQUAL(ETH_PLUGIN_RESULT_ERROR, feed_param_result(&ctx, param, 164));
+    TEST_ASSERT_EQUAL(VALUE_LENGTH, ctx.next_param);
+    TEST_ASSERT_EQUAL(ETH_PLUGIN_RESULT_ERROR, feed_param_result(&ctx, param, 196));
+}
+
+void test_batch_data_offset_backward_rejected(void) {
+    erc1155_context_t ctx = {0};
+    uint8_t param[PARAMETER_LENGTH];
+
+    run_init(&ctx, SEL_SAFE_BATCH);
+    // data declared inside the head, empty ids[] and values[]
+    run_batch_head(&ctx, 160, 192, 64);
+    make_abi_u32(param, 0);
+    TEST_ASSERT_NOT_EQUAL(ETH_PLUGIN_RESULT_ERROR, feed_param_result(&ctx, param, 164));
+    TEST_ASSERT_NOT_EQUAL(ETH_PLUGIN_RESULT_ERROR, feed_param_result(&ctx, param, 196));
+    TEST_ASSERT_EQUAL(DATA_LENGTH, ctx.next_param);
+    TEST_ASSERT_EQUAL(ETH_PLUGIN_RESULT_ERROR, feed_param_result(&ctx, param, 228));
 }
 
 void test_batch_arrays_length_mismatch_rejected(void) {
@@ -460,12 +511,87 @@ void test_approval_for_all_walk(void) {
     TEST_ASSERT_EQUAL(msg.result, ETH_PLUGIN_RESULT_ERROR);
 }
 
+// Feed `approved` to setApprovalForAll and return the plugin result.
+static int provide_approved(erc1155_context_t *ctx, const uint8_t *word, uint8_t size) {
+    ethPluginProvideParameter_t msg = {0};
+    *ctx = (erc1155_context_t) {.selectorIndex = SET_APPROVAL_FOR_ALL, .next_param = APPROVED};
+    msg.pluginContext = (uint8_t *) ctx;
+    msg.parameter = word;
+    msg.parameter_size = size;
+    msg.result = ETH_PLUGIN_RESULT_OK;
+    erc1155_plugin_call(ETH_PLUGIN_PROVIDE_PARAMETER, &msg);
+    return msg.result;
+}
+
+void test_approval_for_all_non_canonical_bool_rejected(void) {
+    erc1155_context_t ctx;
+    uint8_t word[PARAMETER_LENGTH] = {0};
+
+    word[PARAMETER_LENGTH - 1] = 0;
+    TEST_ASSERT_NOT_EQUAL(ETH_PLUGIN_RESULT_ERROR, provide_approved(&ctx, word, PARAMETER_LENGTH));
+    TEST_ASSERT_FALSE(ctx.approved);
+    // Value other than 0 or 1
+    word[PARAMETER_LENGTH - 1] = 2;
+    TEST_ASSERT_EQUAL(ETH_PLUGIN_RESULT_ERROR, provide_approved(&ctx, word, PARAMETER_LENGTH));
+    // Non-zero padding with a zero last byte, which used to read as "Revoke"
+    memset(word, 0, sizeof(word));
+    word[0] = 1;
+    TEST_ASSERT_EQUAL(ETH_PLUGIN_RESULT_ERROR, provide_approved(&ctx, word, PARAMETER_LENGTH));
+    memset(word, 0, sizeof(word));
+    word[PARAMETER_LENGTH - 2] = 1;
+    TEST_ASSERT_EQUAL(ETH_PLUGIN_RESULT_ERROR, provide_approved(&ctx, word, PARAMETER_LENGTH));
+    // Truncated word
+    memset(word, 0, sizeof(word));
+    word[PARAMETER_LENGTH - 1] = 1;
+    TEST_ASSERT_EQUAL(ETH_PLUGIN_RESULT_ERROR, provide_approved(&ctx, word, PARAMETER_LENGTH - 1));
+}
+
 // =============================================================================
 // Tests — FINALIZE
 // =============================================================================
 
+void test_finalize_with_missing_parameters_rejected(void) {
+    static const uint8_t pending[] = {FROM,
+                                      TO,
+                                      TOKEN_IDS_OFFSET,
+                                      TOKEN_IDS_LENGTH,
+                                      TOKEN_ID,
+                                      VALUE_OFFSET,
+                                      VALUE_LENGTH,
+                                      VALUE,
+                                      DATA_OFFSET,
+                                      DATA_LENGTH,
+                                      OPERATOR,
+                                      APPROVED};
+    static const uint8_t selectors[] = {SAFE_TRANSFER, SAFE_BATCH_TRANSFER, SET_APPROVAL_FOR_ALL};
+    txContent_t tx = {0};
+
+    for (size_t s = 0; s < sizeof(selectors); ++s) {
+        for (size_t i = 0; i < sizeof(pending); ++i) {
+            erc1155_context_t ctx = {.selectorIndex = selectors[s], .next_param = pending[i]};
+            ethPluginFinalize_t msg = {0};
+            msg.pluginContext = (uint8_t *) &ctx;
+            msg.txContent = &tx;
+            erc1155_plugin_call(ETH_PLUGIN_FINALIZE, &msg);
+            TEST_ASSERT_EQUAL(ETH_PLUGIN_RESULT_ERROR, msg.result);
+        }
+    }
+}
+
+void test_truncated_head_word_rejected(void) {
+    erc1155_context_t ctx = {.selectorIndex = SAFE_TRANSFER, .next_param = VALUE};
+    uint8_t param[PARAMETER_LENGTH] = {0};
+    ethPluginProvideParameter_t msg = {0};
+    msg.pluginContext = (uint8_t *) &ctx;
+    msg.parameter = param;
+    msg.parameter_size = 1;
+    erc1155_plugin_call(ETH_PLUGIN_PROVIDE_PARAMETER, &msg);
+    TEST_ASSERT_EQUAL(ETH_PLUGIN_RESULT_ERROR, msg.result);
+    TEST_ASSERT_EQUAL(VALUE, ctx.next_param);
+}
+
 void test_finalize_safe_transfer_six_screens(void) {
-    erc1155_context_t ctx = {.selectorIndex = SAFE_TRANSFER};
+    erc1155_context_t ctx = {.selectorIndex = SAFE_TRANSFER, .next_param = NONE};
     txContent_t tx = {0};
     ethPluginFinalize_t msg = {0};
     msg.pluginContext = (uint8_t *) &ctx;
@@ -478,6 +604,7 @@ void test_finalize_safe_transfer_six_screens(void) {
 void test_finalize_batch_screens_formula(void) {
     // 5 fixed + 2 * batch_displayed + 1 if truncated.
     erc1155_context_t ctx = {.selectorIndex = SAFE_BATCH_TRANSFER,
+                             .next_param = NONE,
                              .batch_displayed = ERC1155_BATCH_DISPLAY_MAX,
                              .batch_truncated = true};
     txContent_t tx = {0};
@@ -489,7 +616,7 @@ void test_finalize_batch_screens_formula(void) {
 }
 
 void test_finalize_transfer_with_data_extra_screen(void) {
-    erc1155_context_t ctx = {.selectorIndex = SAFE_TRANSFER, .data_length = 9};
+    erc1155_context_t ctx = {.selectorIndex = SAFE_TRANSFER, .next_param = NONE, .data_length = 9};
     txContent_t tx = {0};
     ethPluginFinalize_t msg = {0};
     msg.pluginContext = (uint8_t *) &ctx;
@@ -499,6 +626,7 @@ void test_finalize_transfer_with_data_extra_screen(void) {
     TEST_ASSERT_EQUAL(msg.numScreens, 7);
 
     erc1155_context_t batch = {.selectorIndex = SAFE_BATCH_TRANSFER,
+                               .next_param = NONE,
                                .batch_displayed = 2,
                                .data_length = 9};
     msg.pluginContext = (uint8_t *) &batch;
@@ -507,7 +635,7 @@ void test_finalize_transfer_with_data_extra_screen(void) {
 }
 
 void test_finalize_approval_three_screens(void) {
-    erc1155_context_t ctx = {.selectorIndex = SET_APPROVAL_FOR_ALL};
+    erc1155_context_t ctx = {.selectorIndex = SET_APPROVAL_FOR_ALL, .next_param = NONE};
     txContent_t tx = {0};
     ethPluginFinalize_t msg = {0};
     msg.pluginContext = (uint8_t *) &ctx;
@@ -960,10 +1088,16 @@ int main(void) {
     RUN_TEST(test_batch_two_pair_walk);
     RUN_TEST(test_batch_truncates_beyond_display_max);
     RUN_TEST(test_batch_offset_mismatch_rejected);
+    RUN_TEST(test_batch_ids_offset_gap_rejected);
+    RUN_TEST(test_batch_values_offset_gap_rejected);
+    RUN_TEST(test_batch_data_offset_backward_rejected);
     RUN_TEST(test_batch_arrays_length_mismatch_rejected);
     RUN_TEST(test_batch_aggregate_quantity_overflow_rejected);
     RUN_TEST(test_approval_for_all_walk);
+    RUN_TEST(test_approval_for_all_non_canonical_bool_rejected);
     RUN_TEST(test_finalize_safe_transfer_six_screens);
+    RUN_TEST(test_finalize_with_missing_parameters_rejected);
+    RUN_TEST(test_truncated_head_word_rejected);
     RUN_TEST(test_finalize_batch_screens_formula);
     RUN_TEST(test_finalize_transfer_with_data_extra_screen);
     RUN_TEST(test_finalize_approval_three_screens);

@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- Support for EIP-712 V2: `eip712_v2_send_schema`, `eip712_v2_send_values`, `eip712_v2_sign`,
+  `eip712_v2_send_message_info` and `eip712_v2_send_field_desc`, with `eip712.json_to_tlv` to build their
+  payloads from an EIP-712 JSON message
+- `Eip712MessageInfo`, and `Eip712Path` values for the GCS fields of a typed message
+- `domain_separator` and `primary_type_hash` keywords of `EnumValue` and `MapEntry`, for a typed
+  message, whose `chain_id`, `contract_addr` and `selector` are then `None`
+- `domain_separator` and `primary_type_hash` keywords of `Gating`, for a V2 message, whose `address`
+  is then `None`
+
+### Changed
+
+- **Breaking:** `provide_transaction_info` and `provide_transaction_field_desc` renamed
+  `provide_operation_info` and `provide_operation_field_desc`, after their APDUs, in `EthAppClient`
+  and in `CommandBuilder`, with no alias
+- **Breaking:** `InsType.PROVIDE_TRANSACTION_INFO` and `InsType.PROVIDE_TRANSACTION_FIELD_DESC`
+  renamed `PROVIDE_OPERATION_INFO` and `PROVIDE_OPERATION_FIELD_DESC`
+
 ## [0.7.0] - 2026-10-01
 
 ### Added

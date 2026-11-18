@@ -18,6 +18,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "app_mem_utils.h"
 #include "cx_errors.h"
 
 // =============================================================================
@@ -30,7 +31,6 @@
 typedef struct cx_sha256_s cx_sha256_t;
 typedef struct cx_sha3_s cx_sha3_t;
 typedef struct cx_hash_header_s cx_hash_t;
-typedef struct try_context_s try_context_t;
 
 // =============================================================================
 // g_keccak_init_ret — only configurable crypto return value here
@@ -58,6 +58,37 @@ int bytes_to_lowercase_hex(char *out, size_t outl, const void *value, size_t len
     }
     *out = '\0';
     return 0;
+}
+
+static int bytes_to_hex_0x_digits(char *out,
+                                  size_t outl,
+                                  const void *value,
+                                  size_t len,
+                                  const char *hex) {
+    const uint8_t *bytes = (const uint8_t *) value;
+
+    if (outl < 2 + 2 * len + 1) {
+        if (outl > 0) {
+            *out = '\0';
+        }
+        return -1;
+    }
+    *out++ = '0';
+    *out++ = 'x';
+    for (size_t i = 0; i < len; i++) {
+        *out++ = hex[(bytes[i] >> 4) & 0xf];
+        *out++ = hex[bytes[i] & 0xf];
+    }
+    *out = '\0';
+    return 0;
+}
+
+int bytes_to_hex_0x(char *out, size_t outl, const void *value, size_t len) {
+    return bytes_to_hex_0x_digits(out, outl, value, len, "0123456789ABCDEF");
+}
+
+int bytes_to_lowercase_hex_0x(char *out, size_t outl, const void *value, size_t len) {
+    return bytes_to_hex_0x_digits(out, outl, value, len, "0123456789abcdef");
 }
 
 bool is_printable_string(const char *str, size_t len) {
@@ -109,26 +140,33 @@ __attribute__((noreturn)) void assert_exit(bool confirm) {
 }
 
 // =============================================================================
-// BOLOS_SDK -- include/exceptions.h + include/os_lib.h
+// BOLOS_SDK -- include/os_lib.h
 // =============================================================================
-
-__attribute__((weak)) try_context_t *try_context_set(try_context_t *ctx) {
-    (void) ctx;
-    return NULL;
-}
-
-__attribute__((weak)) try_context_t *try_context_get(void) {
-    return NULL;
-}
-
-__attribute__((weak)) __attribute__((noreturn)) void os_longjmp(unsigned int exception) {
-    (void) exception;
-    while (1) {
-    }
-}
 
 __attribute__((weak)) void os_lib_call(unsigned int *call_parameters) {
     (void) call_parameters;
+}
+
+// =============================================================================
+// BOLOS_SDK -- lib_cxng/include/lcx_crc.h
+// =============================================================================
+
+// Standard reflected CRC32, chained like the firmware's cx_crc32_update.
+__attribute__((weak)) uint32_t cx_crc32_update(uint32_t crc_state, const void *buf, size_t len) {
+    const uint8_t *bytes = buf;
+
+    crc_state = ~crc_state;
+    for (size_t i = 0; i < len; ++i) {
+        crc_state ^= bytes[i];
+        for (int bit = 0; bit < 8; ++bit) {
+            crc_state = (crc_state >> 1) ^ (0xEDB88320u & (0u - (crc_state & 1u)));
+        }
+    }
+    return ~crc_state;
+}
+
+__attribute__((weak)) uint32_t cx_crc32(const void *buf, size_t len) {
+    return cx_crc32_update(0, buf, len);
 }
 
 // =============================================================================
@@ -185,7 +223,9 @@ __attribute__((weak)) uint32_t cx_keccak_256_hash_iovec(const struct cx_iovec_s 
                                                         uint8_t *digest) {
     (void) iovec;
     (void) iovec_len;
-    (void) digest;
+    if (digest != NULL) {
+        memset(digest, 0, 32);
+    }
     return CX_OK;
 }
 
@@ -292,7 +332,7 @@ char *mem_utils_strdup(const char *s, const char *file, int line) {
 }
 
 __attribute__((weak)) bool mem_utils_calloc(void **buffer,
-                                            uint16_t size,
+                                            size_t size,
                                             bool permanent,
                                             const char *file,
                                             int line) {

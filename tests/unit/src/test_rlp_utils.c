@@ -253,6 +253,42 @@ void test_decode_long_list_4_byte_length(void) {
 // rlp_decode_length — bound checks (regression for fix ad3fb1fc)
 // =============================================================================
 
+void test_decode_non_canonical_long_forms_rejected(void) {
+    // Long form for a length below 56, and length bytes with a leading zero
+    uint8_t short_string[] = {0xb8, 0x37};
+    uint8_t zero_padded_string[] = {0xb9, 0x00, 0x40};
+    uint8_t short_list[] = {0xf8, 0x37};
+    uint8_t zero_padded_list[] = {0xf9, 0x00, 0x40};
+    uint32_t field_length = 0;
+    uint32_t offset = 0;
+    bool list = false;
+
+    TEST_ASSERT_FALSE(
+        rlp_decode_length(short_string, sizeof(short_string), &field_length, &offset, &list));
+    TEST_ASSERT_FALSE(rlp_decode_length(zero_padded_string,
+                                        sizeof(zero_padded_string),
+                                        &field_length,
+                                        &offset,
+                                        &list));
+    TEST_ASSERT_FALSE(
+        rlp_decode_length(short_list, sizeof(short_list), &field_length, &offset, &list));
+    TEST_ASSERT_FALSE(rlp_decode_length(zero_padded_list,
+                                        sizeof(zero_padded_list),
+                                        &field_length,
+                                        &offset,
+                                        &list));
+}
+
+void test_decode_smallest_long_form_accepted(void) {
+    uint8_t buf[] = {0xb8, 0x38};
+    uint32_t field_length = 0;
+    uint32_t offset = 0;
+    bool list = true;
+
+    TEST_ASSERT_TRUE(rlp_decode_length(buf, sizeof(buf), &field_length, &offset, &list));
+    TEST_ASSERT_EQUAL(field_length, 56);
+}
+
 void test_decode_empty_buffer_rejected(void) {
     // The fix's most important invariant: never deref buffer when bufferLength == 0.
     uint8_t buf[1] = {0};
@@ -354,6 +390,8 @@ int main(void) {
     RUN_TEST(test_decode_short_list);
     RUN_TEST(test_decode_long_list_1_byte_length);
     RUN_TEST(test_decode_long_list_4_byte_length);
+    RUN_TEST(test_decode_non_canonical_long_forms_rejected);
+    RUN_TEST(test_decode_smallest_long_form_accepted);
     RUN_TEST(test_decode_empty_buffer_rejected);
     RUN_TEST(test_decode_long_string_truncated_rejected);
     RUN_TEST(test_decode_long_list_truncated_rejected);

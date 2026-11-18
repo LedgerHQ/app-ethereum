@@ -39,6 +39,8 @@ enum {
     /* Production only resolves a token lookup when the user provided the asset
      * info beforehand, so both outcomes are reachable states. */
     ETH_PLUGIN_HDR_REGISTER_ASSET = 1u << 1,
+    /* Swap: promise the digest of the calldata actually fed, instead of crosschain_hash. */
+    ETH_PLUGIN_HDR_MATCH_HASH = 1u << 2,
 };
 
 /** Fills @p out from @p hdr, every field length within its array. */

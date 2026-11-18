@@ -95,7 +95,7 @@ class EthAppClient:
         self,
         field_type: EIP712FieldType,
         type_name: str,
-        type_size: int,
+        type_size: int | None,
         array_levels: list,
         key_name: str,
     ):
@@ -117,6 +117,36 @@ class EthAppClient:
 
     def eip712_sign_new(self, bip32_path: str):
         return self._exchange_async(self._cmd_builder.eip712_sign_new(bip32_path))
+
+    def eip712_v2_send_schema(self, payload: bytes) -> RAPDU:
+        chunks = self._cmd_builder.eip712_v2_schema(payload)
+        for chunk in chunks[:-1]:
+            self._exchange(chunk)
+        return self._exchange(chunks[-1])
+
+    def eip712_v2_send_values(self, payload: bytes) -> RAPDU:
+        chunks = self._cmd_builder.eip712_v2_values(payload)
+        for chunk in chunks[:-1]:
+            self._exchange(chunk)
+        return self._exchange(chunks[-1])
+
+    def eip712_v2_send_message_info(self, payload: bytes) -> RAPDU:
+        # the struct is signed with the same key as the transaction one
+        self.send_pki_certificate(CALLDATA_PARTNER)
+
+        chunks = self._cmd_builder.eip712_v2_message_info(payload)
+        for chunk in chunks[:-1]:
+            self._exchange(chunk)
+        return self._exchange(chunks[-1])
+
+    def eip712_v2_send_field_desc(self, payload: bytes) -> RAPDU:
+        chunks = self._cmd_builder.eip712_v2_field_desc(payload)
+        for chunk in chunks[:-1]:
+            self._exchange(chunk)
+        return self._exchange(chunks[-1])
+
+    def eip712_v2_sign(self):
+        return self._exchange_async(self._cmd_builder.eip712_v2_sign())
 
     def eip712_sign_legacy(self, bip32_path: str, domain_hash: bytes, message_hash: bytes):
         return self._exchange_async(self._cmd_builder.eip712_sign_legacy(bip32_path, domain_hash, message_hash))
@@ -383,12 +413,12 @@ class EthAppClient:
             sig = CAL_COIN_META_PARTNER.sign(tmp[6:])
         return self._exchange(self._cmd_builder.provide_erc20_token_information(ticker, addr, decimals, chain_id, sig))
 
-    def provide_network_information(self, network_params: DynamicNetwork) -> None:
+    def provide_network_info(self, network_params: DynamicNetwork) -> None:
         # Send ledgerPKI certificate
         self.send_pki_certificate(NETWORK_PARTNER)
 
         # Add the network info
-        chunks = self._cmd_builder.provide_network_information(network_params.serialize(), network_params.icon)
+        chunks = self._cmd_builder.provide_network_info(network_params.serialize(), network_params.icon)
         for chunk in chunks[:-1]:
             response = self._exchange(chunk)
             assert response.status == StatusWord.SWO_SUCCESS
@@ -413,17 +443,17 @@ class EthAppClient:
             self._exchange(chunk)
         return self._exchange(chunks[-1])
 
-    def provide_transaction_info(self, payload: bytes) -> RAPDU:
+    def provide_operation_info(self, payload: bytes) -> RAPDU:
         # Send ledgerPKI certificate
         self.send_pki_certificate(CALLDATA_PARTNER)
 
-        chunks = self._cmd_builder.provide_transaction_info(payload)
+        chunks = self._cmd_builder.provide_operation_info(payload)
         for chunk in chunks[:-1]:
             self._exchange(chunk)
         return self._exchange(chunks[-1])
 
-    def provide_transaction_field_desc(self, payload: bytes) -> RAPDU:
-        chunks = self._cmd_builder.provide_transaction_field_desc(payload)
+    def provide_operation_field_desc(self, payload: bytes) -> RAPDU:
+        chunks = self._cmd_builder.provide_operation_field_desc(payload)
         for chunk in chunks[:-1]:
             self._exchange(chunk)
         return self._exchange(chunks[-1])

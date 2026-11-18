@@ -1,7 +1,7 @@
 /**
  * @file test_param_token.c
  * @brief Unit tests for the TOKEN parameter in
- *        src/features/generic_tx_parser/gtp_param_token.c.
+ *        src/features/gcs/gcs_param_token.c.
  *
  * TOKEN renders an ERC-20 token reference by resolving its address
  * through two branches:
@@ -28,11 +28,11 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#include "gtp_param_token.h"
-#include "gtp_parsed_value.h"
-#include "gtp_value.h"
-#include "gtp_field.h"
-#include "gtp_tx_info.h"
+#include "gcs_param_token.h"
+#include "gcs_parsed_value.h"
+#include "gcs_value.h"
+#include "gcs_field.h"
+#include "operation_info.h"
 #include "token_info.h"
 #include "shared_context.h"
 #include "network.h"
@@ -66,11 +66,13 @@ bool handle_value_struct(const buffer_t *buf, s_value_context *context) {
     return g_hvs_ret;
 }
 
-static s_tx_info g_fake_tx_info;
+static s_operation_info g_fake_tx_info;
 
 // Per-call return value; tests setup with will_return.
 const s_token_info *get_matching_token_info_or_dummy(const uint64_t *chain_id,
-                                                     const uint8_t *addr) {
+                                                     const uint8_t *addr,
+                                                     s_token_info *dummy) {
+    (void) dummy;
     (void) chain_id;
     (void) addr;
     return (const s_token_info *) g_get_matching_token_info_or_dummy_ret;
@@ -93,9 +95,13 @@ bool add_to_field_table(e_param_type type,
     return (bool) g_add_to_field_table_ret;
 }
 
-static const s_tx_info *s_tx_info_ret = NULL;
-const s_tx_info *get_current_tx_info(void) {
-    return s_tx_info_ret;
+static const s_operation_info *s_tx_info_ret = NULL;
+bool get_current_operation_chain_id(uint64_t *chain_id) {
+    if (s_tx_info_ret == NULL) {
+        return false;
+    }
+    *chain_id = s_tx_info_ret->chain_id;
+    return true;
 }
 
 // =============================================================================
@@ -272,6 +278,18 @@ static bool run_tlv(const uint8_t *bytes, size_t size, s_param_token *param) {
     return handle_param_token_struct(&buf, &ctx);
 }
 
+void test_tlv_version_other_than_one_refused(void) {
+    uint8_t bytes[] = {0x00, 0x01, 0x01, 0x01, 0x00};
+    const uint8_t other_versions[] = {0x00, 0x02, 0xFF};
+    s_param_token param = {0};
+
+    TEST_ASSERT_TRUE(run_tlv(bytes, sizeof(bytes), &param));
+    for (size_t i = 0; i < sizeof(other_versions); i++) {
+        bytes[2] = other_versions[i];
+        TEST_ASSERT_FALSE(run_tlv(bytes, sizeof(bytes), &param));
+    }
+}
+
 void test_tlv_happy_path_two_native(void) {
     // VERSION=1, ADDRESS empty, two NATIVE_CURRENCY entries
     const uint8_t bytes[] = {
@@ -380,6 +398,7 @@ int main(void) {
     RUN_TEST(test_format_value_get_failure_returns_false);
     RUN_TEST(test_format_native_ticker_null_rejected);
     RUN_TEST(test_format_add_to_field_table_failure_propagates);
+    RUN_TEST(test_tlv_version_other_than_one_refused);
     RUN_TEST(test_tlv_happy_path_two_native);
     RUN_TEST(test_tlv_too_many_native_addrs_rejected);
     RUN_TEST(test_tlv_native_addr_too_long_rejected);

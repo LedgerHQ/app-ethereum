@@ -1,5 +1,7 @@
 #pragma once
 
+#ifdef HAVE_EIP712_V1
+
 #include <stdbool.h>
 #include <stdint.h>
 #include "ux.h"
@@ -83,13 +85,13 @@ bool ui_712_filtering_broken(void);
 bool ui_712_pending_amount_joins(void);
 void ui_712_set_filtering_mode(e_eip712_filtering_mode mode);
 e_eip712_filtering_mode ui_712_get_filtering_mode(void);
+bool ui_712_prepare_review_v1(e_eip712_filtering_mode mode);
 void ui_712_set_filters_count(uint8_t count);
 uint8_t ui_712_remaining_filters(void);
 bool ui_712_message_info_received(void);
 void ui_712_token_join_prepare_addr_check(uint8_t id);
 bool ui_712_token_join_prepare_amount(uint8_t id, const char *name, uint8_t name_length);
 bool ui_712_set_amount_join_token_addr(const uint8_t *address);
-bool ui_712_show_raw_key(const s_struct_712_field *field_ptr);
 bool ui_712_push_new_filter_path(uint32_t path_crc);
 bool ui_712_set_discarded_path(const char *path, uint8_t length);
 const char *ui_712_get_discarded_path(void);
@@ -101,7 +103,6 @@ void ui_712_set_trusted_name_requirements(uint8_t type_count,
 bool ui_712_push_pairs(void);
 void add_calldata_info(s_eip712_calldata_info *node);
 s_eip712_calldata_info *get_calldata_info(uint8_t index);
-s_eip712_calldata_info *get_current_calldata_info(void);
 bool all_calldata_info_processed(void);
 void calldata_info_set_state(uint8_t index, e_eip712_calldata_state state);
 bool calldata_info_all_received(const s_eip712_calldata_info *calldata_info);
@@ -113,3 +114,5 @@ bool calldata_info_all_received(const s_eip712_calldata_info *calldata_info);
 bool ui_712_accumulate_value(const s_struct_712_field *field_ptr,
                              const uint8_t *data,
                              size_t length);
+
+#endif  // HAVE_EIP712_V1

@@ -2,7 +2,11 @@
 #include <string.h>
 
 #include "shared_context.h"
+#ifdef HAVE_EIP712_V1
 #include "eip712_v1_context.h"  // eip712_v1_context_deinit
+#endif                          // HAVE_EIP712_V1
+#include "typed_data.h"         // td_deinit
+#include "eip712_session.h"     // eip712_session_close
 #include "bip32_utils.h"
 #include "bip32.h"
 #include "eth_swap_utils.h"
@@ -13,15 +17,18 @@
 #include "enum_value.h"
 #include "map_entry.h"
 #include "proxy_info.h"
+#include "tlv_apdu.h"
 #ifdef HAVE_TRANSACTION_CHECKS
 #include "cmd_get_tx_simulation.h"  // clear_tx_simulation
 #endif
-#include "tx_ctx.h"
+#include "operation_ctx.h"
 #include "ui_utils.h"
+#include "common_ui.h"  // ui_712_v2_cleanup
 #include "app_mem_utils.h"
 #include "cmd_safe_account.h"
 #include "cmd_get_gating.h"
 #include "network_info.h"
+#include "network_icon.h"
 #include "main_std_app.h"  // app_exit()
 
 #ifdef HAVE_ADDRESS_BOOK
@@ -56,7 +63,9 @@ void reset_app_context_ex(bool scrub_strings) {
     if (appState == APP_STATE_SIGNING_MESSAGE) {
         message_cleanup();
     }
+#ifdef HAVE_EIP712_V1
     eip712_v1_context_deinit();
+#endif  // HAVE_EIP712_V1
     G_called_from_swap = false;
     G_swap_response_ready = false;
     G_swap_checked = false;
@@ -69,9 +78,11 @@ void reset_app_context_ex(bool scrub_strings) {
     memset((uint8_t *) &tmpCtx, 0, sizeof(tmpCtx));
     memset((uint8_t *) &dataContext, 0, sizeof(dataContext));
     forget_known_assets();
-    if (txContext.store_calldata) {
-        gcs_cleanup();
-    }
+    // The pairs of a raw review of a typed message, before the list that points at them is freed
+    ui_712_v2_cleanup();
+    // The review of an operation points at what its descriptors formatted, and those at the
+    // operations they were formatted for (a transaction, or a typed message and its calls)
+    gcs_cleanup();
     trusted_name_cleanup();
     enum_value_cleanup();
     map_entry_cleanup();
@@ -93,9 +104,16 @@ void reset_app_context_ex(bool scrub_strings) {
 #endif
     proxy_cleanup();
     clear_gating();
+    ui_approve_tx_cleanup();
+    tlv_apdu_reset();
+    abort_icon_reception();
     if (scrub_strings) {
         explicit_bzero((uint8_t *) &strings, sizeof(strings));
     }
+    // the flow of a typed message ends with its tree and its session, after the cleanups of what
+    // points into them; the state is idle after it whatever the flow
+    td_deinit();
+    eip712_session_close();
     appState = APP_STATE_IDLE;
 }
 

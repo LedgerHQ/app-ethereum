@@ -24,7 +24,6 @@
 #include "utils.h"
 #include "swap_error_code_helpers.h"
 #include "feature_sign_tx.h"
-#include "network.h"
 
 // Global flag indicating whether swap parameters have been verified
 bool G_swap_checked;
@@ -120,9 +119,7 @@ bool parse_swap_config(const uint8_t *config, uint8_t config_len, swap_context_t
         return false;
     }
 
-    // Initialize defaults
     explicit_bzero(context, sizeof(swap_context_t));
-    context->fees_asset_info.decimals = WEI_TO_ETHER;  // Default to ETH decimals
 
     // Parse asset token info
     if (!parse_asset_info(config, config_len, &context->swapped_asset_info, &offset)) {
@@ -140,18 +137,14 @@ bool parse_swap_config(const uint8_t *config, uint8_t config_len, swap_context_t
     context->chain_id = u64_from_BE(config + offset, chainid_len);
     offset += chainid_len;
 
-    // TODO: Remove this check once CAL is updated to always provide fees asset info
-    // Parse fees asset info
-    if (offset < config_len) {
-        if (!parse_asset_info(config, config_len, &context->fees_asset_info, &offset)) {
-            PRINTF("Failed to parse fees asset info\n");
-            return false;
-        }
-        // Ensure the correct decimal is provided
-        if (context->fees_asset_info.decimals != WEI_TO_ETHER) {
-            PRINTF("Invalid fees decimals: %d\n", context->fees_asset_info.decimals);
-            return false;
-        }
+    if (!parse_asset_info(config, config_len, &context->fees_asset_info, &offset)) {
+        PRINTF("Failed to parse fees asset info\n");
+        return false;
+    }
+    // Ensure the correct decimal is provided
+    if (context->fees_asset_info.decimals != WEI_TO_ETHER) {
+        PRINTF("Invalid fees decimals: %d\n", context->fees_asset_info.decimals);
+        return false;
     }
 
     // TODO: Remove this check once CAL is updated to always provide the token contract address
@@ -174,29 +167,15 @@ bool parse_swap_config(const uint8_t *config, uint8_t config_len, swap_context_t
  *
  * @param is_fee Indicates if the amount is a fee
  * @param context Output structure to store all parsed swap information
- * @param config Chain configuration for fallback mechanisms
  * @param ticker Output pointer to store the resolved ticker
  * @param decimals Output pointer to store the resolved decimals (can be NULL)
  */
 void get_asset_info_on_network(bool is_fee,
                                swap_context_t *context,
-                               chain_config_t *config,
                                char **ticker,
                                uint8_t *decimals) {
-    // If the amount is a fee, the ticker should be the chain's native currency
     if (is_fee) {
-        // TODO: Remove this check once CAL is updated to always provide fees asset info
-        if (context->fees_asset_info.ticker[0] == '\0') {
-            // fallback mechanism in the absence of network ticker in swap config
-            if (context->chain_id == 0) {
-                // fallback mechanism in the absence of chain ID in swap config
-                context->chain_id = config->chain_id;
-            }
-            PRINTF("chain_id = %d\n", (uint32_t) context->chain_id);
-            *ticker = (char *) get_displayable_ticker(&context->chain_id, config, false);
-        } else {
-            *ticker = context->fees_asset_info.ticker;
-        }
+        *ticker = context->fees_asset_info.ticker;
         if (decimals != NULL) {
             *decimals = context->fees_asset_info.decimals;
         }

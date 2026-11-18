@@ -7,8 +7,8 @@
  * verify_map_entry_struct) is already covered by test_provide_map_entry;
  * this slice pins the entry-point guards added by commit 092cba0c:
  *   - P1 must be either P1_FIRST_CHUNK or P1_FOLLOWING_CHUNK,
- *     anything else returns SWO_WRONG_P1_P2,
- *   - P2 must be 0, anything else returns SWO_WRONG_P1_P2,
+ *     anything else returns SWO_INCORRECT_P1_P2,
+ *   - P2 must be 0, anything else returns SWO_INCORRECT_P1_P2,
  * plus the standard tlv_from_apdu success / failure mapping to
  * SWO_SUCCESS / SWO_INCORRECT_DATA.
  */
@@ -60,6 +60,7 @@ bool verify_map_entry_struct(const void *ctx) {
     (void) ctx;
     return g_verify_ret;
 }
+
 // =============================================================================
 // Fixture
 // =============================================================================
@@ -86,12 +87,12 @@ void test_p1_following_chunk_accepted(void) {
 
 void test_p1_reserved_value_rejected(void) {
     // 0x02 is reserved (only 0x00 = FOLLOWING and 0x01 = FIRST are valid).
-    TEST_ASSERT_EQUAL(handle_map_entry(0x02, 0, 0, NULL), SWO_WRONG_P1_P2);
+    TEST_ASSERT_EQUAL(handle_map_entry(0x02, 0, 0, NULL), SWO_INCORRECT_P1_P2);
 }
 
 void test_p1_junk_value_rejected(void) {
-    TEST_ASSERT_EQUAL(handle_map_entry(0x42, 0, 0, NULL), SWO_WRONG_P1_P2);
-    TEST_ASSERT_EQUAL(handle_map_entry(0xFF, 0, 0, NULL), SWO_WRONG_P1_P2);
+    TEST_ASSERT_EQUAL(handle_map_entry(0x42, 0, 0, NULL), SWO_INCORRECT_P1_P2);
+    TEST_ASSERT_EQUAL(handle_map_entry(0xFF, 0, 0, NULL), SWO_INCORRECT_P1_P2);
 }
 
 // =============================================================================
@@ -100,8 +101,8 @@ void test_p1_junk_value_rejected(void) {
 
 void test_p2_nonzero_rejected_even_with_valid_p1(void) {
     // P1 is valid but P2 is non-zero — must still reject.
-    TEST_ASSERT_EQUAL(handle_map_entry(P1_FIRST_CHUNK, 0x01, 0, NULL), SWO_WRONG_P1_P2);
-    TEST_ASSERT_EQUAL(handle_map_entry(P1_FOLLOWING_CHUNK, 0xFF, 0, NULL), SWO_WRONG_P1_P2);
+    TEST_ASSERT_EQUAL(handle_map_entry(P1_FIRST_CHUNK, 0x01, 0, NULL), SWO_INCORRECT_P1_P2);
+    TEST_ASSERT_EQUAL(handle_map_entry(P1_FOLLOWING_CHUNK, 0xFF, 0, NULL), SWO_INCORRECT_P1_P2);
 }
 
 // =============================================================================

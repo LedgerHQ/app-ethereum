@@ -42,7 +42,7 @@
 // =============================================================================
 
 static bool g_chain_compatible_ret = true;
-bool app_compatible_with_chain_id(const uint64_t *chain_id) {
+bool chain_id_is_signable(uint64_t chain_id) {
     (void) chain_id;
     return g_chain_compatible_ret;
 }

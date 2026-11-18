@@ -146,8 +146,12 @@ def scan_abi_directory(directory: Path, logger: logging.Logger) -> dict[str, str
     return all_selectors
 
 
+# ABIs shipped with the repository, whatever the current working directory
+DEFAULT_ABI_DIR = Path(__file__).resolve().parents[1] / "tests" / "functional" / "abis"
+
+
 def gen_selector_cache(
-    input_path: Path = Path("tests/functional/abis"),
+    input_path: Path = DEFAULT_ABI_DIR,
     logger: logging.Logger | None = None,
 ) -> dict[str, str]:
     """Generate the function selector cache from a directory of ABI files.

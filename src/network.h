@@ -8,6 +8,8 @@
 #include "caller_app.h"
 
 #define MAX_NETWORK_LEN 32  // 31 characters + '\0'
+// Also holds any chain ID written in decimal, for networks without a known name
+_Static_assert(MAX_NETWORK_LEN >= sizeof("18446744073709551615"), "chain ID does not fit");
 
 typedef struct network_info_s {
     flist_node_t node;  // MUST be first for direct casting from flist_node_t* to network_info_t*
@@ -37,7 +39,6 @@ bool get_network_as_string_from_chain_id(char *out, size_t out_size, uint64_t ch
 bool get_network_as_string(char *out, size_t out_size);
 
 bool chain_is_ethereum_compatible(const uint64_t *chain_id);
-bool app_compatible_with_chain_id(const uint64_t *chain_id);
 
 /**
  * @brief Checks whether this app could ever sign for the given chain ID
@@ -46,6 +47,14 @@ bool app_compatible_with_chain_id(const uint64_t *chain_id);
  * @return whether a transaction on that chain could be signed by this app
  */
 bool chain_id_is_signable(uint64_t chain_id);
+
+/**
+ * @brief Checks whether the given chain carries the Ethereum staking contracts
+ *
+ * @param[in] chain_id The chain ID to check
+ * @return whether the deposit contract and the EIP-7002/EIP-7251 predeploys are live on that chain
+ */
+bool chain_has_ethereum_staking(uint64_t chain_id);
 
 uint64_t get_tx_chain_id(void);
 

@@ -5,6 +5,52 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.24.0](../../compare/1.23.0...1.24.0) - 2026-11-13
+
+### Added
+
+- EIP-712 V2: typed messages are sent whole, checked before any review, and clear-signed from an ERC-7730
+  description like transactions
+- `EIP712_V1=0` build option to leave EIP-712 V1 out of the app
+
+### Changed
+
+- Gating descriptors are matched against the called contract before its proxy implementation is resolved
+- EIP-7702 support (authorization signing, "Smart accounts" setting, type 4 transactions) is no longer in the
+  default build, enable it with `EIP7702_SUPPORT=1`
+- Settings renamed "Raw contract data" (was "Debug smart contracts") and "Show all hashes" (was "Transaction hash")
+- Transaction Check opt-in screen reworked
+- Long Address Book contact names are cut with an ellipsis after 3 lines on Nano and 2 on touch devices
+- Binary personal messages shown in hex are labelled "Message (hex)"
+- Staking transactions (deposit, withdrawal, consolidation) are clear-signed on Hoodi, and fall back to blind
+  signing on other chains instead of being rejected
+- Swaps without fees asset information are rejected, the network ticker is no longer used instead
+- SET_PLUGIN is refused on chains that cannot be signed
+- Generic clear-signing: stricter descriptor parsing, group nesting limited to 4 levels, wider enum integers accepted
+
+### Fixed
+
+- Transactions with trailing data or non-canonical RLP, and personal message lengths beyond 16 bits, were accepted
+- EIP-712 V1 misread non-integer chain IDs, out-of-range integers and message fields named like domain ones
+- EIP-712 V1 accepted type delimiters in names, crashed on replayed filters and closed its blind signing screen
+- Personal message and EIP-712 reviews did not show the signing account
+- ERC-20, NFT and ETH2 plugins accepted truncated, misplaced or non-canonical parameters, hid data or misread offsets
+- EIP-7002 and EIP-7251 requests could be reviewed as ERC-20 calls, and plugins could receive NFT data as token data
+- Generic clear-signing could show an implementation as destination, 256-byte amounts as zero or signed as unsigned
+- Generic clear-signing could omit or misstate a (nested) call's contract, From, Amount, value, network or sender rows
+- Generic clear-signing could hide booleans, inject line breaks, flatten batches, skip, repeat or loop on empty paths
+- Plugin and generic clear-signing reviews ignored the hash setting, and a plugin icon could appear on other reviews
+- Selector-bound gating descriptors did not match when the "Raw contract data" setting was on
+- Address Book edits could relabel an unrelated address or change a displayed recipient without changing signed data
+- Safe signer lists could not be fully reviewed on touch devices, and Safe reviews could overlap another flow
+- Swap flow accepted non-basic signing modes, truncated destination addresses and could be corrupted by ETH2 key calls
+- Address retrieval checksummed with another chain ID than displayed, and ETH2 key requests did not return the BLS key
+- EIP-7702 authorizations could bypass the clone chain binding, and large chain IDs were displayed as "?"
+- Version 1 trusted names could be replayed on other chains, and the EIP-1024 shared secret was wrongly encoded
+- Repeated or incomplete commands, aborted reviews and failures could exhaust memory, leak, stall or answer twice
+- The app wrote into its calling app's memory, and an overlong caller name could overflow address verification screens
+- Various parsing, validation and memory-safety issues found by security review and fuzzing
+
 ## [1.23.0](../../compare/1.22.5...1.23.0) - 2026-09-30
 
 ### Added

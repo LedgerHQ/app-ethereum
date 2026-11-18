@@ -1,14 +1,17 @@
+#ifdef HAVE_EIP712_V1
+
 #include "eip712_v1_commands.h"
 #include "eip712_v1_context.h"
+#include "eip712_session.h"
 #include "eip712_v1_ui_logic.h"
 #include "typed_data.h"
 #include "schema_hash.h"
 #include "eip712_v1_filtering.h"
-#include "common_ui.h"  // ui_idle, ui_error_blind_signing
+#include "common_ui.h"   // ui_idle, ui_error_blind_signing, ui_hold_error_screen
+#include "common_712.h"  // eip712_format_from
 #include "manage_asset_info.h"
-#include "tx_ctx.h"  // get_tx_ctx_count
+#include "operation_ctx.h"  // get_operation_ctx_count
 #include "value_hash.h"
-#include "common_712.h"  // ui_712_start
 #include "eip712_v1_parse.h"
 
 // APDUs P1
@@ -50,11 +53,18 @@ uint16_t handle_eip712_v1_struct_def(uint8_t p2, const uint8_t *cdata, uint8_t l
     bool ret = true;
     uint16_t sw = SWO_PARAMETER_ERROR_NO_INFO;
 
-    if (eip712_v1_context == NULL) {
-        if (appState != APP_STATE_IDLE) {
+    switch (eip712_session_get()) {
+        case EIP712_SESSION_NONE:
+            if (appState != APP_STATE_IDLE) {
+                return SWO_COMMAND_NOT_ALLOWED;
+            }
+            ret = eip712_v1_context_init();
+            break;
+        case EIP712_SESSION_V1:
+            break;
+        case EIP712_SESSION_V2:
+        default:
             return SWO_COMMAND_NOT_ALLOWED;
-        }
-        ret = eip712_v1_context_init();
     }
     if ((v1_get_root_type() != ROOT_NONE) ||
         (ui_712_get_filtering_mode() == EIP712_FILTERING_FULL)) {
@@ -94,7 +104,7 @@ uint16_t handle_eip712_v1_struct_impl(uint8_t p1,
     bool ret = false;
     uint16_t sw = SWO_PARAMETER_ERROR_NO_INFO;
 
-    if (eip712_v1_context == NULL) {
+    if (eip712_session_get() != EIP712_SESSION_V1) {
         sw = SWO_COMMAND_NOT_ALLOWED;
     } else {
         switch (p2) {
@@ -158,7 +168,7 @@ uint16_t handle_eip712_v1_filtering(uint8_t p1, uint8_t p2, const uint8_t *cdata
     uint32_t path_crc = 0;
     uint16_t sw = SWO_PARAMETER_ERROR_NO_INFO;
 
-    if (eip712_v1_context == NULL) {
+    if (eip712_session_get() != EIP712_SESSION_V1) {
         return SWO_COMMAND_NOT_ALLOWED;
     }
     if ((p2 != P2_FILT_ACTIVATE) && (ui_712_get_filtering_mode() != EIP712_FILTERING_FULL)) {
@@ -268,7 +278,7 @@ uint16_t handle_eip712_v1_sign(const uint8_t *cdata, uint8_t length) {
     uint16_t sw = SWO_PARAMETER_ERROR_NO_INFO;
     e_eip712_filtering_mode filt_mode = ui_712_get_filtering_mode();
 
-    if (eip712_v1_context == NULL) {
+    if (eip712_session_get() != EIP712_SESSION_V1) {
         sw = SWO_COMMAND_NOT_ALLOWED;
     } else if (!v1_is_complete()) {
         PRINTF("impl not complete\n");
@@ -285,10 +295,12 @@ uint16_t handle_eip712_v1_sign(const uint8_t *cdata, uint8_t length) {
                 ui_712_filtering_broken() || ui_712_pending_amount_joins())) {
         PRINTF("%d EIP712 filters are missing\n", ui_712_remaining_filters());
         sw = SWO_REFERENCED_DATA_NOT_FOUND;
-    } else if (!all_calldata_info_processed() || (get_tx_ctx_count() != 0)) {
+    } else if (!all_calldata_info_processed() || (get_operation_ctx_count() != 0)) {
         PRINTF("Unprocessed calldata\n");
         sw = SWO_REFERENCED_DATA_NOT_FOUND;
     } else if (parseBip32(cdata, &length, &tmpCtx.messageSigningContext.bip32) == NULL) {
+        sw = SWO_INCORRECT_DATA;
+    } else if (!eip712_format_from(&tmpCtx.messageSigningContext.bip32)) {
         sw = SWO_INCORRECT_DATA;
     } else {
         // impl APDUs never trigger display, so enforce blind-signing protection and transition to
@@ -296,12 +308,13 @@ uint16_t handle_eip712_v1_sign(const uint8_t *cdata, uint8_t length) {
         if ((filt_mode == EIP712_FILTERING_BASIC) && !N_storage.dataAllowed &&
             !N_storage.verbose_eip712) {
             ui_error_blind_signing();
+            ui_hold_error_screen();
             sw = SWO_INCORRECT_DATA;
         } else {
             bool should_start_ui = true;
             sw = SWO_SUCCESS;
 
-            // Only call ui_712_start() if not already in signing state (FULL filtering may have
+            // Only prepare the review if not already in signing state (FULL filtering may have
             // already transitioned it via display)
             if (appState != APP_STATE_SIGNING_EIP712) {
                 // For verbose/no-filtering mode, populate UI pairs from the value tree before
@@ -314,21 +327,23 @@ uint16_t handle_eip712_v1_sign(const uint8_t *cdata, uint8_t length) {
                     }
                 }
                 if (should_start_ui) {
-                    if (!(ret = ui_712_start(filt_mode))) {
-                        PRINTF("SIGN fail: ui_712_start\n");
+                    if (!(ret = ui_712_prepare_review_v1(filt_mode))) {
+                        PRINTF("SIGN fail: ui_712_prepare_review_v1\n");
                         sw = SWO_INCORRECT_DATA;
                     }
                 }
             }
             if (should_start_ui && (sw == SWO_SUCCESS)) {
+                ret = true;
 #ifndef SCREEN_SIZE_WALLET
                 if (!N_storage.verbose_eip712 && (filt_mode == EIP712_FILTERING_BASIC)) {
                     ret = ui_712_message_hash();
                 }
 #endif
-                if (ui_712_end_sign()) {
-                    ret = true;
-                } else {
+                if (ret) {
+                    ret = ui_712_end_sign();
+                }
+                if (!ret) {
                     sw = SWO_COMMAND_ERROR_NO_INFO;
                 }
             }
@@ -340,3 +355,5 @@ uint16_t handle_eip712_v1_sign(const uint8_t *cdata, uint8_t length) {
     }
     return SWO_NO_RESPONSE;
 }
+
+#endif  // HAVE_EIP712_V1

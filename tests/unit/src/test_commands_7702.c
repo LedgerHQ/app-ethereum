@@ -16,7 +16,7 @@
  *
  * Coverage drives both halves end-to-end through real tlv_apdu.c +
  * real auth_7702.c + real rlp_encode.c + real whitelist_7702.c. The
- * SDK crypto primitives, get_public_key_string, and the UI hooks are
+ * SDK crypto primitives, get_displayable_address, and the UI hooks are
  * stubbed.
  *
  * The appState lock is the load-bearing defense: without it a hostile
@@ -102,7 +102,7 @@ bool finalize_hash(cx_hash_t *hash_ctx, uint8_t *out, size_t out_len) {
 // false (0 = first, 1 = second, ...). Default -1 = never fail.
 static int g_calloc_fail_at_call_n = -1;
 static int g_calloc_call_count = 0;
-bool mem_utils_calloc(void **buffer, uint16_t size, bool permanent, const char *file, int line) {
+bool mem_utils_calloc(void **buffer, size_t size, bool permanent, const char *file, int line) {
     (void) permanent;
     (void) file;
     (void) line;
@@ -120,22 +120,19 @@ bool mem_utils_calloc(void **buffer, uint16_t size, bool permanent, const char *
     return true;
 }
 
-uint32_t get_public_key_string(bip32_path_t *bip32,
-                               uint8_t *publicKey,
-                               char *address,
-                               uint8_t *chainCode,
-                               uint64_t chainId) {
+bool get_displayable_address(const bip32_path_t *bip32,
+                             char *out,
+                             size_t out_size,
+                             uint64_t chain_id) {
     (void) bip32;
-    (void) publicKey;
-    (void) chainCode;
-    (void) chainId;
-    if (address != NULL) address[0] = '\0';
-    return CX_OK;
+    (void) chain_id;
+    if ((out != NULL) && (out_size > 0)) out[0] = '\0';
+    return true;
 }
 
-const char *get_network_name_from_chain_id(const uint64_t *chain_id) {
-    (void) chain_id;
-    return NULL;
+// No known network name: the chain ID is written in decimal
+bool get_network_as_string_from_chain_id(char *out, size_t out_size, uint64_t chain_id) {
+    return format_u64(out, out_size, chain_id);
 }
 
 void hash_nbytes(const uint8_t *bytes, size_t n, cx_hash_t *hash_ctx) {
@@ -220,10 +217,16 @@ static size_t build_tlv_payload(uint8_t *out,
     tlv[off++] = ADDRESS_LENGTH;
     memcpy(tlv + off, delegate, ADDRESS_LENGTH);
     off += ADDRESS_LENGTH;
-    tlv[off++] = 0x02;  // TAG_CHAIN_ID
-    tlv[off++] = 0x01;
-    tlv[off++] = (uint8_t) (chain_id & 0xFF);  // single byte chain_id (sufficient for tests)
-    tlv[off++] = 0x03;                         // TAG_NONCE
+    tlv[off++] = 0x02;  // TAG_CHAIN_ID, minimal big-endian encoding
+    size_t chain_id_len = 1;
+    while ((chain_id_len < sizeof(chain_id)) && ((chain_id >> (8 * chain_id_len)) != 0)) {
+        chain_id_len++;
+    }
+    tlv[off++] = (uint8_t) chain_id_len;
+    for (size_t i = chain_id_len; i > 0; --i) {
+        tlv[off++] = (uint8_t) (chain_id >> (8 * (i - 1)));
+    }
+    tlv[off++] = 0x03;  // TAG_NONCE
     tlv[off++] = 0x01;
     tlv[off++] = nonce;
 
@@ -281,6 +284,23 @@ void test_happy_path_drives_auth_review(void) {
     TEST_ASSERT_EQUAL_STRING(strings.common.toAddress, "Simple7702Account");
 }
 
+void test_multi_chunk_payload_acknowledges_then_drives_review(void) {
+    uint8_t payload[80];
+    size_t len = build_tlv_payload(payload, sizeof(payload), 0x01, g_simple7702_account, 1, 0x07);
+    size_t first_len = len / 2;
+
+    uint16_t sw = handle_sign_eip7702_authorization(P1_FIRST_CHUNK, payload, (uint8_t) first_len);
+    TEST_ASSERT_EQUAL(sw, SWO_SUCCESS);
+    TEST_ASSERT_EQUAL(appState, APP_STATE_SIGNING_EIP7702);
+    TEST_ASSERT_EQUAL(g_ui_auth_calls, 0);
+
+    sw = handle_sign_eip7702_authorization(P1_FOLLOWING_CHUNK,
+                                           payload + first_len,
+                                           (uint8_t) (len - first_len));
+    TEST_ASSERT_EQUAL(sw, SWO_NO_RESPONSE);
+    TEST_ASSERT_EQUAL(g_ui_auth_calls, 1);
+}
+
 void test_revocation_path_drives_revocation_review(void) {
     // Delegate = 20 zero bytes triggers the revocation branch (no
     // whitelist lookup — the user is revoking the active delegation).
@@ -334,15 +354,62 @@ void test_invalid_version_rejected(void) {
     TEST_ASSERT_EQUAL(g_ui_auth_calls, 0);
 }
 
+void test_clone_other_chain_rejected(void) {
+    static const uint8_t zero_delegate[ADDRESS_LENGTH] = {0};
+    static const uint64_t other_chains[] = {ETHEREUM_MAINNET_CHAINID, CHAIN_ID_ALL, 62};
+    uint8_t payload[80];
+    size_t len;
+
+    for (size_t i = 0; i < ARRAYLEN(other_chains); ++i) {
+        // Both an authorization and a revocation are bound to the clone's chain
+        for (int revocation = 0; revocation < 2; ++revocation) {
+            reset();
+            g_chainConfig.chain_id = 61;
+            len = build_tlv_payload(payload,
+                                    sizeof(payload),
+                                    0x01,
+                                    revocation ? zero_delegate : g_simple7702_account,
+                                    other_chains[i],
+                                    0x00);
+            uint16_t sw = handle_sign_eip7702_authorization(P1_FIRST_CHUNK, payload, (uint8_t) len);
+            TEST_ASSERT_EQUAL(SWO_INCORRECT_DATA, sw);
+            TEST_ASSERT_EQUAL(0, g_ui_auth_calls);
+            TEST_ASSERT_EQUAL(0, g_ui_revocation_calls);
+            TEST_ASSERT_EQUAL(APP_STATE_IDLE, appState);
+        }
+    }
+    g_chainConfig.chain_id = ETHEREUM_MAINNET_CHAINID;
+}
+
+void test_clone_own_chain_accepted(void) {
+    g_chainConfig.chain_id = 61;
+    uint8_t payload[80];
+    size_t len = build_tlv_payload(payload, sizeof(payload), 0x01, g_simple7702_account, 61, 0x00);
+    uint16_t sw = handle_sign_eip7702_authorization(P1_FIRST_CHUNK, payload, (uint8_t) len);
+    g_chainConfig.chain_id = ETHEREUM_MAINNET_CHAINID;
+    TEST_ASSERT_EQUAL(SWO_NO_RESPONSE, sw);
+    TEST_ASSERT_EQUAL(1, g_ui_auth_calls);
+}
+
 void test_chain_id_all_uses_wildcard_display(void) {
     // CHAIN_ID_ALL (= 0) lands on the "All" wildcard label rather
-    // than calling get_network_name_from_chain_id / format_u64.
+    // than calling get_network_as_string_from_chain_id.
     uint8_t payload[80];
     size_t len =
         build_tlv_payload(payload, sizeof(payload), 0x01, g_simple7702_account, CHAIN_ID_ALL, 0x00);
     uint16_t sw = handle_sign_eip7702_authorization(P1_FIRST_CHUNK, payload, (uint8_t) len);
     TEST_ASSERT_EQUAL(sw, SWO_NO_RESPONSE);
     TEST_ASSERT_EQUAL_STRING(strings.common.network_name, "All");
+}
+
+void test_max_chain_id_fully_displayed(void) {
+    // The largest chain ID is displayed with all its digits, never replaced by a placeholder
+    uint8_t payload[80];
+    size_t len =
+        build_tlv_payload(payload, sizeof(payload), 0x01, g_simple7702_account, UINT64_MAX, 0x00);
+    uint16_t sw = handle_sign_eip7702_authorization(P1_FIRST_CHUNK, payload, (uint8_t) len);
+    TEST_ASSERT_EQUAL(sw, SWO_NO_RESPONSE);
+    TEST_ASSERT_EQUAL_STRING(strings.common.network_name, "18446744073709551615");
 }
 
 void test_finalize_hash_failure_short_circuits_review(void) {
@@ -401,11 +468,15 @@ int main(void) {
     RUN_TEST(test_first_chunk_parseBip32_failure_resets_app_context);
     RUN_TEST(test_continuation_chunk_outside_session_rejected);
     RUN_TEST(test_happy_path_drives_auth_review);
+    RUN_TEST(test_multi_chunk_payload_acknowledges_then_drives_review);
     RUN_TEST(test_revocation_path_drives_revocation_review);
     RUN_TEST(test_eip7702_disabled_rejected);
     RUN_TEST(test_delegate_not_in_whitelist_rejected);
     RUN_TEST(test_invalid_version_rejected);
+    RUN_TEST(test_clone_other_chain_rejected);
+    RUN_TEST(test_clone_own_chain_accepted);
     RUN_TEST(test_chain_id_all_uses_wildcard_display);
+    RUN_TEST(test_max_chain_id_fully_displayed);
     RUN_TEST(test_finalize_hash_failure_short_circuits_review);
     RUN_TEST(test_hashRLP_with_too_small_buffer_returns_parameter_error);
     RUN_TEST(test_hash_ctx_alloc_failure_short_circuits_review);

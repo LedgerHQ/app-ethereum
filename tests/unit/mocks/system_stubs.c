@@ -4,9 +4,11 @@
  *
  * This file provides two categories of stubs:
  *  1. Weak default stubs for app functions that are not linked in most test
- *     binaries. The defaults return a sensible success value. Any test that
- *     needs to control the behaviour or inspect arguments installs a strong
- *     local definition that overrides the weak one at link time.
+ *     binaries. The defaults return a sensible success value, except security
+ *     checks (signature, challenge, TLV framing, tx data copy, chain policy),
+ *     which fail the test. Any test that needs to control the behaviour or
+ *     inspect arguments installs a strong local definition that overrides the
+ *     weak one at link time.
  *  2. Noreturn stubs (app_exit, send_swap_error_simple) with the longjmp
  *     handshake used by the EXPECT_NORETURN() macro in wraps.h.
  *
@@ -21,9 +23,11 @@
 #include <stdint.h>
 #include <string.h>
 
+#include "unity.h"
 #include "buffer.h"
 #include "cx_errors.h"
 #include "tlv_apdu.h"
+#include "plugins/eth_plugin_handler.h"
 
 // Forward-declared SDK opaque types (avoid pulling lcx_*.h here).
 typedef struct cx_hash_header_s cx_hash_t;
@@ -56,7 +60,8 @@ __attribute__((weak)) bool check_signature_with_pubkey(uint8_t *buffer,
     (void) keyUsageExp;
     (void) signature;
     (void) sigLen;
-    return true;
+    TEST_FAIL_MESSAGE("check_signature_with_pubkey: no override in this test");
+    return false;
 }
 
 // =============================================================================
@@ -87,7 +92,8 @@ __attribute__((weak)) e_tlv_apdu_ret tlv_from_apdu(bool first_chunk,
     (void) lc;
     (void) payload;
     (void) handler;
-    return TLV_APDU_SUCCESS;
+    TEST_FAIL_MESSAGE("tlv_from_apdu: no override in this test");
+    return TLV_APDU_ERROR;
 }
 
 // =============================================================================
@@ -138,7 +144,8 @@ bool tlv_parse(const uint8_t *payload, uint16_t size, void *handler, void *conte
 
 __attribute__((weak)) bool check_challenge(uint32_t received_challenge) {
     (void) received_challenge;
-    return true;
+    TEST_FAIL_MESSAGE("check_challenge: no override in this test");
+    return false;
 }
 
 __attribute__((weak)) uint64_t u64_from_BE(const uint8_t *in, uint8_t size) {
@@ -153,7 +160,7 @@ __attribute__((weak)) uint64_t u64_from_BE(const uint8_t *in, uint8_t size) {
 }
 
 // =============================================================================
-// app/src/features/generic_tx_parser/gtp_field_table.c
+// app/src/features/gcs/gcs_field_table.c
 // =============================================================================
 
 __attribute__((weak)) bool add_to_field_table(int type,
@@ -167,8 +174,9 @@ __attribute__((weak)) bool add_to_field_table(int type,
     return true;
 }
 
-__attribute__((weak)) bool set_intent_field(const char *value) {
+__attribute__((weak)) bool set_intent_field(const char *value, uint8_t batch_size) {
     (void) value;
+    (void) batch_size;
     return true;
 }
 
@@ -298,27 +306,76 @@ __attribute__((weak)) bool data_path_get(const void *data_path, void *collection
 }
 
 // =============================================================================
-// app/src/features/generic_tx_parser/tx_ctx.c
+// app/src/features/gcs/operation_ctx.c
 // =============================================================================
 
-__attribute__((weak)) const uint8_t *get_current_tx_to(void) {
+__attribute__((weak)) const void *get_current_operation_info(void) {
     return NULL;
 }
 
-__attribute__((weak)) const uint8_t *get_current_tx_from(void) {
+__attribute__((weak)) bool get_current_operation_chain_id(uint64_t *chain_id) {
+    (void) chain_id;
+    return false;
+}
+
+__attribute__((weak)) const uint8_t *get_current_operation_from(void) {
     return NULL;
 }
 
-__attribute__((weak)) const uint8_t *get_current_tx_info(void) {
+__attribute__((weak)) const uint8_t *get_current_operation_to(void) {
     return NULL;
 }
 
-__attribute__((weak)) const uint8_t *get_current_tx_amount(void) {
+__attribute__((weak)) const uint8_t *get_current_operation_amount(void) {
     return NULL;
+}
+
+__attribute__((weak)) void *get_current_operation_fields_hash_ctx(void) {
+    return NULL;
+}
+
+__attribute__((weak)) bool get_current_operation_key(void *key) {
+    (void) key;
+    return false;
+}
+
+__attribute__((weak)) bool operation_ctx_is_describing_call(void) {
+    return false;
+}
+
+__attribute__((weak)) bool operation_ctx_has_message(void) {
+    return false;
+}
+
+__attribute__((weak)) bool operation_ctx_message_has_pending_fields(void) {
+    return false;
+}
+
+__attribute__((weak)) bool operation_ctx_message_fields_match(void) {
+    return false;
 }
 
 // =============================================================================
-// app/src/features/generic_tx_parser/gtp_value.c
+// app/src/features/sign_message_eip712/eip712_v2_path.c
+// =============================================================================
+
+struct s_eip712_path_context;
+
+__attribute__((weak)) bool handle_eip712_path_struct(const void *buf,
+                                                     struct s_eip712_path_context *context) {
+    (void) buf;
+    (void) context;
+    return false;
+}
+
+__attribute__((weak)) bool eip712_path_get(const void *path, void *collection) {
+    (void) path;
+    (void) collection;
+    return false;
+}
+
+// =============================================================================
+// app/src/features/gcs/gcs_value.c
 // =============================================================================
 
 struct s_value;
@@ -354,37 +411,43 @@ __attribute__((weak)) bool copy_tx_data(struct txContext_t *context,
     (void) context;
     (void) out;
     (void) length;
-    return true;
+    TEST_FAIL_MESSAGE("copy_tx_data: no override in this test");
+    return false;
 }
 
-__attribute__((weak)) void eth_plugin_prepare_init(void *msg,
-                                                   const uint8_t *pluginName,
-                                                   uint8_t pluginNameLength) {
-    (void) msg;
-    (void) pluginName;
-    (void) pluginNameLength;
+__attribute__((weak)) void eth_plugin_prepare_init(ethPluginInitContract_t *init,
+                                                   const uint8_t *selector,
+                                                   uint32_t data_size) {
+    (void) init;
+    (void) selector;
+    (void) data_size;
 }
 
-__attribute__((weak)) bool eth_plugin_perform_init(uint8_t *contractAddress, void *msg) {
-    (void) contractAddress;
-    (void) msg;
-    return true;
+// No plugin handles the contract unless a test overrides this.
+__attribute__((weak)) eth_plugin_result_t eth_plugin_perform_init(uint8_t *contract_address,
+                                                                  ethPluginInitContract_t *init) {
+    (void) contract_address;
+    (void) init;
+    return ETH_PLUGIN_RESULT_UNAVAILABLE;
 }
 
-__attribute__((weak)) void eth_plugin_prepare_finalize(void *msg) {
-    (void) msg;
+__attribute__((weak)) void eth_plugin_prepare_finalize(ethPluginFinalize_t *finalize) {
+    (void) finalize;
 }
 
-__attribute__((weak)) void eth_plugin_prepare_provide_info(void *msg) {
-    (void) msg;
+__attribute__((weak)) void eth_plugin_prepare_provide_info(ethPluginProvideInfo_t *provide_token) {
+    (void) provide_token;
 }
 
-__attribute__((weak)) void eth_plugin_prepare_provide_parameter(void *msg,
-                                                                const uint8_t *param,
-                                                                uint32_t paramOffset) {
-    (void) msg;
-    (void) param;
-    (void) paramOffset;
+__attribute__((weak)) void eth_plugin_prepare_provide_parameter(
+    ethPluginProvideParameter_t *provide_parameter,
+    uint8_t *parameter,
+    uint32_t parameter_offset,
+    uint8_t parameter_size) {
+    (void) provide_parameter;
+    (void) parameter;
+    (void) parameter_offset;
+    (void) parameter_size;
 }
 
 __attribute__((weak)) void *get_matching_asset_info(const uint64_t *chain_id,
@@ -407,6 +470,10 @@ __attribute__((weak)) struct s_calldata *get_root_calldata(void) {
 
 __attribute__((weak)) const uint8_t *calldata_get_selector(const struct s_calldata *node) {
     (void) node;
+    return NULL;
+}
+
+__attribute__((weak)) struct s_calldata *get_current_calldata(void) {
     return NULL;
 }
 
@@ -442,7 +509,7 @@ __attribute__((weak)) __attribute__((noreturn)) void app_exit(void) {
     }
 }
 
-__attribute__((weak)) __attribute__((noreturn)) void os_sched_exit(unsigned int exit_code) {
+__attribute__((weak)) __attribute__((noreturn)) void os_sched_exit(bolos_task_status_t exit_code) {
     (void) exit_code;
     g_noreturn_calls++;
     if (g_noreturn_armed) longjmp(g_noreturn_jmp, 1);
@@ -450,8 +517,11 @@ __attribute__((weak)) __attribute__((noreturn)) void os_sched_exit(unsigned int 
     }
 }
 
-__attribute__((weak)) void app_quit(void) {
+__attribute__((weak)) __attribute__((noreturn)) void app_quit(void) {
     g_noreturn_calls++;
+    if (g_noreturn_armed) longjmp(g_noreturn_jmp, 1);
+    while (1) {
+    }
 }
 
 __attribute__((weak)) __attribute__((noreturn)) void send_swap_error_simple(
@@ -467,22 +537,48 @@ __attribute__((weak)) __attribute__((noreturn)) void send_swap_error_simple(
     }
 }
 
-// Default: not at the root context, so value_get_rlp() never marks the root
-// FROM/VALUE rows as shown. Tests that exercise the dedup hooks install their
-// own strong definitions.
-__attribute__((weak)) bool tx_ctx_is_root(void) {
+__attribute__((weak)) bool operation_ctx_is_root(void) {
     return false;
 }
 
-__attribute__((weak)) void gcs_set_root_from_shown(void) {
+// What a review row shows is recorded for the dedup of the review rows; tests that exercise it
+// install their own strong definitions.
+__attribute__((weak)) void operation_ctx_set_shown(uint8_t what,
+                                                   uint8_t as,
+                                                   uint32_t key,
+                                                   uint8_t index) {
+    (void) what;
+    (void) as;
+    (void) key;
+    (void) index;
 }
 
-__attribute__((weak)) void gcs_set_root_value_shown(void) {
+__attribute__((weak)) bool operation_ctx_set_last_origin(const void *origin) {
+    (void) origin;
+    return true;
 }
 
-// Default: every chain is signable. Tests covering the rejection install a
-// strong local definition.
+__attribute__((weak)) bool operation_ctx_add_unshown_rows(void) {
+    return true;
+}
+
+__attribute__((weak)) void value_set_shown(const void *value, uint8_t index) {
+    (void) value;
+    (void) index;
+}
+
+__attribute__((weak)) void value_set_selector_shown(const void *value, uint8_t index) {
+    (void) value;
+    (void) index;
+}
+
+__attribute__((weak)) uint32_t value_source_key(const void *value) {
+    (void) value;
+    return 0;
+}
+
 __attribute__((weak)) bool chain_id_is_signable(uint64_t chain_id) {
     (void) chain_id;
-    return true;
+    TEST_FAIL_MESSAGE("chain_id_is_signable: no override in this test");
+    return false;
 }

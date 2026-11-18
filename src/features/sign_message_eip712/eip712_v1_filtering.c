@@ -1,3 +1,5 @@
+#ifdef HAVE_EIP712_V1
+
 #include "eip712_v1_filtering.h"
 #include "public_keys.h"
 #include "manage_asset_info.h"
@@ -279,7 +281,7 @@ bool filtering_message_info(const uint8_t *payload, uint8_t length) {
                         return false;
                     }
                 } else {
-                    if (!format_u64(strings.tmp.tmp, NETWORK_STRING_MAX_SIZE, domain_chain_id)) {
+                    if (!format_u64(strings.tmp.tmp, sizeof(strings.tmp.tmp), domain_chain_id)) {
                         return false;
                     }
                     if (!ui_712_set_value(strings.tmp.tmp, strlen(strings.tmp.tmp))) {
@@ -1368,3 +1370,5 @@ bool filtering_compute_current_path_crc(uint32_t *path_crc) {
     // reuse the path hashing; the magic byte does not matter for a CRC
     return hash_filtering_path((cx_hash_t *) &hash_ctx, false, path_crc);
 }
+
+#endif  // HAVE_EIP712_V1

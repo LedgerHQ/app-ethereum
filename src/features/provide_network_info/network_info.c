@@ -289,18 +289,18 @@ static bool verify_network_info_struct(const s_network_info_ctx *context) {
  * @return whether it was successful
  */
 static bool append_network_info(const s_network_info_ctx *context) {
-    // Check if the chain ID is already registered, if so delete it to prevent duplicates
-    network_info_t *existing = find_dynamic_network_by_chain_id(context->network.chain_id);
-    if (existing != NULL) {
-        PRINTF("Network information already exist... Deleting it first!\n");
-        // network_info_cleanup() also resets g_last_added_network if it points here
-        network_info_cleanup(existing);
-    }
     // Do not track the allocation in logs, because this buffer is expected to stay allocated
     network_info_t *new_network = NULL;
     if (APP_MEM_PERMANENT((void **) &new_network, sizeof(network_info_t)) == false) {
         PRINTF("Memory allocation failed for network info\n");
         return false;
+    }
+    // A chain ID already registered is replaced, once the new entry is allocated
+    network_info_t *existing = find_dynamic_network_by_chain_id(context->network.chain_id);
+    if (existing != NULL) {
+        PRINTF("Network information already exist... Deleting it first!\n");
+        // network_info_cleanup() also resets g_last_added_network if it points here
+        network_info_cleanup(existing);
     }
 
     // Copy the network information

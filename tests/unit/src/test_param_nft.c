@@ -1,7 +1,7 @@
 /**
  * @file test_param_nft.c
  * @brief Unit tests for the NFT parameter in
- *        src/features/generic_tx_parser/gtp_param_nft.c.
+ *        src/features/gcs/gcs_param_nft.c.
  *
  * NFT renders a "<collection_name> #<id>" field. The formatter draws
  * two parallel value collections — `collection` (addresses) and `id`
@@ -11,7 +11,7 @@
  *
  * Beyond the broadcast rule, the formatter chains a few hard
  * preconditions:
- *   - get_current_tx_info must be non-NULL,
+ *   - the operation being described must be on a chain,
  *   - both value_get calls must succeed,
  *   - collections.size cannot be zero,
  *   - each get_matching_nft_info lookup must hit a registered entry,
@@ -25,11 +25,11 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#include "gtp_param_nft.h"
-#include "gtp_parsed_value.h"
-#include "gtp_value.h"
-#include "gtp_field.h"
-#include "gtp_tx_info.h"
+#include "gcs_param_nft.h"
+#include "gcs_parsed_value.h"
+#include "gcs_value.h"
+#include "gcs_field.h"
+#include "operation_info.h"
 #include "nft_info.h"
 #include "shared_context.h"
 #include "wraps.h"
@@ -66,7 +66,7 @@ bool handle_value_struct(const buffer_t *buf, s_value_context *context) {
     return g_hvs_ret;
 }
 
-static s_tx_info g_fake_tx_info;
+static s_operation_info g_fake_tx_info;
 
 const s_nft_info *get_matching_nft_info(const uint64_t *chain_id, const uint8_t *address) {
     (void) chain_id;
@@ -81,9 +81,13 @@ bool add_to_field_table(e_param_type type,
     return (bool) g_add_to_field_table_ret;
 }
 
-static const s_tx_info *s_tx_info_ret = NULL;
-const s_tx_info *get_current_tx_info(void) {
-    return s_tx_info_ret;
+static const s_operation_info *s_tx_info_ret = NULL;
+bool get_current_operation_chain_id(uint64_t *chain_id) {
+    if (s_tx_info_ret == NULL) {
+        return false;
+    }
+    *chain_id = s_tx_info_ret->chain_id;
+    return true;
 }
 
 // =============================================================================
@@ -288,6 +292,18 @@ static bool run_tlv(const uint8_t *bytes, size_t size, s_param_nft *param) {
     return handle_param_nft_struct(&buf, &ctx);
 }
 
+void test_tlv_version_other_than_one_refused(void) {
+    uint8_t bytes[] = {0x00, 0x01, 0x01, 0x01, 0x00, 0x02, 0x00};
+    const uint8_t other_versions[] = {0x00, 0x02, 0xFF};
+    s_param_nft param = {0};
+
+    TEST_ASSERT_TRUE(run_tlv(bytes, sizeof(bytes), &param));
+    for (size_t i = 0; i < sizeof(other_versions); i++) {
+        bytes[2] = other_versions[i];
+        TEST_ASSERT_FALSE(run_tlv(bytes, sizeof(bytes), &param));
+    }
+}
+
 void test_tlv_happy_path(void) {
     const uint8_t bytes[] = {
         0x00,
@@ -341,6 +357,7 @@ int main(void) {
     RUN_TEST(test_format_value_get_ids_failure_rejected);
     RUN_TEST(test_format_tx_info_null_rejected);
     RUN_TEST(test_format_add_to_field_table_failure_propagates);
+    RUN_TEST(test_tlv_version_other_than_one_refused);
     RUN_TEST(test_tlv_happy_path);
     RUN_TEST(test_tlv_duplicate_collection_rejected);
     return UNITY_END();

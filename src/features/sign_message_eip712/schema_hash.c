@@ -1,3 +1,5 @@
+#ifdef HAVE_EIP712_V1
+
 #include "schema_hash.h"
 #include "typed_data.h"
 #include "format_hash_field_type.h"
@@ -95,3 +97,5 @@ bool compute_schema_hash(uint8_t hash[CX_SHA224_SIZE]) {
 
     return cx_hash_final((cx_hash_t *) &hash_ctx, hash) == CX_OK;
 }
+
+#endif  // HAVE_EIP712_V1

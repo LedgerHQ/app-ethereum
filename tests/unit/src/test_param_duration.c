@@ -1,7 +1,7 @@
 /**
  * @file test_param_duration.c
  * @brief Unit tests for the DURATION parameter in
- *        src/features/generic_tx_parser/gtp_param_duration.c.
+ *        src/features/gcs/gcs_param_duration.c.
  *
  * DURATION converts an unsigned-seconds value into a "1d02h03m04s" style
  * string, with each component dropped when its count is zero AND at least
@@ -23,10 +23,10 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#include "gtp_param_duration.h"
-#include "gtp_parsed_value.h"
-#include "gtp_value.h"
-#include "gtp_field.h"
+#include "gcs_param_duration.h"
+#include "gcs_parsed_value.h"
+#include "gcs_value.h"
+#include "gcs_field.h"
 #include "shared_context.h"
 
 // =============================================================================
@@ -182,17 +182,29 @@ static bool run_tlv(const uint8_t *bytes, size_t size, s_param_duration *param) 
     return handle_param_duration_struct(&buf, &ctx);
 }
 
+void test_tlv_version_other_than_one_refused(void) {
+    uint8_t bytes[] = {0x00, 0x01, 0x01, 0x01, 0x00};
+    const uint8_t other_versions[] = {0x00, 0x02, 0xFF};
+    s_param_duration param = {0};
+
+    TEST_ASSERT_TRUE(run_tlv(bytes, sizeof(bytes), &param));
+    for (size_t i = 0; i < sizeof(other_versions); i++) {
+        bytes[2] = other_versions[i];
+        TEST_ASSERT_FALSE(run_tlv(bytes, sizeof(bytes), &param));
+    }
+}
+
 void test_tlv_happy_path(void) {
     const uint8_t bytes[] = {
         0x00,
         0x01,
-        0x07,  // VERSION = 7
+        0x01,  // VERSION = 1
         0x01,
         0x00,  // VALUE empty (handle_value_struct wrapped)
     };
     s_param_duration param = {0};
     TEST_ASSERT_TRUE(run_tlv(bytes, sizeof(bytes), &param));
-    TEST_ASSERT_EQUAL(param.version, 7);
+    TEST_ASSERT_EQUAL(param.version, 1);
 }
 
 void test_tlv_duplicate_version_rejected(void) {
@@ -230,6 +242,7 @@ int main(void) {
     RUN_TEST(test_format_composite_d_h_m_s);
     RUN_TEST(test_format_value_get_failure_returns_false);
     RUN_TEST(test_format_add_to_field_table_failure_propagates);
+    RUN_TEST(test_tlv_version_other_than_one_refused);
     RUN_TEST(test_tlv_happy_path);
     RUN_TEST(test_tlv_duplicate_version_rejected);
     return UNITY_END();

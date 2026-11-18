@@ -615,6 +615,76 @@ def decode_generic_tlv(
 # ===============================================================================
 #          Decode APDU SIGN
 # ===============================================================================
+def rlp_envelope_length(rlp_bytes: bytes) -> int | None:
+    """Total length of a typed or legacy transaction, None until its RLP list header is received.
+    Args:
+        rlp_bytes: start of the transaction bytes
+    """
+
+    offset = 1 if rlp_bytes and rlp_bytes[0] < 0xC0 else 0
+    if len(rlp_bytes) <= offset or rlp_bytes[offset] < 0xC0:
+        return None
+    prefix = rlp_bytes[offset]
+    if prefix <= 0xF7:
+        return offset + 1 + prefix - 0xC0
+    len_len = prefix - 0xF7
+    if len(rlp_bytes) < offset + 1 + len_len:
+        return None
+    return offset + 1 + len_len + int.from_bytes(rlp_bytes[offset + 1 : offset + 1 + len_len], "big")
+
+
+def store_sign_chunk(p1: int, data: bytes) -> None:
+    """Accumulate one SIGN chunk; the first one starts a new transaction with its BIP32 path.
+    Args:
+        p1: chunk P1
+        data: chunk payload
+    """
+
+    if p1 == P1Type.SIGN_FIRST_CHUNK:
+        # Extract derivation path
+        path_length = to_int(data[0])
+        data = data[1:]  # Skip path length byte
+        derived_path = []
+        for _ in range(path_length):
+            index = to_int(data[:4])
+            derived_path.append(index)
+            data = data[4:]  # Skip 4 bytes (8 hex chars) for each index
+        # Format and display the path
+        transaction["BIP32 path"] = format_bip32_path(derived_path)
+        transaction["RLP transaction"] = b""
+
+    # The remaining data is the RLP-encoded transaction
+    transaction["RLP transaction"] += data
+
+
+def print_sign_transaction() -> None:
+    """Decode and log the accumulated transaction."""
+
+    print_title("SIGN APDU")
+
+    decode_rlp_transaction(transaction["RLP transaction"])
+
+    # Log transaction fields
+    logger.info(f"BIP32 path: {transaction['BIP32 path']}")
+    logger.info(
+        f"RLP transaction[{len(transaction['RLP transaction'])}]: 0x{transaction['RLP transaction'].hex()[:MAX_BYTES_LEN]}..."
+    )
+    format_decoded_params(transaction["TX params"], "Transaction Params")
+
+    # Print 32-bytes length chunks of RLP transaction
+    rlp_tx = transaction["TX params"]["data"]
+    logger.debug("=" * 60)
+    logger.debug("RLP TRANSACTION DATA (32-byte chunks)")
+    logger.debug("=" * 60)
+    for i in range(0, len(rlp_tx), 32):
+        chunk_index = i // 32
+        logger.debug(f"Chunk {chunk_index:3d} [{i:4d}-{i + 31:4d}]: {rlp_tx[i : i + 32].hex()}")
+
+    # Decode function parameters if available
+    decoded_params = decode_function_data(transaction["TX params"]["selector"], transaction["TX params"]["data"])
+    format_decoded_params(decoded_params, "Function Parameters")
+
+
 def decode_sign_apdu(apdu: bytes) -> None:
     """Decode APDU SIGN command for Ethereum transaction signing.
     Args:
@@ -626,45 +696,18 @@ def decode_sign_apdu(apdu: bytes) -> None:
     lc = int(apdu[4])
     data = apdu[5 : 5 + lc]
 
-    if p2 == P2Type.SIGN_STORE:
-        if p1 == P1Type.SIGN_FIRST_CHUNK:
-            # Extract derivation path
-            path_length = to_int(data[0])
-            data = data[1:]  # Skip path length byte
-            derived_path = []
-            for _ in range(path_length):
-                index = to_int(data[:4])
-                derived_path.append(index)
-                data = data[4:]  # Skip 4 bytes (8 hex chars) for each index
-            # Format and display the path
-            transaction["BIP32 path"] = format_bip32_path(derived_path)
-
-        # The remaining data is the RLP-encoded transaction
-        transaction["RLP transaction"] += data
+    if p2 == P2Type.SIGN_PROCESS_START:
+        # The device starts the review once the whole RLP envelope is received
+        store_sign_chunk(p1, data)
+        total = rlp_envelope_length(transaction["RLP transaction"])
+        if total is not None and len(transaction["RLP transaction"]) >= total:
+            print_sign_transaction()
+    elif p2 == P2Type.SIGN_STORE:
+        store_sign_chunk(p1, data)
     elif p2 == P2Type.SIGN_START:
-        print_title("SIGN APDU")
-
-        decode_rlp_transaction(transaction["RLP transaction"])
-
-        # Log transaction fields
-        logger.info(f"BIP32 path: {transaction['BIP32 path']}")
-        logger.info(
-            f"RLP transaction[{len(transaction['RLP transaction'])}]: 0x{transaction['RLP transaction'].hex()[:MAX_BYTES_LEN]}..."
-        )
-        format_decoded_params(transaction["TX params"], "Transaction Params")
-
-        # Print 32-bytes length chunks of RLP transaction
-        rlp_tx = transaction["TX params"]["data"]
-        logger.debug("=" * 60)
-        logger.debug("RLP TRANSACTION DATA (32-byte chunks)")
-        logger.debug("=" * 60)
-        for i in range(0, len(rlp_tx), 32):
-            chunk_index = i // 32
-            logger.debug(f"Chunk {chunk_index:3d} [{i:4d}-{i + 31:4d}]: {rlp_tx[i : i + 32].hex()}")
-
-        # Decode function parameters if available
-        decoded_params = decode_function_data(transaction["TX params"]["selector"], transaction["TX params"]["data"])
-        format_decoded_params(decoded_params, "Function Parameters")
+        print_sign_transaction()
+    else:
+        logger.error(f"Unsupported SIGN P2: 0x{p2:02x}")
 
 
 # ===============================================================================
@@ -1116,19 +1159,19 @@ def main() -> None:
                     decode_sign_apdu(apdu_bytes)
                 elif ins == InsType.PROVIDE_ERC20_TOKEN_INFORMATION:
                     decode_erc20_token_apdu(apdu_bytes)
-                elif ins == InsType.PROVIDE_TRANSACTION_INFO:
+                elif ins == InsType.PROVIDE_OPERATION_INFO:
                     decode_tlv_apdu(
                         apdu_bytes,
                         decode_struct_information_tlv,
-                        "Transaction Info Struct",
+                        "Operation Info Struct",
                     )
-                elif ins == InsType.PROVIDE_TRANSACTION_FIELD_DESC:
-                    decode_tlv_apdu(apdu_bytes, decode_struct_field_tlv, "Transaction Field Struct")
+                elif ins == InsType.PROVIDE_OPERATION_FIELD_DESC:
+                    decode_tlv_apdu(apdu_bytes, decode_struct_field_tlv, "Operation Field Struct")
                 elif ins == InsType.PROVIDE_ENUM_VALUE:
                     decode_tlv_apdu(apdu_bytes, decode_enum_value_tlv, "Enum Value Struct")
                 elif ins == InsType.PROVIDE_PROXY_INFO:
                     decode_tlv_apdu(apdu_bytes, decode_tlv, "Proxy Info Struct")
-                elif ins == InsType.PROVIDE_NETWORK_INFORMATION:
+                elif ins == InsType.PROVIDE_NETWORK_INFO:
                     decode_tlv_apdu(apdu_bytes, decode_tlv, "Network Info Struct")
                 elif ins == InsType.EIP712_SEND_STRUCT_DEF:
                     decode_eip712_struct_def_apdu(apdu_bytes)

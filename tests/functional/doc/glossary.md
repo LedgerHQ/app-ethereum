@@ -328,6 +328,15 @@ Priority Fee = Min(Max Priority Fee, Max Fee - Base Fee)
 - Uses external descriptors to format display
 - Allows clear signing without app updates
 
+### EIP-712 V1 and V2
+
+- Two ways of sending a typed message to the app
+- V1 streams the types and the values field by field, and an optional filtering description chooses what to show
+- V2 sends the schema and the values as two TLV payloads; a signed message info and field descriptors are optional
+- Without a message info and descriptors, V2 shows every value raw, which is blind signing
+
+📖 [EIP712 V2 specification](../../../doc/eip712.md#v2)
+
 ### Gating Descriptor
 
 - Third-party security information about contracts

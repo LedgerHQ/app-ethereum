@@ -34,22 +34,34 @@ list(APPEND APP_INCLUDE_DIRS ${CMAKE_SOURCE_DIR}/mock)
 # FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION is the shared app/SDK sentinel for
 # fuzz-only relaxations. HAVE_* / APPNAME / ... arrive transitively from
 # secure_sdk (make list-defines + macros/add_macros.txt).
+# HARNESS defaults to harness/<NAME>.c; DEFINITIONS and SOURCES are added to the build.
 function(eth_add_fuzz_target NAME INVARIANT)
+  cmake_parse_arguments(T "" "HARNESS" "DEFINITIONS;SOURCES" ${ARGN})
+  if(NOT T_HARNESS)
+    set(T_HARNESS ${NAME})
+  endif()
   # Invariant models are machine-local and regenerated per build (.gitignored).
   ledger_fuzz_bootstrap_file("${INVARIANT}" ".{}\n")
   ledger_fuzz_add_app_target(
       NAME ${NAME}
-      HARNESS ${CMAKE_SOURCE_DIR}/harness/${NAME}.c
+      HARNESS ${CMAKE_SOURCE_DIR}/harness/${T_HARNESS}.c
       INVARIANT ${INVARIANT}
-      SOURCES ${C_SOURCES} ${ARGN}
+      SOURCES ${C_SOURCES} ${T_SOURCES}
       INCLUDE_DIRECTORIES ${APP_INCLUDE_DIRS}
-      COMPILE_DEFINITIONS FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION=1)
+      COMPILE_DEFINITIONS FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION=1 ${T_DEFINITIONS})
 endfunction()
 
 # Full-app target: one input drives a sequence of APDUs through the real dispatcher.
 eth_add_fuzz_target(fuzz_app
     "${CMAKE_SOURCE_DIR}/invariants/fuzz_globals.zon"
-    ${LEDGER_FUZZ_TLV_MUTATOR_SOURCE})
+    SOURCES ${LEDGER_FUZZ_TLV_MUTATOR_SOURCE})
+
+# Same target built as a clone, where the chain ID checks reject other chains.
+eth_add_fuzz_target(fuzz_app_clone
+    "${CMAKE_SOURCE_DIR}/invariants/fuzz_app_clone.zon"
+    HARNESS fuzz_app
+    DEFINITIONS FUZZ_CHAIN_ID=61
+    SOURCES ${LEDGER_FUZZ_TLV_MUTATOR_SOURCE})
 
 # Internal plugins are driven through the plugin interface rather than an INS,
 # so a fuzzed APDU cannot reach them on its own.

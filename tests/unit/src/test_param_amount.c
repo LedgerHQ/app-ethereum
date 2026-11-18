@@ -1,7 +1,7 @@
 /**
  * @file test_param_amount.c
  * @brief Unit tests for the AMOUNT parameter in
- *        src/features/generic_tx_parser/gtp_param_amount.c.
+ *        src/features/gcs/gcs_param_amount.c.
  *
  * Two layers are exercised:
  *   - handle_param_amount_struct() runs the per-parameter TLV parser. The
@@ -18,7 +18,7 @@
  *
  * Format follows the same conventions as the pre-existing
  * test_param_token_amount / test_param_calldata suites: value_get,
- * value_cleanup, handle_value_struct, get_current_tx_info,
+ * value_cleanup, handle_value_struct, get_current_operation_chain_id,
  * get_displayable_ticker and add_to_field_table are all wrapped via
  * linker --wrap.
  */
@@ -28,11 +28,11 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#include "gtp_param_amount.h"
-#include "gtp_parsed_value.h"
-#include "gtp_value.h"
-#include "gtp_tx_info.h"
-#include "gtp_field.h"
+#include "gcs_param_amount.h"
+#include "gcs_parsed_value.h"
+#include "gcs_value.h"
+#include "operation_info.h"
+#include "gcs_field.h"
 #include "shared_context.h"
 #include "network.h"
 #include "wraps.h"
@@ -57,6 +57,13 @@ bool value_get(const s_value *value, s_parsed_value_collection *collection) {
     return g_vg_ret;
 }
 
+static int g_value_cleanup_calls = 0;
+void value_cleanup(const s_value *value, const s_parsed_value_collection *collection) {
+    (void) value;
+    (void) collection;
+    g_value_cleanup_calls++;
+}
+
 // Used by the TAG_VALUE handler of handle_param_amount_struct.
 static bool g_hvs_ret = true;
 bool handle_value_struct(const buffer_t *buf, s_value_context *context) {
@@ -73,23 +80,36 @@ bool add_to_field_table(e_param_type type,
     return (bool) g_add_to_field_table_ret;
 }
 
-static const s_tx_info *s_tx_info_ret = NULL;
-const s_tx_info *get_current_tx_info(void) {
-    return s_tx_info_ret;
+static int g_root_value_shown_calls = 0;
+void value_set_shown(const s_value *value, uint8_t index) {
+    (void) value;
+    (void) index;
+    g_root_value_shown_calls++;
+}
+
+static const s_operation_info *s_tx_info_ret = NULL;
+bool get_current_operation_chain_id(uint64_t *chain_id) {
+    if (s_tx_info_ret == NULL) {
+        return false;
+    }
+    *chain_id = s_tx_info_ret->chain_id;
+    return true;
 }
 
 // =============================================================================
 // Test fixtures
 // =============================================================================
 
-static s_tx_info g_fake_tx_info;
+static s_operation_info g_fake_tx_info;
 
 static void reset(void) {
     memset(&g_vg, 0, sizeof(g_vg));
     g_vg_call = 0;
+    g_value_cleanup_calls = 0;
     g_vg_ret = true;
     g_hvs_ret = true;
     g_add_to_field_table_ret = true;
+    g_root_value_shown_calls = 0;
     memset(&g_fake_tx_info, 0, sizeof(g_fake_tx_info));
     g_fake_tx_info.chain_id = 1;
     s_tx_info_ret = &g_fake_tx_info;
@@ -126,6 +146,7 @@ void test_format_single_value_ok(void) {
 
     s_param_amount param = {0};
     TEST_ASSERT_TRUE(format_param_amount(&param, "Amount"));
+    TEST_ASSERT_EQUAL_INT(1, g_root_value_shown_calls);
 }
 
 void test_format_multiple_values_iterates(void) {
@@ -163,6 +184,8 @@ void test_format_tx_info_null_returns_false(void) {
 
     s_param_amount param = {0};
     TEST_ASSERT_FALSE(format_param_amount(&param, "Amount"));
+    // The extracted values are released on this early exit too
+    TEST_ASSERT_EQUAL(g_value_cleanup_calls, 1);
 }
 
 void test_format_add_to_field_table_failure_propagates(void) {
@@ -182,6 +205,36 @@ void test_format_add_to_field_table_failure_propagates(void) {
 
     s_param_amount param = {0};
     TEST_ASSERT_FALSE(format_param_amount(&param, "Amount"));
+    // a value that did not make it to the review is not shown
+    TEST_ASSERT_EQUAL_INT(0, g_root_value_shown_calls);
+}
+
+static bool format_amount_of_length(uint16_t length) {
+    static uint8_t amount[256 + 1];
+
+    memset(amount, 0xFF, sizeof(amount));
+    g_vg[0].size = 1;
+    g_vg[0].value[0] =
+        (s_parsed_value) {.ptr = amount, .size = length, .offset = 0, .length = length};
+
+    s_param_amount param = {0};
+    return format_param_amount(&param, "Amount");
+}
+
+void test_format_amount_length_bounds(void) {
+    TEST_ASSERT_FALSE(format_amount_of_length(0));
+    TEST_ASSERT_EQUAL(1, g_value_cleanup_calls);
+    reset();
+    TEST_ASSERT_TRUE(format_amount_of_length(1));
+    reset();
+    TEST_ASSERT_TRUE(format_amount_of_length(INT256_LENGTH));
+    reset();
+    TEST_ASSERT_FALSE(format_amount_of_length(INT256_LENGTH + 1));
+    reset();
+    // 256 would wrap to 0 in amountToString()'s uint8_t length
+    TEST_ASSERT_FALSE(format_amount_of_length(256));
+    reset();
+    TEST_ASSERT_FALSE(format_amount_of_length(256 + 1));
 }
 
 // =============================================================================
@@ -197,13 +250,25 @@ static bool run_tlv(const uint8_t *bytes, size_t size, s_param_amount *param) {
     return handle_param_amount_struct(&buf, &ctx);
 }
 
-void test_tlv_happy_path_sets_version(void) {
-    // VERSION(0x00) [len 1] [0x42], VALUE(0x01) [len 0]
-    const uint8_t bytes[] = {0x00, 0x01, 0x42, 0x01, 0x00};
+void test_tlv_version_other_than_one_refused(void) {
+    uint8_t bytes[] = {0x00, 0x01, 0x01, 0x01, 0x00};
+    const uint8_t other_versions[] = {0x00, 0x02, 0xFF};
     s_param_amount param = {0};
 
     TEST_ASSERT_TRUE(run_tlv(bytes, sizeof(bytes), &param));
-    TEST_ASSERT_EQUAL(param.version, 0x42);
+    for (size_t i = 0; i < sizeof(other_versions); i++) {
+        bytes[2] = other_versions[i];
+        TEST_ASSERT_FALSE(run_tlv(bytes, sizeof(bytes), &param));
+    }
+}
+
+void test_tlv_happy_path_sets_version(void) {
+    // VERSION(0x00) [len 1] [0x01], VALUE(0x01) [len 0]
+    const uint8_t bytes[] = {0x00, 0x01, 0x01, 0x01, 0x00};
+    s_param_amount param = {0};
+
+    TEST_ASSERT_TRUE(run_tlv(bytes, sizeof(bytes), &param));
+    TEST_ASSERT_EQUAL(param.version, 0x01);
 }
 
 void test_tlv_version_wrong_size_rejected(void) {
@@ -257,6 +322,8 @@ int main(void) {
     RUN_TEST(test_format_value_get_failure_returns_false);
     RUN_TEST(test_format_tx_info_null_returns_false);
     RUN_TEST(test_format_add_to_field_table_failure_propagates);
+    RUN_TEST(test_tlv_version_other_than_one_refused);
+    RUN_TEST(test_format_amount_length_bounds);
     RUN_TEST(test_tlv_happy_path_sets_version);
     RUN_TEST(test_tlv_version_wrong_size_rejected);
     RUN_TEST(test_tlv_value_handler_failure_propagates);

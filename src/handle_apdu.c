@@ -5,7 +5,7 @@
 #include "manage_asset_info.h"
 #include "challenge.h"
 #include "cmd_enum_value.h"
-#include "cmd_field.h"
+#include "cmd_tx_field.h"
 #include "cmd_get_gating.h"
 #include "cmd_get_tx_simulation.h"
 #include "cmd_map_entry.h"
@@ -14,8 +14,17 @@
 #include "cmd_safe_account.h"
 #include "cmd_trusted_name.h"
 #include "cmd_tx_info.h"
+#ifdef HAVE_EIP712_V1
 #include "eip712_v1_commands.h"
+#endif  // HAVE_EIP712_V1
+#ifdef HAVE_7702_SUPPORT
 #include "commands_7702.h"
+#endif
+#include "cmd_eip712_v2_schema.h"
+#include "cmd_eip712_v2_values.h"
+#include "cmd_eip712_v2_sign.h"
+#include "cmd_eip712_v2_message_info.h"
+#include "cmd_eip712_v2_field.h"
 
 #ifdef HAVE_ETH2
 #include "withdrawal_index.h"
@@ -77,8 +86,13 @@ uint16_t handleApdu(command_t *cmd, uint32_t *tx) {
                     forget_known_assets();
                     sw = handle_sign_eip712_message_v0(cmd->p1, cmd->data, cmd->lc);
                     break;
+#ifdef HAVE_EIP712_V1
                 case P2_EIP712_V1_IMPLEM:
                     sw = handle_eip712_v1_sign(cmd->data, cmd->lc);
+                    break;
+#endif  // HAVE_EIP712_V1
+                case P2_EIP712_V2_IMPLEM:
+                    sw = handle_eip712_v2_sign(cmd->p1, cmd->p2, cmd->lc);
                     break;
                 default:
                     sw = SWO_WRONG_P1_P2;
@@ -98,18 +112,36 @@ uint16_t handleApdu(command_t *cmd, uint32_t *tx) {
 
         // EIP-712 full implementation: structure definition, instantiation, filtering
         case INS_EIP712_STRUCT_DEF:
-            sw = handle_eip712_v1_struct_def(cmd->p2, cmd->data, cmd->lc);
+            if (cmd->p2 == P2_EIP712_V2_IMPLEM) {
+                sw = handle_eip712_v2_schema(cmd->p1, cmd->p2, cmd->lc, cmd->data);
+            } else {
+#ifdef HAVE_EIP712_V1
+                sw = handle_eip712_v1_struct_def(cmd->p2, cmd->data, cmd->lc);
+#else
+                sw = SWO_WRONG_P1_P2;
+#endif  // HAVE_EIP712_V1
+            }
             break;
 
         case INS_EIP712_STRUCT_IMPL:
-            sw = handle_eip712_v1_struct_impl(cmd->p1, cmd->p2, cmd->data, cmd->lc);
+            if (cmd->p2 == P2_EIP712_V2_IMPLEM) {
+                sw = handle_eip712_v2_values(cmd->p1, cmd->p2, cmd->lc, cmd->data);
+            } else {
+#ifdef HAVE_EIP712_V1
+                sw = handle_eip712_v1_struct_impl(cmd->p1, cmd->p2, cmd->data, cmd->lc);
+#else
+                sw = SWO_WRONG_P1_P2;
+#endif  // HAVE_EIP712_V1
+            }
             break;
 
+#ifdef HAVE_EIP712_V1
         case INS_EIP712_FILTERING:
             sw = handle_eip712_v1_filtering(cmd->p1, cmd->p2, cmd->data, cmd->lc);
             break;
+#endif  // HAVE_EIP712_V1
 
-        // Generic clear-signing protocol (GTP) and trusted data provisioning
+        // Generic clear-signing protocol (GCS) and trusted data provisioning
         case INS_GET_CHALLENGE:
             sw = handle_get_challenge(tx);
             break;
@@ -122,19 +154,27 @@ uint16_t handleApdu(command_t *cmd, uint32_t *tx) {
             sw = handle_enum_value(cmd->p1, cmd->p2, cmd->lc, cmd->data);
             break;
 
-        case INS_GTP_TRANSACTION_INFO:
-            sw = handle_tx_info(cmd->p1, cmd->p2, cmd->lc, cmd->data);
+        case INS_PROVIDE_OPERATION_INFO:
+            if (cmd->p2 == P2_EIP712_V2_IMPLEM) {
+                sw = handle_eip712_v2_message_info(cmd->p1, cmd->p2, cmd->lc, cmd->data);
+            } else {
+                sw = handle_tx_info(cmd->p1, cmd->p2, cmd->lc, cmd->data);
+            }
             break;
 
-        case INS_GTP_FIELD:
-            sw = handle_field(cmd->p1, cmd->p2, cmd->lc, cmd->data);
+        case INS_PROVIDE_OPERATION_FIELD_DESC:
+            if (cmd->p2 == P2_EIP712_V2_IMPLEM) {
+                sw = handle_eip712_v2_field(cmd->p1, cmd->p2, cmd->lc, cmd->data);
+            } else {
+                sw = handle_tx_field(cmd->p1, cmd->p2, cmd->lc, cmd->data);
+            }
             break;
 
         case INS_PROVIDE_PROXY_INFO:
             sw = handle_proxy_info(cmd->p1, cmd->p2, cmd->lc, cmd->data);
             break;
 
-        case INS_PROVIDE_NETWORK_CONFIGURATION:
+        case INS_PROVIDE_NETWORK_INFO:
             sw = handle_network_info(cmd->p1, cmd->p2, cmd->data, cmd->lc, tx);
             break;
 
@@ -144,9 +184,11 @@ uint16_t handleApdu(command_t *cmd, uint32_t *tx) {
             break;
 #endif
 
+#ifdef HAVE_7702_SUPPORT
         case INS_SIGN_EIP7702_AUTHORIZATION:
             sw = handle_sign_eip7702_authorization(cmd->p1, cmd->data, cmd->lc);
             break;
+#endif
 
         case INS_PROVIDE_SAFE_ACCOUNT:
             sw = handle_safe_account(cmd->p1, cmd->p2, cmd->data, cmd->lc);

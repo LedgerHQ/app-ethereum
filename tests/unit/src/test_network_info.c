@@ -78,6 +78,19 @@ network_info_t *find_dynamic_network_by_chain_id(uint64_t chain_id) {
 void clear_icon(void) {
 }
 
+// Strong override of the weak allocator stub, to make an allocation fail
+static bool g_calloc_fails = false;
+bool mem_utils_calloc(void **buffer, size_t size, bool permanent, const char *file, int line) {
+    (void) permanent;
+    (void) file;
+    (void) line;
+    if (g_calloc_fails || ((*buffer = malloc(size)) == NULL)) {
+        return false;
+    }
+    memset(*buffer, 0, size);
+    return true;
+}
+
 // =============================================================================
 // TLV payload builder
 // =============================================================================
@@ -179,6 +192,7 @@ static void reset(void) {
     s_sig_check_ret = true;
     s_finalize_hash_ret = true;
     g_existing_network_ret = NULL;
+    g_calloc_fails = false;
 }
 
 // =============================================================================
@@ -369,6 +383,34 @@ void test_duplicate_chain_id_replaces_existing(void) {
     TEST_ASSERT_EQUAL_STRING(g_last_added_network->ticker, "POL");
 }
 
+// A replacement that cannot be allocated keeps the network already registered
+void test_duplicate_chain_id_alloc_failure_keeps_existing(void) {
+    uint8_t tlv[300];
+    s_opts opts = {.struct_type = 0x08,
+                   .struct_version = 0x01,
+                   .blockchain_family = 0x01,
+                   .chain_id = 137,
+                   .name = "Polygon",
+                   .ticker = "MATIC",
+                   .include_icon_hash = false,
+                   .sig_len = 16};
+    size_t len = build_tlv(tlv, sizeof(tlv), opts);
+    TEST_ASSERT_TRUE(run(tlv, len));
+    network_info_t *first = g_last_added_network;
+    TEST_ASSERT_NOT_NULL(first);
+
+    g_existing_network_ret = first;
+    g_calloc_fails = true;
+    opts.name = "Polygon (renamed)";
+    len = build_tlv(tlv, sizeof(tlv), opts);
+    TEST_ASSERT_FALSE(run(tlv, len));
+    g_calloc_fails = false;
+
+    // The registered network is untouched and still listed
+    TEST_ASSERT_EQUAL_STRING("Polygon", first->name);
+    TEST_ASSERT_EQUAL_PTR(first, (network_info_t *) g_dynamic_network_list);
+}
+
 void test_network_info_cleanup_releases_all(void) {
     uint8_t tlv[300];
     s_opts opts = {.struct_type = 0x08,
@@ -421,6 +463,7 @@ int main(void) {
     RUN_TEST(test_signature_too_short_rejected);
     RUN_TEST(test_missing_required_field_rejected);
     RUN_TEST(test_duplicate_chain_id_replaces_existing);
+    RUN_TEST(test_duplicate_chain_id_alloc_failure_keeps_existing);
     RUN_TEST(test_network_info_cleanup_releases_all);
     return UNITY_END();
 }
